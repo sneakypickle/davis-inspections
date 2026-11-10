@@ -160,7 +160,7 @@
   </header>
 
   <!-- Main Content Container -->
-  <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-6 pb-12">
+  <main id="mainContentContainer" class="flex-grow max-w-6xl w-full mx-auto px-4 py-6 pb-12">
 
     <!-- Toast Notification Banner -->
     <div id="toastBanner" class="hidden fixed bottom-5 right-5 left-5 sm:left-auto sm:max-w-md z-50 rounded-xl shadow-xl border p-4 transition-all duration-300 bg-slate-900 text-white border-slate-700">
@@ -959,18 +959,18 @@
 
     <!-- ================================================================= -->
     <!-- ================================================================= -->
-    <!-- PAGE 8.5: EMBEDDED HOMEGAUGE CLIENT PORTAL LOGIN (WITH HEADER)    -->
+    <!-- PAGE 8.5: EMBEDDED HOMEGAUGE CLIENT PORTAL LOGIN (FULL-WINDOW)    -->
     <!-- ================================================================= -->
-    <div id="page-portal" class="hidden max-w-5xl mx-auto space-y-4">
-      <!-- Portal Sub-Header / Control Bar -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-davis-light text-davis-navy flex items-center justify-center shrink-0">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+    <div id="page-portal" class="hidden flex-grow flex flex-col w-full bg-white">
+      <!-- Slim Full-Width Portal Control Bar -->
+      <div class="bg-white border-b border-slate-200 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shrink-0 shadow-sm">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-davis-light text-davis-navy flex items-center justify-center shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
           </div>
           <div>
-            <h1 class="text-base sm:text-lg font-extrabold text-slate-900">HomeGauge Client &amp; Agent Portal</h1>
-            <p class="text-xs text-slate-500">Sign your inspection agreement, view your digital report, or download your PDF.</p>
+            <h1 class="text-sm sm:text-base font-extrabold text-slate-900 leading-tight">HomeGauge Client &amp; Agent Portal</h1>
+            <p class="text-[11px] text-slate-500 hidden sm:block">Sign your inspection agreement, view your digital report, or download your PDF.</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -978,7 +978,7 @@
             href="https://www.homegauge.com/shgi/Matt.Davis"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 hover:text-davis-navy text-xs font-semibold transition"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 hover:text-davis-navy text-xs font-semibold transition"
             title="Open in new window if preferred"
           >
             <span>Open in Full Tab ↗</span>
@@ -987,20 +987,21 @@
             type="button"
             id="portalBackHomeBtn"
             onclick="navigatePage('home', false)"
-            class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
+            class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
           >
             ← Back to Website
           </button>
         </div>
       </div>
 
-      <!-- Embedded Portal Container -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+      <!-- Full-Height & Full-Width Embedded Portal Container -->
+      <div class="flex-grow flex flex-col w-full relative overflow-hidden">
         <iframe
           id="homegaugePortalFrame"
           src="https://www.homegauge.com/shgi/Matt.Davis"
           title="HomeGauge Client Portal Login"
-          class="w-full h-[680px] sm:h-[780px] border-0"
+          class="w-full flex-grow border-0"
+          style="height: calc(100vh - 54px); min-height: 640px;"
           loading="lazy"
         ></iframe>
       </div>
@@ -1914,13 +1915,21 @@ function submitInspectionQuoteRequest(payload) {
         }
       });
 
-      // Hide the main header (logo & nav links) on the Client Portal page while keeping the Portal bar ("Open in Full Tab" / "Back to Website")
+      // Hide the main header (logo & nav links) and make main container full-bleed on the Client Portal page
       const mainHeader = document.getElementById('mainSiteHeader');
+      const mainContainer = document.getElementById('mainContentContainer');
       if (mainHeader) {
         if (pageKey === 'portal') {
           mainHeader.classList.add('hidden');
         } else {
           mainHeader.classList.remove('hidden');
+        }
+      }
+      if (mainContainer) {
+        if (pageKey === 'portal') {
+          mainContainer.className = 'flex-grow flex flex-col w-full p-0 m-0';
+        } else {
+          mainContainer.className = 'flex-grow max-w-6xl w-full mx-auto px-4 py-6 pb-12';
         }
       }
 
