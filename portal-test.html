@@ -81,6 +81,20 @@
   <script src="https://web.squarecdn.com/v1/square.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <style>
+    @media print {
+      header, nav, footer, .no-print { display: none !important; }
+      body { background: #ffffff !important; color: #0f172a !important; }
+      #dhiReportCoverPage { display: block !important; page-break-after: always; break-after: page; border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
+      #dhiCommentKeyCard { display: block !important; border: 1px solid #cbd5e1 !important; box-shadow: none !important; page-break-inside: avoid; }
+      #dhiCommentKeyBody { display: block !important; }
+      .dhi-sop-details { display: block !important; border: none !important; background: transparent !important; padding: 0 !important; }
+      .dhi-sop-details summary { display: none !important; }
+      .dhi-sop-body { display: block !important; font-size: 8.5pt !important; line-height: 1.35 !important; color: #475569 !important; }
+      .dhi-print-section { page-break-inside: auto; box-shadow: none !important; }
+      .dhi-print-card { page-break-inside: avoid; break-inside: avoid; }
+    }
+  </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -4054,6 +4068,101 @@ function submitInspectionQuoteRequest(payload) {
       }
     }
 
+
+    function dhiFormatSewerTextMessage(insp) {
+      if (!insp) return '';
+      const pInfo = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
+      const parsed = dhiParseAddrParts(insp.address || '');
+      const street = (pInfo.street || parsed.street || '').trim();
+      const city = (pInfo.city || parsed.city || '').trim();
+      const zip = (pInfo.zip || parsed.zip || '').trim();
+      const addrShort = [street, city, zip].filter(Boolean).join(', ') || String(insp.address || '').trim();
+
+      const rawDateStr = String(insp.date || '').trim();
+      let timeStr = '';
+      const tm = rawDateStr.match(/(\d{1,2}:\d{2}\s*(?:AM|PM))/i);
+      if (tm) timeStr = tm[1].toUpperCase().replace(/\s+/, ' ');
+
+      // Strip time & separators to parse the calendar date reliably
+      let datePart = rawDateStr
+        .replace(/\bat\s+\d{1,2}:\d{2}\s*(?:AM|PM)\b/i, '')
+        .replace(/[•|,-]\s*\d{1,2}:\d{2}\s*(?:AM|PM)\b/i, '')
+        .replace(/\d{1,2}:\d{2}\s*(?:AM|PM)\b/i, '')
+        .replace(/[•|]+/g, ' ')
+        .trim();
+
+      let niceDate = datePart;
+      if (datePart) {
+        let dt = null;
+        const isoM = datePart.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (isoM) {
+          dt = new Date(Number(isoM[1]), Number(isoM[2]) - 1, Number(isoM[3]));
+        } else {
+          const parsedMs = Date.parse(datePart);
+          if (!isNaN(parsedMs)) dt = new Date(parsedMs);
+        }
+        if (dt && !isNaN(dt.getTime())) {
+          niceDate = dt.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+        }
+      }
+
+      if (niceDate && timeStr) return `Can we do ${addrShort} on ${niceDate} at ${timeStr}?`;
+      if (niceDate) return `Can we do ${addrShort} on ${niceDate}?`;
+      return `Can we do ${addrShort}?`;
+    }
+
+    async function dhiCopyTextToClipboard(text) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (_e) {}
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        return true;
+      } catch (_e) {
+        return false;
+      }
+    }
+
+    async function protoCopySewerText(inspId) {
+      const insp = (protoState.inspections || []).find(i => i.id === inspId);
+      if (!insp) return;
+      const msg = dhiFormatSewerTextMessage(insp);
+      await dhiCopyTextToClipboard(msg);
+      protoToastMsg('Copied for Mainline: ' + msg);
+    }
+
+    async function protoOpenBuyerPermitLookup(inspId) {
+      const insp = (protoState.inspections || []).find(i => i.id === inspId);
+      if (!insp) return;
+      const pInfo = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
+      const parsed = dhiParseAddrParts(insp.address || '');
+      const streetToCopy = (pInfo.street || parsed.street || insp.address || '').trim();
+      const pLink = dhiBuildPermitLink({
+        address: insp.address,
+        street: pInfo.street || '',
+        city: pInfo.city || '',
+        county: pInfo.county || ''
+      });
+      const targetUrl = (pLink.label === 'PPRBD Permits')
+        ? 'https://account.pprbd.org/publicaccess/AddressSearch.aspx'
+        : pLink.url;
+      if (streetToCopy) {
+        await dhiCopyTextToClipboard(streetToCopy);
+        protoToastMsg('Copied "' + streetToCopy + '" — paste it into the permit search page.');
+      }
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
+
     function renderAdminHTML() {
       const realInspections = protoState.inspections.filter(i => !i.isDemo);
       const scheduledInspections = realInspections.filter(i => !i.reportNotified);
@@ -4073,7 +4182,7 @@ function submitInspectionQuoteRequest(payload) {
         <button type="button" onclick="protoState.adminTab='${t.id}'; renderProtoPortal();" class="px-3.5 py-2 rounded-xl text-xs font-bold transition ${protoState.adminTab === t.id ? 'bg-davis-navy text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-700 hover:border-davis-navy'}">${t.label}</button>
       `).join('');
 
-      const renderInspTableRows = (list) => list.map(insp => {
+      const renderInspTableRows = (list, isScheduled = false) => list.map(insp => {
         const total = insp ? protoTotal(insp) : 0;
         const docBadges = (insp.extraDocs || []).map(d => `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">${d.title}</span>`).join('');
         const pInfo = insp.propertyInfo || {};
@@ -4135,6 +4244,13 @@ function submitInspectionQuoteRequest(payload) {
                 <button type="button" onclick="protoAttachExtraPdf('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">+ Attach PDF</button>
                 <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Open Report</button>
                 ${(insp.agreementRequired !== false && insp.agreementSigned) ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold transition">Signed PDF</button>` : ''}
+                ${isScheduled ? (() => {
+                  const hasSewer = (insp.services || []).some(s => String(s && s.name || '').toLowerCase().includes('sewer'));
+                  const btnCls = hasSewer
+                    ? 'border-teal-300 bg-teal-50 hover:border-teal-600 text-teal-800'
+                    : 'border-slate-300 bg-slate-50 hover:border-davis-navy text-slate-700';
+                  return `<button type="button" onclick="protoCopySewerText('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border ${btnCls} text-xs font-bold transition">Copy Sewer Text</button>`;
+                })() : ''}
                 ${insp.gcalUrl ? `<a href="${insp.gcalUrl}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 text-sky-800 text-xs font-bold transition">Google Calendar &nearr;</a>` : ''}
                 <button type="button" onclick="protoRequestDelete('inspection', '${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Delete</button>
               </div>
@@ -4176,7 +4292,7 @@ function submitInspectionQuoteRequest(payload) {
                       <th class="pb-2 pl-2 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>${renderInspTableRows(scheduledInspections)}</tbody>
+                  <tbody>${renderInspTableRows(scheduledInspections, true)}</tbody>
                 </table>
               </div>
             ` : `
@@ -4205,7 +4321,7 @@ function submitInspectionQuoteRequest(payload) {
                       <th class="pb-2 pl-2 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>${renderInspTableRows(releasedReports)}</tbody>
+                  <tbody>${renderInspTableRows(releasedReports, false)}</tbody>
                 </table>
               </div>
             ` : `
@@ -5818,6 +5934,76 @@ function submitInspectionQuoteRequest(payload) {
       return `${num}. [Item ${tag} – ${finding.title}]: Seller to have a ${finding.trade} ${finding.repairAction}, and provide paid invoice prior to closing.`;
     }
 
+
+    const DHI_SECTION_SOP = {
+      'Roofing': {
+        intro: 'Observed: roof coverings, roof drainage systems, flashings, skylights, chimneys, roof penetrations, and signs of leaks or abnormal condensation. Described: roof covering materials and the method used to observe the roof. Not required: walking on the roof surface or inspecting attached accessories such as solar systems, antennas, or lightning arrestors.',
+        footer: 'While every effort is made to identify areas of concern, some defects can remain concealed. Roof coverings and skylights may appear leak-free during dry weather or at the time of inspection. Review all recommended repairs before closing and have a qualified roofing contractor evaluate or repair any noted items.'
+      },
+      'Exterior': {
+        intro: 'Observed: wall cladding, flashings, trim, entryway doors, a representative number of windows, garage door operators, decks, balconies, stoops, steps, areaways, porches, railings, eaves, soffits, fascias, and site vegetation, grading, drainage, driveways, patios, walkways, and retaining walls where they affect the building. Operated: entryway doors, a representative number of windows, and garage doors (checking automatic reverse safety). Probed exterior wood where deterioration was suspected. Not required: storm doors or windows, screens, shutters, awnings, fences, safety glazing verification, remote transmitters, soil or geological conditions, recreational facilities, detached structures, buried fuel tanks, or moving personal items, snow, ice, or debris.',
+        footer: 'The exterior was inspected visually from accessible areas; concealed or obstructed components may go unnoticed. Review all noted items before closing and consult qualified contractors for further evaluation or repairs.'
+      },
+      'Garage': {
+        intro: 'Observed: accessible garage ceilings, walls (including firewall separation where visible), floor, vehicle doors, occupant entry door, and garage door operators including automatic reverse safety response. Not required: testing remote transmitters or moving stored personal items and vehicles that obstruct visibility.',
+        footer: 'Stored belongings, vehicles, and finished wall or ceiling surfaces can limit visibility inside the garage. Consult qualified contractors for further evaluation or repair of any noted items before closing.'
+      },
+      'Interiors': {
+        intro: 'Observed: walls, ceilings, floors, steps, stairways, balconies, railings, countertops, and a representative number of installed cabinets, doors, and windows. Operated: a representative number of interior doors and windows, and reported signs of abnormal water penetration or condensation. Not required: evaluating paint, wallpaper, finish treatments, carpeting, draperies, blinds, or other window coverings.',
+        footer: 'This visual inspection did not involve moving furniture, area rugs, or personal belongings, so concealed areas were not observed. Review all noted items before closing and use qualified contractors for further evaluation or repairs.'
+      },
+      'Structural Components': {
+        intro: 'Observed: visible structural components including foundations, floors, walls, columns or piers, ceilings, and roof framing. Described: structural framing and foundation types, plus the methods used to inspect crawlspaces and attics. Probed structural wood where deterioration was suspected and entered accessible crawlspaces, basements, and attics when safe and unobstructed. Not required: entering unsafe or obstructed areas or performing procedures that could damage the property or risk safety.',
+        footer: 'Structural evaluation is limited to readily visible and accessible framing and foundation surfaces; concealed structural components cannot be verified. Consult a qualified structural specialist or contractor regarding any noted concerns before closing.'
+      },
+      'Plumbing System': {
+        intro: 'Observed: interior water supply and distribution piping, supports, insulation, fixtures, faucets, functional flow, leaks, cross-connections, drain/waste/vent piping, traps, functional drainage, water heating equipment and controls, flues and vents, interior fuel piping, and sump pumps. Described: supply and DWV piping materials, water heating equipment, and main water shutoff location. Operated all accessible plumbing fixtures and exterior hose bibs not connected to appliances. Not required: verifying anti-siphon effectiveness, determining public vs. private utilities, operating automatic safety controls or shutoff valves (other than toilet flush valves and faucets), or inspecting water softeners/conditioners, fire or lawn sprinklers, well quantity/quality, septic systems, pools, solar water heaters, or engineering sizing.',
+        footer: 'Washing machine drain lines cannot be tested under full discharge volume, and older galvanized supply or cast-iron drain lines may perform marginally during an inspection before clogging under normal household use or after sitting vacant. Running fixtures checks basic flow, not main sewer line condition; only a sewer camera scope can confirm line condition or detect root intrusion. Ask the seller about any past drainage history, consider a main sewer scope before closing, and consult a licensed plumber for any noted repairs. No attempt was made to locate buried cleanout caps.'
+      },
+      'Electrical System': {
+        intro: 'Observed: service entrance conductors, service and grounding equipment, main overcurrent device, main and distribution panels, service amperage and voltage ratings, branch circuit conductors and overcurrent compatibility, a representative number of ceiling fans, lights, switches, and receptacles, polarity and grounding of receptacles near plumbing, in garages, and on exteriors, GFCI operation, and smoke detectors. Described: service amperage, voltage, conductor materials, overhead vs. underground service, panel locations, and any observed aluminum branch wiring. Not required: inserting probes into panels, tripping breakers (other than GFCIs), dismantling devices beyond removing panel covers, or inspecting low-voltage, security, carbon monoxide/heat central systems, phone, cable, intercom, or built-in vacuum wiring.',
+        footer: 'Electrical inspection is visual and non-invasive; receptacles were not removed from boxes and outlets blocked by furniture or appliances (such as behind the refrigerator) were not tested. Have a licensed electrician evaluate or repair any noted electrical items before closing.'
+      },
+      'Heating / Central Air Conditioning': {
+        intro: 'Observed: permanently installed heating and central cooling equipment, normal operating controls, automatic safety controls, readily visible chimneys, flues, and vents, solid-fuel heating devices, distribution fans, pumps, ducts, piping, insulation, filters, registers, and installed heat sources in each room. Described: energy source, equipment type, and distribution type. Operated systems via normal controls and opened routine homeowner maintenance panels. Not required: operating equipment when weather or conditions could cause damage, testing automatic safety controls, lighting solid-fuel fires, or inspecting flue interiors, fireplace insert connections, humidifiers, electronic air cleaners, or room-by-room heat uniformity.',
+        footer: 'This inspection is not technically exhaustive and does not include dismantling equipment or removing sealed service panels beyond routine access doors. Have a licensed HVAC contractor perform a full service evaluation or address any noted defects before closing.'
+      },
+      'Insulation and Ventilation': {
+        intro: 'Observed: insulation and vapor retarders in unfinished spaces, attic and foundation ventilation, kitchen, bath, and laundry exhaust venting, and readily accessible attic fans or thermostatic controls when temperatures permit. Described: insulation types and any absence of insulation at unfinished conditioned surfaces. Not required: reporting on concealed insulation or vapor retarders, or venting integral to household appliances.',
+        footer: 'Only visible insulation was inspected. Exhaust fan and clothes dryer ducts concealed behind walls or ceilings cannot be fully inspected for hidden bends, disconnections, or obstructions. Consult a qualified contractor for any noted items before closing.'
+      },
+      'Built-In Kitchen Appliances': {
+        intro: 'Observed and operated basic functions of permanently installed dishwashers (normal cycle), ranges, cooktops, ovens, trash compactors, garbage disposals, range hoods, and built-in microwaves. Not required: testing clocks, timers, self-cleaning cycles, oven thermostat calibration, non-built-in appliances, refrigerators, appliances currently in use, or inoperable/shut-down units.',
+        footer: 'Built-in appliances were tested for basic operation at the time of inspection only; long-term reliability and calibration are not guaranteed. Consult a qualified appliance technician for any noted items before closing.'
+      },
+      'Swimming Pools, Equipment and Safety': {
+        intro: 'Pool safety notice: Swimming pools present serious drowning risks, especially for young children. Proper perimeter fencing, self-closing and self-latching gates, and pool or door alarms are critical safety layers.',
+        footer: 'Unless noted otherwise, pool water was not tested for bacteria or chemical quality. Review all noted pool equipment and safety items before closing and consult a qualified pool specialist for further evaluation or repairs.'
+      }
+    };
+
+    function dhiGetSectionSop(secName) {
+      if (!secName) return null;
+      if (DHI_SECTION_SOP[secName]) return DHI_SECTION_SOP[secName];
+      const lower = String(secName).toLowerCase();
+      for (const [k, v] of Object.entries(DHI_SECTION_SOP)) {
+        if (lower.includes(k.toLowerCase()) || k.toLowerCase().includes(lower)) return v;
+      }
+      return null;
+    }
+
+    function dhiPrintInspectionReport() {
+      const details = Array.from(document.querySelectorAll('.dhi-sop-details'));
+      const prevStates = details.map(d => d.open);
+      details.forEach(d => { d.open = true; });
+      const restore = () => {
+        details.forEach((d, idx) => { d.open = prevStates[idx]; });
+        window.removeEventListener('afterprint', restore);
+      };
+      window.addEventListener('afterprint', restore);
+      window.print();
+    }
+
     function renderReportViewerHTML() {
       const insp = protoGetActiveInsp();
       const extraDocs = insp.extraDocs || [];
@@ -5835,7 +6021,7 @@ function submitInspectionQuoteRequest(payload) {
       `).join('');
 
       const headerAndDocsBar = `
-        <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm no-print">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
               <div class="flex flex-wrap items-center gap-3 mb-0.5">
@@ -5845,21 +6031,26 @@ function submitInspectionQuoteRequest(payload) {
               </div>
               <div class="flex items-center gap-3">${insp.coverPhotoUrl ? `<img src="${insp.coverPhotoUrl}" alt="${escapeHtml(insp.address)}" class="w-20 h-14 rounded-lg object-cover border border-slate-200 shrink-0" />` : ''}<h2 class="text-lg font-extrabold text-slate-900">${insp.address}</h2></div>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2 no-print">
               ${(() => {
+                const isDemoInsp = !!(protoState.demoMode || insp.id === 'insp-demo');
                 const pInfo = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
-                const share = pInfo.permitShare || {};
+                const share = isDemoInsp ? { buyer: false, agent: true } : (pInfo.permitShare || {});
                 const isAdminRole = protoState.role === 'admin';
                 const isAgentRole = protoState.role === 'agent';
                 const isBuyerRole = protoState.role === 'buyer';
                 const canSeePermit = isAdminRole || (isAgentRole && !!share.agent) || (isBuyerRole && !!share.buyer);
                 if (!canSeePermit) return '';
-                if (protoState.demoMode || insp.id === 'insp-demo') {
-                  return `<button type="button" onclick="protoToastMsg('Permit lookup is not available in the interactive demo. On live inspections, this links directly to the property\'s PPRBD or county permit page.')" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</button>`;
+                if (isDemoInsp) {
+                  return `<button type="button" onclick="protoToastMsg('Permit lookup is not available in the interactive demo. On live inspections, this links directly to the PPRBD or county permit page for the home.')" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</button>`;
+                }
+                if (isBuyerRole) {
+                  return `<button type="button" onclick="protoOpenBuyerPermitLookup('${insp.id}')" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</button>`;
                 }
                 const pLink = dhiBuildPermitLink({ address: insp.address, street: pInfo.street || '', city: pInfo.city || '', county: pInfo.county || '' });
                 return `<a href="${pLink.url}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</a>`;
               })()}
+              ${protoState.activeDocTab === 'main' ? `<button type="button" onclick="dhiPrintInspectionReport()" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Print / Save PDF</button>` : ''}
               ${protoState.activeDocTab === 'main' ? `<button type="button" onclick="document.getElementById('objectionListPanel')?.scrollIntoView({behavior:'smooth', block:'start'})" class="px-3 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Jump to Objection List &darr;</button>` : ''}
             </div>
           </div>
@@ -6064,14 +6255,27 @@ function submitInspectionQuoteRequest(payload) {
           `;
         }).join('');
 
+        const sop = dhiGetSectionSop(sec.name);
         return `
-          <div class="space-y-3 pt-2">
+          <div class="space-y-3 pt-2 dhi-print-section">
             <div class="bg-slate-900 text-white rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-2">
               <h3 class="text-sm sm:text-base font-extrabold tracking-tight">${sec.num}. ${sec.name}</h3>
               <span class="text-[11px] font-bold text-sky-300">${secItems.length} ${secItems.length === 1 ? 'item' : 'items'}</span>
             </div>
+            ${sop && sop.intro ? `
+              <details class="dhi-sop-details px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-500">
+                <summary class="cursor-pointer select-none font-semibold text-slate-500 hover:text-davis-navy">Scope &amp; standards of practice &#9662;</summary>
+                <p class="dhi-sop-body mt-1.5 leading-relaxed text-slate-500">${escapeHtml(sop.intro)}</p>
+              </details>
+            ` : ''}
             ${smChips ? `<div class="flex flex-wrap gap-1.5 px-1">${smChips}</div>` : ''}
             <div class="space-y-3">${cardsHTML}</div>
+            ${sop && sop.footer ? `
+              <details class="dhi-sop-details px-3 py-1.5 rounded-xl bg-slate-50/70 border border-slate-200/80 text-[11px] text-slate-500">
+                <summary class="cursor-pointer select-none font-semibold text-slate-500 hover:text-davis-navy">Section limitations &amp; notes &#9662;</summary>
+                <p class="dhi-sop-body mt-1.5 leading-relaxed text-slate-500">${escapeHtml(sop.footer)}</p>
+              </details>
+            ` : ''}
           </div>
         `;
       }).join('');
@@ -6107,11 +6311,85 @@ function submitInspectionQuoteRequest(payload) {
         `;
       }).join('');
 
+      const coverPInfo = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
+      const coverSpecs = [
+        ['Inspection Date', insp.date || ''],
+        ['Prepared For', insp.clientName || ''],
+        ['Real Estate Agent', insp.agentName || ''],
+        ['Type of Building', coverPInfo.buildingType || ''],
+        ['Year Built', coverPInfo.yearBuilt || ''],
+        ['Square Footage', coverPInfo.sqft || ''],
+        ['In Attendance', coverPInfo.inAttendance || ''],
+        ['County', coverPInfo.county || ''],
+        ['MLS #', coverPInfo.mls || '']
+      ].filter(([, v]) => String(v || '').trim());
+
+      const coverPageHTML = `
+        <div id="dhiReportCoverPage" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-5 py-3 bg-davis-navy text-white flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-widest text-sky-300">Home Inspection Report</div>
+              <div class="text-base font-extrabold tracking-tight">Davis Home Inspections, LLC</div>
+            </div>
+            <div class="flex items-center gap-3 text-[11px] text-sky-100">
+              <span>Matt Davis &bull; Matt@Davis-Inspections.com &bull; (719) 203-9262</span>
+              <button type="button" onclick="protoState.hideReportCover=!protoState.hideReportCover; renderProtoPortal();" class="no-print px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[11px] font-bold transition">${protoState.hideReportCover ? 'Show Cover' : 'Hide Cover'}</button>
+            </div>
+          </div>
+          <div class="${protoState.hideReportCover ? 'hidden print:block' : ''} p-5">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+              ${insp.coverPhotoUrl ? `
+                <div class="md:col-span-6">
+                  <img src="${insp.coverPhotoUrl}" alt="${escapeHtml(insp.address)}" class="w-full max-h-72 object-cover rounded-xl border border-slate-200 shadow-sm" />
+                </div>
+              ` : ''}
+              <div class="${insp.coverPhotoUrl ? 'md:col-span-6' : 'md:col-span-12'} space-y-3">
+                <div>
+                  <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Inspected Property</div>
+                  <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 leading-tight mt-0.5">${escapeHtml(insp.address)}</h2>
+                </div>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2 pt-2 border-t border-slate-100 text-xs">
+                  ${coverSpecs.map(([k, v]) => `
+                    <div>
+                      <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${escapeHtml(k)}</div>
+                      <div class="font-semibold text-slate-800">${escapeHtml(v)}</div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      const commentKeyHTML = `
+        <div id="dhiCommentKeyCard" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-extrabold text-slate-800">Comment Key &amp; Definitions</span>
+              <span class="text-[11px] text-slate-500">IN = Inspected &bull; NI = Not Inspected &bull; NP = Not Present &bull; RR = Repair or Replace</span>
+            </div>
+            <button type="button" onclick="protoState.hideCommentKey=!protoState.hideCommentKey; renderProtoPortal();" class="no-print px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy text-[11px] font-bold text-slate-600">${protoState.hideCommentKey ? 'Show' : 'Hide'}</button>
+          </div>
+          <div id="dhiCommentKeyBody" class="${protoState.hideCommentKey ? 'hidden' : ''} px-4 py-3 space-y-2 text-[11px] text-slate-600">
+            <p class="leading-relaxed">Consider all inspector comments before purchasing the home. Any recommendation to repair or replace suggests further evaluation or service by a qualified contractor prior to closing.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              <div class="p-2 rounded-lg bg-emerald-50/60 border border-emerald-200"><strong class="text-emerald-900">Inspected (IN):</strong> Visually observed and appeared to function as intended, allowing for normal wear and tear.</div>
+              <div class="p-2 rounded-lg bg-rose-50/60 border border-rose-200"><strong class="text-rose-900">Not Inspected (NI):</strong> Item was not inspected; no representation is made regarding its condition, and the reason is noted.</div>
+              <div class="p-2 rounded-lg bg-slate-50 border border-slate-200"><strong class="text-slate-800">Not Present (NP):</strong> This item, component, or system is not present in the home or building.</div>
+              <div class="p-2 rounded-lg bg-amber-50/80 border border-amber-200"><strong class="text-amber-900">Repair or Replace (RR):</strong> Not functioning as intended or requires further evaluation by a qualified contractor.</div>
+            </div>
+          </div>
+        </div>
+      `;
+
       return `
         <div class="space-y-4">
           ${headerAndDocsBar}
+          ${coverPageHTML}
+          ${commentKeyHTML}
 
-          <div class="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-3 shadow-sm">
+          <div class="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-3 shadow-sm no-print">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="flex flex-wrap items-center gap-2">
                 ${!isBuyerView ? `
@@ -6132,7 +6410,7 @@ function submitInspectionQuoteRequest(payload) {
                   : `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-900 text-white"><span class="w-2 h-2 rounded-full" style="background:${dhiGetLiveCollabColor()}"></span>Live Co-Viewing: ${escapeHtml(dhiGetLiveCollabLabel())}</span>`}
               </div>
             </div>
-            <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <div class="flex flex-wrap items-center gap-1.5">
               ${sectionPills}
             </div>
           </div>
