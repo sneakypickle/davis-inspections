@@ -1326,7 +1326,7 @@
               I confirm that the property address entered above is accurate and authorize <strong>Davis Home Inspections, LLC</strong> to arrange the selected additional inspection services indicated on this form.
             </p>
             <p class="text-xs text-slate-500">
-              <strong>Payment &amp; Report Release Policy:</strong> Inspection reports are accessible once the HomeGauge inspection agreement is signed and payment is completed. Square sends an electronic invoice after the inspection concludes (please check your junk/spam folder if it does not arrive on the day of the inspection).
+              <strong>Payment &amp; Report Release Policy:</strong> Inspection reports are accessible through your Davis Home Inspections customer portal once your inspection agreement is signed and payment is completed via our secure in-site Square checkout after the inspection concludes.
             </p>
           </div>
 
@@ -5043,6 +5043,12 @@ function submitInspectionQuoteRequest(payload) {
                     <div>No payment is due yet in case services are added or removed during the inspection. Once your report is ready, you can pay right here with Card, Apple Pay, or Google Pay.</div>
                     ${protoState.demoMode ? `<button type="button" onclick="protoReleaseReport('${insp.id}')" class="mt-1 px-3 py-1.5 rounded-lg bg-amber-900 text-white text-[11px] font-bold">Demo: Simulate Post-Inspection Release</button>` : ''}
                   </div>
+                ` : (total <= 0 ? `
+                  <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-xs text-emerald-900 space-y-3">
+                    <div class="font-bold text-sm">No Balance Due ($0.00)</div>
+                    <div>Your balance is covered. Click below to unlock your inspection reports immediately.</div>
+                    <button type="button" onclick="protoUnlockZeroBalance()" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-extrabold shadow transition">Unlock Reports ($0.00 Balance)</button>
+                  </div>
                 ` : `
                   <div class="space-y-3">
                     <div class="p-3.5 rounded-xl border border-slate-300 bg-slate-50 space-y-2.5">
@@ -5059,7 +5065,7 @@ function submitInspectionQuoteRequest(payload) {
                     </div>
                     <button type="button" id="dhiSquarePayBtn" onclick="protoPaySquare()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-extrabold shadow transition">Pay $${total.toFixed(2)} &amp; Unlock Reports</button>
                   </div>
-                `)}
+                `))}
               </div>
 
               ${(insp.extraDocs && insp.extraDocs.length) ? `
@@ -5139,6 +5145,25 @@ function submitInspectionQuoteRequest(payload) {
         console.error('Square card init error:', err);
         if (statusEl) { statusEl.textContent = 'Unable to load card form: ' + (err.message || err); statusEl.classList.remove('hidden'); }
       }
+    }
+
+    async function protoUnlockZeroBalance() {
+      const insp = protoGetActiveInsp();
+      if (!insp) return;
+      if (dhiIsLiveSession() && insp.id && insp.id !== 'insp-demo') {
+        const { error } = await dhiSupabase.from('inspections').update({
+          paid: true,
+          paid_at: new Date().toISOString()
+        }).eq('id', insp.id);
+        if (error) {
+          protoToastMsg('Could not unlock report: ' + error.message);
+          return;
+        }
+      }
+      insp.paid = true;
+      insp.paidAt = new Date().toISOString();
+      renderProtoPortal();
+      protoToastMsg('Reports unlocked!');
     }
 
     async function protoPaySquare() {
@@ -5605,7 +5630,7 @@ function submitInspectionQuoteRequest(payload) {
           </div>
 
           <div class="space-y-4">
-            ${sectionsHTML || '<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-500">No summary items in this section — switch to All Report Items or choose All Sections above.</div>'}
+            ${sectionsHTML || ((protoState.findings || []).length ? '<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-500">No summary items in this section — switch to All Report Items or choose All Sections above.</div>' : '<div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No main home inspection report has been uploaded for this property yet.</div>')}
           </div>
 
           <div id="objectionListPanel" class="bg-white rounded-2xl border-2 border-davis-navy/20 shadow-sm p-5 space-y-4 mt-6">
@@ -5647,18 +5672,30 @@ function submitInspectionQuoteRequest(payload) {
       }
     }
 
-    function protoAddDocComment(docId) {
+    async function protoAddDocComment(docId) {
       const input = document.getElementById('docCommentInput-' + docId);
       if (!input || !input.value.trim()) return;
+      const text = input.value.trim();
+      const authorLabel = dhiGetLiveCollabLabel();
+      const color = dhiGetLiveCollabColor();
       const insp = protoGetActiveInsp();
       const doc = (insp.extraDocs || []).find(d => d.id === docId);
       if (doc) {
-        doc.comments.push({
-          author: protoState.activeCollaborator,
-          color: COLLAB_COLORS[protoState.activeCollaborator] || '#0f172a',
-          text: input.value.trim()
-        });
+        doc.comments = doc.comments || [];
+        doc.comments.push({ author: authorLabel, color, text });
         renderProtoPortal();
+        if (dhiIsLiveSession() && protoState.activeInspectionId && protoState.activeInspectionId !== 'insp-demo' && !String(docId).startsWith('doc-')) {
+          try {
+            await dhiSupabase.from('report_comments').insert({
+              inspection_id: protoState.activeInspectionId,
+              target_type: 'document',
+              target_id: docId,
+              author_name: authorLabel,
+              author_color: color,
+              body: text
+            });
+          } catch (e) { console.warn('Doc comment save error:', e); }
+        }
       }
     }
 
@@ -6109,31 +6146,32 @@ function submitInspectionQuoteRequest(payload) {
           dhiSupabase.from('report_comments').select('*').eq('inspection_id', inspectionId).order('created_at', { ascending: true })
         ]);
 
+        const marksByTarget = {};
+        (mRes.data || []).forEach(m => {
+          const k = m.target_id;
+          if (!marksByTarget[k]) marksByTarget[k] = [];
+          const pIdx = Math.max(0, (Number(m.page_num) || 1) - 1);
+          if (Array.isArray(m.strokes)) {
+            m.strokes.forEach(st => marksByTarget[k].push({
+              ...st,
+              photoIdx: (typeof st.photoIdx === 'number') ? st.photoIdx : pIdx,
+              color: m.author_color || st.color || '#ef4444'
+            }));
+          }
+        });
+        const commentsByTarget = {};
+        (cRes.data || []).forEach(c => {
+          const k = c.target_id;
+          if (!commentsByTarget[k]) commentsByTarget[k] = [];
+          commentsByTarget[k].push({
+            id: c.id,
+            author: c.author_name || 'Collaborator',
+            color: c.author_color || '#0ea5e9',
+            text: c.body
+          });
+        });
+
         if (Array.isArray(fRes.data) && fRes.data.length > 0) {
-          const marksByTarget = {};
-          (mRes.data || []).forEach(m => {
-            const k = m.target_id;
-            if (!marksByTarget[k]) marksByTarget[k] = [];
-            const pIdx = Math.max(0, (Number(m.page_num) || 1) - 1);
-            if (Array.isArray(m.strokes)) {
-              m.strokes.forEach(st => marksByTarget[k].push({
-                ...st,
-                photoIdx: (typeof st.photoIdx === 'number') ? st.photoIdx : pIdx,
-                color: m.author_color || st.color || '#ef4444'
-              }));
-            }
-          });
-          const commentsByTarget = {};
-          (cRes.data || []).forEach(c => {
-            const k = c.target_id;
-            if (!commentsByTarget[k]) commentsByTarget[k] = [];
-            commentsByTarget[k].push({
-              id: c.id,
-              author: c.author_name || 'Collaborator',
-              color: c.author_color || '#0ea5e9',
-              text: c.body
-            });
-          });
 
           // Batch-sign all storage photo paths in one fast request
           const pathsToSign = new Set();
@@ -6205,6 +6243,9 @@ function submitInspectionQuoteRequest(payload) {
               comments: commentsByTarget[f.id] || []
             };
           });
+        } else {
+          protoState.findings = [];
+          protoState.sections = [];
         }
 
         if (Array.isArray(oRes.data)) {
@@ -6239,11 +6280,16 @@ function submitInspectionQuoteRequest(payload) {
               pdfViewUrl: url,
               currentPage: 1,
               totalPages: 1,
-              marks: [],
-              comments: []
+              marks: marksByTarget[d.id] || [],
+              comments: commentsByTarget[d.id] || []
             };
           }));
           insp.extraDocs = resolvedDocs;
+        } else if (insp && Array.isArray(dRes.data) && dRes.data.length === 0) {
+          insp.extraDocs = [];
+        }
+        if (protoState.activeDocTab === 'main' && (!protoState.findings || !protoState.findings.length) && insp && insp.extraDocs && insp.extraDocs.length > 0) {
+          protoState.activeDocTab = insp.extraDocs[0].id;
         }
         renderProtoPortal();
       } catch (err) {
@@ -6445,14 +6491,30 @@ function submitInspectionQuoteRequest(payload) {
         if (email === 'matt@davis-inspections.com') {
           protoState.role = 'admin';
           protoState.activeCollaborator = 'Matt (Inspector)';
-          const [iRes, aRes, cRes, rRes, catRes] = await Promise.all([
+          const [iRes, dAllRes, aRes, cRes, rRes, catRes] = await Promise.all([
             dhiSupabase.from('inspections').select('*').order('created_at', { ascending: false }),
+            dhiSupabase.from('inspection_documents').select('*'),
             dhiSupabase.from('agents').select('*').order('last_name', { ascending: true }),
             dhiSupabase.from('customers').select('*').order('last_name', { ascending: true }),
             dhiSupabase.from('inspection_requests').select('*').order('created_at', { ascending: false }),
             dhiSupabase.from('service_catalog').select('*').eq('active', true).order('sort_order', { ascending: true })
           ]);
-          if (Array.isArray(iRes.data)) protoState.inspections = iRes.data.map(dhiMapInspectionRow);
+          if (Array.isArray(iRes.data)) {
+            const docsByInsp = {};
+            (dAllRes.data || []).forEach(d => {
+              if (!docsByInsp[d.inspection_id]) docsByInsp[d.inspection_id] = [];
+              docsByInsp[d.inspection_id].push({
+                id: d.id, title: d.title, badge: 'PDF', summary: d.summary || '',
+                pdfPreviewUrl: d.storage_path, pdfViewUrl: d.storage_path,
+                currentPage: 1, totalPages: 1, marks: [], comments: []
+              });
+            });
+            protoState.inspections = iRes.data.map(r => {
+              const row = dhiMapInspectionRow(r);
+              row.extraDocs = docsByInsp[row.id] || [];
+              return row;
+            });
+          }
           if (Array.isArray(aRes.data)) protoState.agents = aRes.data.map(dhiMapAgentRow);
           if (Array.isArray(cRes.data)) protoState.customers = cRes.data.map(dhiMapCustomerRow);
           if (Array.isArray(rRes.data)) protoState.requests = rRes.data.map(dhiMapRequestRow);
@@ -6471,15 +6533,29 @@ function submitInspectionQuoteRequest(payload) {
           protoState.loggedInBuyerEmail = email;
           protoState.loggedInAgentEmail = email;
           protoState.activeCollaborator = email;
-          const [inspRes, agentRes] = await Promise.all([
+          const [inspRes, docsRes, agentRes] = await Promise.all([
             dhiSupabase.from('inspections').select('*').or(`client_email.ilike.${email},agent_email.ilike.${email}`).order('created_at', { ascending: false }),
+            dhiSupabase.from('inspection_documents').select('*'),
             dhiSupabase.from('agents').select('*').ilike('email', email).maybeSingle()
           ]);
           const data = inspRes.data || [];
+          const docsByInsp = {};
+          (docsRes.data || []).forEach(d => {
+            if (!docsByInsp[d.inspection_id]) docsByInsp[d.inspection_id] = [];
+            docsByInsp[d.inspection_id].push({
+              id: d.id, title: d.title, badge: 'PDF', summary: d.summary || '',
+              pdfPreviewUrl: d.storage_path, pdfViewUrl: d.storage_path,
+              currentPage: 1, totalPages: 1, marks: [], comments: []
+            });
+          });
           protoState.agentProfile = agentRes && agentRes.data ? dhiMapAgentRow(agentRes.data) : null;
           const isAgent = !!protoState.agentProfile || data.some(r => (r.agent_email || '').toLowerCase() === email);
           protoState.role = isAgent ? 'agent' : 'buyer';
-          protoState.inspections = data.map(dhiMapInspectionRow);
+          protoState.inspections = data.map(r => {
+            const row = dhiMapInspectionRow(r);
+            row.extraDocs = docsByInsp[row.id] || [];
+            return row;
+          });
           protoState.activeInspectionId = protoState.inspections.length ? protoState.inspections[0].id : null;
         }
       } catch (err) {
