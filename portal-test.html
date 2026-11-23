@@ -2052,6 +2052,9 @@ function submitInspectionQuoteRequest(payload) {
       };
 
       if (typeof protoState !== 'undefined' && Array.isArray(protoState.requests)) {
+        if (typeof protoUpsertCustomer === 'function') {
+          protoUpsertCustomer({ name: clientName, email: clientEmail, phone: clientPhone, lastAddress: propAddress });
+        }
         protoState.requests.unshift({
           id: 'req-' + Date.now(),
           createdAt: new Date().toISOString(),
@@ -2624,7 +2627,15 @@ function submitInspectionQuoteRequest(payload) {
       reportFilter: 'All',
       buyerFilterMode: 'all',
       agentViewMode: 'summary',
-      adminTab: 'inspections',
+      adminTab: 'scheduled',
+      agentSearch: '',
+      customerSearch: '',
+      agents: [
+        { id: 'ag-1', name: 'Sarah Jenkins', email: 'sarah@coloradospringsrealty.com', phone: '(719) 555-0192', brokerage: 'RE/MAX Properties' }
+      ],
+      customers: [
+        { id: 'cu-1', name: 'Jordan Lee', email: 'jordan.lee@example.com', phone: '(719) 555-0148', lastAddress: '7420 Mesa Ridge Pkwy, Fountain, CO 80817' }
+      ],
       convertingRequestId: null,
       requests: [{"id": "req-sample-1", "createdAt": "2026-11-22T18:10:00Z", "clientName": "Jordan Lee", "clientRole": "Home Buyer", "clientEmail": "jordan.lee@example.com", "clientPhone": "(719) 555-0148", "preferredResponse": "Text", "address": "7420 Mesa Ridge Pkwy, Fountain, CO 80817", "sqft": "2,150", "yearBuilt": "2004", "preferredDate": "2026-11-25 9:00 AM", "addons": ["Sewer Scope ($145)", "48-Hour Radon Testing ($125+)"], "notes": "Crawlspace access is in the hall closet.", "status": "New"}],
       sections: [{"num": "1", "name": "Roofing", "stylesMaterials": [{"label": "Roof Covering", "value": "Dimensional"}, {"label": "Viewed roof covering from", "value": "Walked roof"}, {"label": "Sky Light(s)", "value": "One"}, {"label": "Chimney (exterior)", "value": "Brick"}]}, {"num": "2", "name": "Exterior", "stylesMaterials": [{"label": "Siding Style", "value": "Brick"}, {"label": "Siding Material", "value": "Brick veneer"}, {"label": "Exterior Entry Doors", "value": "Metal"}, {"label": "Appurtenance", "value": "Covered porch"}, {"label": "Driveway", "value": "Concrete"}]}, {"num": "3", "name": "Garage", "stylesMaterials": [{"label": "Garage Door Type", "value": "One automatic"}, {"label": "Garage Door Material", "value": "Insulated"}, {"label": "Auto-opener Manufacturer", "value": "SEARS"}]}, {"num": "4", "name": "Interiors", "stylesMaterials": [{"label": "Ceiling Materials", "value": "Gypsum Board"}, {"label": "Wall Material", "value": "Gypsum Board"}, {"label": "Floor Covering(s)", "value": "Carpet"}, {"label": "Interior Doors", "value": "Hollow core"}, {"label": "Window Types", "value": "Thermal/Insulated"}, {"label": "Cabinetry", "value": "Wood"}, {"label": "Countertop", "value": "Laminate"}]}, {"num": "5", "name": "Structural Components", "stylesMaterials": [{"label": "Foundation", "value": "Masonry block"}, {"label": "Method used to observe Crawlspace", "value": "Crawled"}, {"label": "Floor Structure", "value": "2 X 8"}, {"label": "Wall Structure", "value": "2 X 4 Wood"}, {"label": "Columns or Piers", "value": "Supporting walls"}, {"label": "Ceiling Structure", "value": "2X4"}, {"label": "Roof Structure", "value": "Engineered wood trusses"}, {"label": "Roof-Type", "value": "Hip and Valley"}, {"label": "Attic info", "value": "Scuttle hole"}, {"label": "Method used to observe attic", "value": "From entry"}]}, {"num": "6", "name": "Plumbing System", "stylesMaterials": [{"label": "Water Source", "value": "Public"}, {"label": "Water Filters", "value": "None"}, {"label": "Plumbing Water Supply (into home)", "value": "Copper"}, {"label": "Plumbing Water Distribution (inside home)", "value": "Copper"}, {"label": "Washer Drain Size", "value": "1 1/2\" Diameter (undersized)"}, {"label": "Plumbing Waste", "value": "ABS"}, {"label": "Water Heater Power Source", "value": "Gas (quick recovery)"}, {"label": "Water Heater Capacity", "value": "40 Gallon (1-2 people)"}, {"label": "Manufacturer", "value": "WHIRLPOOL"}, {"label": "Water Heater Location", "value": "Basement"}]}, {"num": "7", "name": "Electrical System", "stylesMaterials": [{"label": "Electrical Service Conductors", "value": "Below ground"}, {"label": "Panel capacity", "value": "100 AMP"}, {"label": "Panel Type", "value": "Circuit breakers"}, {"label": "Electric Panel Manufacturer", "value": "ITE"}, {"label": "Branch wire 15 and 20 AMP", "value": "Copper"}, {"label": "Wiring Methods", "value": "Romex"}]}, {"num": "8", "name": "Heating / Central Air Conditioning", "stylesMaterials": [{"label": "Heat Type", "value": "Forced Air"}, {"label": "Energy Source", "value": "Natural gas"}, {"label": "Number of Heat Systems (excluding wood)", "value": "One"}, {"label": "Heat System Manufacturer", "value": "INT. COMFORT"}, {"label": "Ductwork", "value": "Non-insulated"}, {"label": "Filter Type", "value": "Disposable"}, {"label": "Types of Fireplaces", "value": "Solid Fuel"}, {"label": "Operable Fireplaces", "value": "Two"}, {"label": "Number of Woodstoves", "value": "None"}, {"label": "Cooling Equipment Type", "value": "Air conditioner unit"}, {"label": "Number of AC Only Units", "value": "One"}, {"label": "Central Air Manufacturer", "value": "BRYANT"}]}, {"num": "9", "name": "Insulation and Ventilation", "stylesMaterials": [{"label": "Attic Insulation", "value": "Blown"}, {"label": "Ventilation", "value": "Gable vents"}, {"label": "Dryer Power Source", "value": "220 Electric"}, {"label": "Dryer Vent", "value": "Metal"}, {"label": "Floor System Insulation", "value": "NONE"}]}, {"num": "10", "name": "Built-In Kitchen Appliances", "stylesMaterials": [{"label": "Dishwasher Brand", "value": "AGED"}, {"label": "Disposer Brand", "value": "NONE"}, {"label": "Range/Oven", "value": "GENERAL ELECTRIC"}, {"label": "Exhaust/Range hood", "value": "KENMORE"}, {"label": "Built in Microwave", "value": "NONE"}, {"label": "Refrigerator Brand", "value": "LG"}]}],
@@ -3102,20 +3113,17 @@ function submitInspectionQuoteRequest(payload) {
             </div>
           </div>
 
-          <!-- Inspector / Admin Permanent Login -->
+          <!-- Inspector Login -->
           <div class="max-w-3xl mx-auto">
             <div class="bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-3">
               <div class="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Inspector Admin</span>
-                  <h3 class="text-sm font-extrabold text-slate-900">Admin Dashboard Login</h3>
-                </div>
-                <button type="button" onclick="dhiSendAdminResetEmail()" class="text-xs font-bold text-sky-700 hover:underline">Set / Reset Admin Password</button>
+                <h3 class="text-sm font-extrabold text-slate-900">Inspector Login</h3>
+                <button type="button" onclick="dhiSendAdminResetEmail()" class="text-xs font-bold text-sky-700 hover:underline">Set / Reset Password</button>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                <input type="email" id="dhiAdminEmail" value="Matt@Davis-Inspections.com" placeholder="Admin Email" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
-                <input type="password" id="dhiAdminPassword" placeholder="Permanent Password" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
-                <button type="button" onclick="dhiAdminPasswordSignIn()" class="py-2 px-4 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Sign In to Admin</button>
+                <input type="email" id="dhiAdminEmail" value="" placeholder="Email" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
+                <input type="password" id="dhiAdminPassword" placeholder="Password" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
+                <button type="button" onclick="dhiAdminPasswordSignIn()" class="py-2 px-4 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Sign In</button>
               </div>
             </div>
           </div>
@@ -3227,65 +3235,283 @@ function submitInspectionQuoteRequest(payload) {
       protoToastMsg('Signed out.');
     }
 
+    function protoUpsertCustomer({ name, email, phone, lastAddress }) {
+      if (!email) return;
+      const cleanEmail = email.trim().toLowerCase();
+      protoState.customers = protoState.customers || [];
+      const existing = protoState.customers.find(c => (c.email || '').toLowerCase() === cleanEmail);
+      if (existing) {
+        if (name) existing.name = name;
+        if (phone) existing.phone = phone;
+        if (lastAddress) existing.lastAddress = lastAddress;
+      } else {
+        protoState.customers.unshift({
+          id: 'cu-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+          name: name || cleanEmail,
+          email: email.trim(),
+          phone: phone || '',
+          lastAddress: lastAddress || ''
+        });
+      }
+      if (typeof dhiSupabase !== 'undefined' && dhiSupabase) {
+        dhiSupabase.from('customers').upsert({
+          email: email.trim().toLowerCase(),
+          name: name || email.trim(),
+          phone: phone || '',
+          last_address: lastAddress || ''
+        }, { onConflict: 'email' }).then(() => {}).catch(() => {});
+      }
+    }
+
+    function protoFindAgentByEmail(email) {
+      if (!email) return null;
+      const clean = email.trim().toLowerCase();
+      return (protoState.agents || []).find(a => (a.email || '').toLowerCase() === clean) || null;
+    }
+
+    function protoBuildGoogleCalendarUrl({ title, dateOnly, timeOnly, address, details }) {
+      if (!dateOnly) return '';
+      const [y, m, d] = dateOnly.split('-').map(Number);
+      if (!y || !m || !d) return '';
+      let hours = 9, mins = 0;
+      if (timeOnly) {
+        const tm = timeOnly.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (tm) {
+          hours = parseInt(tm[1], 10);
+          mins = parseInt(tm[2], 10);
+          const ampm = tm[3].toUpperCase();
+          if (ampm === 'PM' && hours !== 12) hours += 12;
+          if (ampm === 'AM' && hours === 12) hours = 0;
+        }
+      }
+      const start = new Date(y, m - 1, d, hours, mins, 0);
+      const end = new Date(start.getTime() + 170 * 60 * 1000); // 2 hours 50 minutes
+      const fmt = (dt) => {
+        const pad = n => String(n).padStart(2, '0');
+        return `${dt.getFullYear()}${pad(dt.getMonth() + 1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+      };
+      const params = new URLSearchParams({
+        action: 'TEMPLATE',
+        text: title,
+        dates: `${fmt(start)}/${fmt(end)}`,
+        location: address || '',
+        details: details || ''
+      });
+      return 'https://calendar.google.com/calendar/render?' + params.toString();
+    }
+
+    function protoFormatDisplayDateTime(dateOnly, timeOnly) {
+      if (!dateOnly) return 'Scheduled • TBD';
+      const [y, m, d] = dateOnly.split('-').map(Number);
+      if (!y || !m || !d) return dateOnly;
+      const dt = new Date(y, m - 1, d);
+      const formattedDate = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return timeOnly ? `${formattedDate} at ${timeOnly}` : formattedDate;
+    }
+
+    function protoUpdateCalPreview() {
+      const el = document.getElementById('protoCalPreviewText');
+      if (!el) return;
+      const agentName = (document.getElementById('protoNewAgentName')?.value || '').trim();
+      const clientName = (document.getElementById('protoNewClient')?.value || '').trim();
+      el.innerHTML = `Calendar Event Title: <strong class="text-davis-navy">Inspection with ${agentName || clientName || 'Buyer / Agent'}</strong>`;
+    }
+
+    function protoUpdateAgentMatchHint() {
+      const email = (document.getElementById('protoNewAgentEmail')?.value || '').trim();
+      const hint = document.getElementById('protoNewAgentMatchHint');
+      const nameInput = document.getElementById('protoNewAgentName');
+      if (!hint) return;
+      if (!email) {
+        hint.innerHTML = '';
+        protoUpdateCalPreview();
+        return;
+      }
+      const match = protoFindAgentByEmail(email);
+      if (match) {
+        hint.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">✓ Matched Agent: ${match.name}${match.brokerage ? ' • ' + match.brokerage : ''}</span>`;
+        if (nameInput) nameInput.value = match.name;
+      } else {
+        hint.innerHTML = `<span class="text-[11px] text-amber-700 font-medium">New agent email — enter their Agent Name on the right to auto-save &amp; fill Calendar.</span>`;
+      }
+      protoUpdateCalPreview();
+    }
+
+    function protoDeleteRequest(reqId) {
+      protoState.requests = (protoState.requests || []).filter(r => r.id !== reqId);
+      renderProtoPortal();
+      protoToastMsg('Inspection request deleted.');
+    }
+
+    function protoAddNewAgent() {
+      const name = (document.getElementById('protoAddAgentName')?.value || '').trim();
+      const email = (document.getElementById('protoAddAgentEmail')?.value || '').trim();
+      const phone = (document.getElementById('protoAddAgentPhone')?.value || '').trim();
+      const brokerage = (document.getElementById('protoAddAgentBrokerage')?.value || '').trim();
+      if (!name || !email) {
+        protoToastMsg('Please enter both the agent name and email.');
+        return;
+      }
+      protoState.agents = protoState.agents || [];
+      const existing = protoFindAgentByEmail(email);
+      if (existing) {
+        existing.name = name;
+        existing.phone = phone;
+        existing.brokerage = brokerage;
+      } else {
+        protoState.agents.unshift({
+          id: 'ag-' + Date.now(),
+          name,
+          email,
+          phone,
+          brokerage
+        });
+      }
+      if (typeof dhiSupabase !== 'undefined' && dhiSupabase) {
+        dhiSupabase.from('agents').upsert({
+          email: email.toLowerCase(),
+          name,
+          phone,
+          brokerage
+        }, { onConflict: 'email' }).then(() => {}).catch(() => {});
+      }
+      renderProtoPortal();
+      protoToastMsg('Saved agent: ' + name);
+    }
+
+    function protoImportHomeGaugeCSV(targetType) {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = '.csv,text/csv';
+      inp.onchange = async () => {
+        const file = inp.files && inp.files[0];
+        if (!file) return;
+        const text = await file.text();
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
+        if (lines.length < 2) {
+          protoToastMsg('CSV file appears empty.');
+          return;
+        }
+        const parseRow = (row) => {
+          const out = [];
+          let cur = '', inQ = false;
+          for (let i = 0; i < row.length; i++) {
+            const ch = row[i];
+            if (ch === '"') { inQ = !inQ; }
+            else if (ch === ',' && !inQ) { out.push(cur.trim()); cur = ''; }
+            else { cur += ch; }
+          }
+          out.push(cur.trim());
+          return out;
+        };
+        const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+        const idxOf = (cands) => headers.findIndex(h => cands.some(c => h.includes(c)));
+        const iEmail = idxOf(['email']);
+        const iName = idxOf(['fullname', 'name']);
+        const iFirst = idxOf(['firstname', 'first']);
+        const iLast = idxOf(['lastname', 'last']);
+        const iPhone = idxOf(['phone', 'mobile', 'cell']);
+        const iCompany = idxOf(['company', 'brokerage', 'office']);
+        const iAddr = idxOf(['address', 'street']);
+
+        let imported = 0;
+        for (let r = 1; r < lines.length; r++) {
+          const cols = parseRow(lines[r]);
+          const email = iEmail >= 0 ? (cols[iEmail] || '').trim() : '';
+          let name = iName >= 0 ? (cols[iName] || '').trim() : '';
+          if (!name && (iFirst >= 0 || iLast >= 0)) {
+            name = `${iFirst >= 0 ? cols[iFirst] || '' : ''} ${iLast >= 0 ? cols[iLast] || '' : ''}`.trim();
+          }
+          if (!email && !name) continue;
+          const phone = iPhone >= 0 ? (cols[iPhone] || '').trim() : '';
+          const brokerage = iCompany >= 0 ? (cols[iCompany] || '').trim() : '';
+          const addr = iAddr >= 0 ? (cols[iAddr] || '').trim() : '';
+
+          if (targetType === 'agents') {
+            protoState.agents = protoState.agents || [];
+            const ex = email ? protoFindAgentByEmail(email) : null;
+            if (!ex) {
+              protoState.agents.push({ id: 'ag-' + Date.now() + '-' + r, name: name || email, email, phone, brokerage });
+              imported++;
+            }
+          } else {
+            protoUpsertCustomer({ name: name || email, email, phone, lastAddress: addr });
+            imported++;
+          }
+        }
+        renderProtoPortal();
+        protoToastMsg(`Imported ${imported} ${targetType === 'agents' ? 'agents' : 'customers'} from HomeGauge CSV.`);
+      };
+      inp.click();
+    }
+
     function renderAdminHTML() {
       const realInspections = protoState.inspections.filter(i => !i.isDemo);
+      const scheduledInspections = realInspections.filter(i => !i.reportNotified);
+      const releasedReports = realInspections.filter(i => i.reportNotified);
       const newReqCount = (protoState.requests || []).filter(r => r.status === 'New').length;
+      const agentsList = protoState.agents || [];
+      const customersList = protoState.customers || [];
 
       const tabBtns = [
-        { id: 'inspections', label: `Inspections (${realInspections.length})` },
+        { id: 'scheduled', label: `Scheduled Inspections (${scheduledInspections.length})` },
+        { id: 'reports', label: `Inspection Reports (${releasedReports.length})` },
         { id: 'requests', label: `Requests${newReqCount ? ' (' + newReqCount + ' New)' : ''}` },
+        { id: 'agents', label: `Agents (${agentsList.length})` },
+        { id: 'customers', label: `Customers (${customersList.length})` },
         { id: 'new', label: '+ New Inspection' }
       ].map(t => `
-        <button type="button" onclick="protoState.adminTab='${t.id}'; renderProtoPortal();" class="px-4 py-2 rounded-xl text-xs font-bold transition ${protoState.adminTab === t.id ? 'bg-davis-navy text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-700 hover:border-davis-navy'}">${t.label}</button>
+        <button type="button" onclick="protoState.adminTab='${t.id}'; renderProtoPortal();" class="px-3.5 py-2 rounded-xl text-xs font-bold transition ${protoState.adminTab === t.id ? 'bg-davis-navy text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-700 hover:border-davis-navy'}">${t.label}</button>
       `).join('');
+
+      const renderInspTableRows = (list) => list.map(insp => {
+        const total = insp ? protoTotal(insp) : 0;
+        const docBadges = (insp.extraDocs || []).map(d => `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">${d.title}</span>`).join('');
+        return `
+          <tr class="border-t border-slate-100">
+            <td class="py-3.5 pr-3 align-top">
+              <div class="font-bold text-slate-900 text-sm">${insp.address}</div>
+              <div class="text-xs text-slate-500">${insp.date}</div>
+              <div class="flex flex-wrap gap-1 mt-1.5">${docBadges}</div>
+            </td>
+            <td class="py-3.5 px-2 text-xs text-slate-700 align-top">
+              <div class="font-semibold">${insp.clientName}</div>
+              <div class="text-slate-400">${insp.clientEmail}</div>
+              ${insp.agentName ? `<div class="text-slate-500 mt-0.5">Agent: ${insp.agentName}</div>` : (insp.agentEmail ? `<div class="text-slate-500 mt-0.5">Agent: ${insp.agentEmail}</div>` : '')}
+            </td>
+            <td class="py-3.5 px-2 align-top">
+              <div class="flex flex-wrap gap-1">
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.agreementSigned ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${insp.agreementSigned ? 'Agreement Signed' : 'Needs Signature'}</span>
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${insp.paid ? 'Paid ($' + total + ')' : 'Balance $' + total}</span>
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.reportNotified ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'}">${insp.reportNotified ? 'Released' : 'Not Released'}</span>
+              </div>
+            </td>
+            <td class="py-3.5 pl-2 text-right align-top space-y-1.5 whitespace-nowrap">
+              <div class="flex flex-wrap justify-end gap-1.5">
+                <button type="button" onclick="protoAttachExtraPdf('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">+ Attach PDF</button>
+                <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Open Report</button>
+                ${insp.agreementSigned ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold transition">Signed PDF</button>` : ''}
+                ${insp.gcalUrl ? `<a href="${insp.gcalUrl}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 text-sky-800 text-xs font-bold transition">Google Calendar &nearr;</a>` : ''}
+              </div>
+              ${!insp.reportNotified ? `<div><button type="button" onclick="protoReleaseReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Send Report Ready &amp; Unlock Pay</button></div>` : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
 
       let bodyHTML = '';
 
-      if (protoState.adminTab === 'inspections') {
-        const rows = realInspections.map(insp => {
-          const total = insp ? protoTotal(insp) : 0;
-          const docBadges = (insp.extraDocs || []).map(d => `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">${d.title}</span>`).join('');
-          return `
-            <tr class="border-t border-slate-100">
-              <td class="py-3.5 pr-3 align-top">
-                <div class="font-bold text-slate-900 text-sm">${insp.address}</div>
-                <div class="text-xs text-slate-500">${insp.date}</div>
-                <div class="flex flex-wrap gap-1 mt-1.5">${docBadges}</div>
-              </td>
-              <td class="py-3.5 px-2 text-xs text-slate-700 align-top">
-                <div class="font-semibold">${insp.clientName}</div>
-                <div class="text-slate-400">${insp.clientEmail}</div>
-                ${insp.agentName ? `<div class="text-slate-500 mt-0.5">Agent: ${insp.agentName}</div>` : ''}
-              </td>
-              <td class="py-3.5 px-2 align-top">
-                <div class="flex flex-wrap gap-1">
-                  <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.agreementSigned ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${insp.agreementSigned ? 'Agreement Signed' : 'Needs Signature'}</span>
-                  <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${insp.paid ? 'Paid ($' + total + ')' : 'Balance $' + total}</span>
-                  <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.reportNotified ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'}">${insp.reportNotified ? 'Released' : 'Draft (Silent)'}</span>
-                </div>
-              </td>
-              <td class="py-3.5 pl-2 text-right align-top space-y-1.5 whitespace-nowrap">
-                <div class="flex flex-wrap justify-end gap-1.5">
-                  <button type="button" onclick="protoAttachExtraPdf('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">+ Attach PDF</button>
-                  <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Open Report</button>
-                  ${insp.agreementSigned ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold transition">Signed PDF</button>` : ''}
-                </div>
-                ${!insp.reportNotified ? `<div><button type="button" onclick="protoReleaseReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Send Report Ready &amp; Unlock Pay</button></div>` : ''}
-              </td>
-            </tr>
-          `;
-        }).join('');
-
+      if (protoState.adminTab === 'scheduled') {
         bodyHTML = `
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 class="text-lg font-extrabold text-slate-900">Scheduled Inspections</h2>
-                <p class="text-xs text-slate-500">Manage agreements, Square payments, attached PDFs, and report releases.</p>
+                <p class="text-xs text-slate-500">Upcoming and in-progress inspections whose reports have not been released yet.</p>
               </div>
-              <button type="button" onclick="protoState.adminTab='new'; renderProtoPortal();" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">+ New Inspection</button>
+              <button type="button" onclick="protoState.newInspDraft=null; protoState.adminTab='new'; renderProtoPortal();" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">+ New Inspection</button>
             </div>
-            ${realInspections.length ? `
+            ${scheduledInspections.length ? `
               <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                   <thead>
@@ -3296,14 +3522,40 @@ function submitInspectionQuoteRequest(payload) {
                       <th class="pb-2 pl-2 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>${rows}</tbody>
+                  <tbody>${renderInspTableRows(scheduledInspections)}</tbody>
                 </table>
               </div>
             ` : `
               <div class="rounded-xl bg-slate-50 border border-dashed border-slate-300 p-8 text-center space-y-2">
-                <div class="text-sm font-bold text-slate-700">No scheduled inspections yet</div>
-                <p class="text-xs text-slate-500">Convert an incoming request from the <strong>Requests</strong> tab or click <strong>+ New Inspection</strong> to add one manually.</p>
+                <div class="text-sm font-bold text-slate-700">No unreleased scheduled inspections</div>
+                <p class="text-xs text-slate-500">Convert an incoming request from <strong>Requests</strong> or click <strong>+ New Inspection</strong>.</p>
               </div>
+            `}
+          </div>
+        `;
+      } else if (protoState.adminTab === 'reports') {
+        bodyHTML = `
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div>
+              <h2 class="text-lg font-extrabold text-slate-900">Inspection Reports</h2>
+              <p class="text-xs text-slate-500">Completed inspections that have been released to clients and agents.</p>
+            </div>
+            ${releasedReports.length ? `
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      <th class="pb-2 pr-3">Property</th>
+                      <th class="pb-2 px-2">Client / Agent</th>
+                      <th class="pb-2 px-2">Status</th>
+                      <th class="pb-2 pl-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>${renderInspTableRows(releasedReports)}</tbody>
+                </table>
+              </div>
+            ` : `
+              <div class="rounded-xl bg-slate-50 border border-dashed border-slate-300 p-8 text-center text-xs text-slate-500">No released inspection reports yet.</div>
             `}
           </div>
         `;
@@ -3319,7 +3571,10 @@ function submitInspectionQuoteRequest(payload) {
                 <h3 class="text-base font-extrabold text-slate-900 mt-1">${r.address}</h3>
                 <p class="text-xs text-slate-600">${r.clientName} &bull; ${r.clientEmail} &bull; ${r.clientPhone}</p>
               </div>
-              <button type="button" onclick="protoConvertRequestToInspection('${r.id}')" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Convert to Inspection &rarr;</button>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="protoDeleteRequest('${r.id}')" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Delete</button>
+                <button type="button" onclick="protoConvertRequestToInspection('${r.id}')" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Convert to Inspection &rarr;</button>
+              </div>
             </div>
             <div class="flex flex-wrap gap-2 text-[11px] text-slate-600">
               <span class="px-2 py-1 rounded bg-white border border-slate-200"><strong>Sq Ft:</strong> ${r.sqft || '—'}</span>
@@ -3335,33 +3590,159 @@ function submitInspectionQuoteRequest(payload) {
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
             <div>
               <h2 class="text-lg font-extrabold text-slate-900">Incoming Inspection Requests</h2>
-              <p class="text-xs text-slate-500">Submissions from your Request Inspection form land here (and in your email) so you can convert them into scheduled inspections in one click.</p>
+              <p class="text-xs text-slate-500">Submissions from your Request Inspection form land here so you can convert them into scheduled inspections.</p>
             </div>
             <div class="space-y-3">
               ${reqCards || '<div class="rounded-xl bg-slate-50 border border-dashed border-slate-300 p-8 text-center text-xs text-slate-500">No incoming requests yet.</div>'}
             </div>
           </div>
         `;
+      } else if (protoState.adminTab === 'agents') {
+        const q = (protoState.agentSearch || '').toLowerCase();
+        const filteredAgents = agentsList.filter(a => !q || (a.name + ' ' + a.email + ' ' + (a.brokerage || '')).toLowerCase().includes(q));
+        const agentRows = filteredAgents.map(a => `
+          <tr class="border-t border-slate-100">
+            <td class="py-2.5 pr-3 font-bold text-slate-900 text-xs">${a.name}</td>
+            <td class="py-2.5 px-2 text-xs text-slate-700">${a.email}</td>
+            <td class="py-2.5 px-2 text-xs text-slate-600">${a.phone || '—'}</td>
+            <td class="py-2.5 pl-2 text-xs text-slate-600">${a.brokerage || '—'}</td>
+          </tr>
+        `).join('');
+
+        bodyHTML = `
+          <div class="space-y-4">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 class="text-lg font-extrabold text-slate-900">Add New Agent</h2>
+                  <p class="text-xs text-slate-500">Save realtors here so typing their email on a new inspection automatically pulls their name for Google Calendar and portal access.</p>
+                </div>
+                <button type="button" onclick="protoImportHomeGaugeCSV('agents')" class="px-3.5 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Import HomeGauge Agents CSV</button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Agent Name *</label>
+                  <input id="protoAddAgentName" type="text" value="" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Agent Email *</label>
+                  <input id="protoAddAgentEmail" type="email" value="" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Phone</label>
+                  <input id="protoAddAgentPhone" type="tel" value="" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Brokerage</label>
+                  <input id="protoAddAgentBrokerage" type="text" value="" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+                </div>
+              </div>
+              <div>
+                <button type="button" onclick="protoAddNewAgent()" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Save Agent</button>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <h3 class="text-base font-extrabold text-slate-900">Agent Directory (${filteredAgents.length})</h3>
+                <input type="search" value="${protoState.agentSearch || ''}" oninput="protoState.agentSearch=this.value; renderProtoPortal();" placeholder="Search agents..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-56" />
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      <th class="pb-2 pr-3">Name</th>
+                      <th class="pb-2 px-2">Email</th>
+                      <th class="pb-2 px-2">Phone</th>
+                      <th class="pb-2 pl-2">Brokerage</th>
+                    </tr>
+                  </thead>
+                  <tbody>${agentRows || '<tr><td colspan="4" class="py-6 text-center text-xs text-slate-400">No agents found.</td></tr>'}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (protoState.adminTab === 'customers') {
+        const q = (protoState.customerSearch || '').toLowerCase();
+        const filteredCusts = customersList.filter(c => !q || (c.name + ' ' + c.email + ' ' + (c.lastAddress || '')).toLowerCase().includes(q));
+        const custRows = filteredCusts.map(c => `
+          <tr class="border-t border-slate-100">
+            <td class="py-2.5 pr-3 font-bold text-slate-900 text-xs">${c.name}</td>
+            <td class="py-2.5 px-2 text-xs text-slate-700">${c.email}</td>
+            <td class="py-2.5 px-2 text-xs text-slate-600">${c.phone || '—'}</td>
+            <td class="py-2.5 pl-2 text-xs text-slate-600">${c.lastAddress || '—'}</td>
+          </tr>
+        `).join('');
+
+        bodyHTML = `
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="text-lg font-extrabold text-slate-900">Customer Directory (${filteredCusts.length})</h2>
+                <p class="text-xs text-slate-500">Automatically populates when buyers submit requests or when you create inspections. You can also import your HomeGauge customer CSV.</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <input type="search" value="${protoState.customerSearch || ''}" oninput="protoState.customerSearch=this.value; renderProtoPortal();" placeholder="Search customers..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-52" />
+                <button type="button" onclick="protoImportHomeGaugeCSV('customers')" class="px-3.5 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Import HomeGauge CSV</button>
+              </div>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <th class="pb-2 pr-3">Name</th>
+                    <th class="pb-2 px-2">Email</th>
+                    <th class="pb-2 px-2">Phone</th>
+                    <th class="pb-2 pl-2">Property Address</th>
+                  </tr>
+                </thead>
+                <tbody>${custRows || '<tr><td colspan="4" class="py-6 text-center text-xs text-slate-400">No customers found.</td></tr>'}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
       } else {
-        const pre = protoState.newInspDraft || { address: '', date: '', clientName: '', clientEmail: '', clientPhone: '', agentName: '', agentEmail: '', baseFee: 425, sewer: false, radon: false, termite: false };
+        const pre = protoState.newInspDraft || { address: '', dateOnly: '', timeOnly: '', clientName: '', clientEmail: '', clientPhone: '', agentEmail: '', baseFee: '', sewer: false, radon: false, termite: false };
         const calcTotal = (Number(pre.baseFee) || 0) + (pre.sewer ? 165 : 0) + (pre.radon ? 150 : 0) + (pre.termite ? 125 : 0);
+
+        const timeSlots = [];
+        for (let h = 7; h <= 18; h++) {
+          for (const m of [0, 30]) {
+            if (h === 18 && m === 30) continue;
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const h12 = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+            timeSlots.push(`${h12}:${m === 0 ? '00' : '30'} ${ampm}`);
+          }
+        }
+        const timeOptionsHTML = [`<option value="">Select time...</option>`].concat(
+          timeSlots.map(t => `<option value="${t}" ${pre.timeOnly === t ? 'selected' : ''}>${t}</option>`)
+        ).join('');
+
+        const agentDatalistOpts = agentsList.map(a => `<option value="${a.email}">${a.name}${a.brokerage ? ' (' + a.brokerage + ')' : ''}</option>`).join('');
+        const matchedAgent = protoFindAgentByEmail(pre.agentEmail);
 
         bodyHTML = `
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-3xl space-y-5">
             <div>
-              <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Manual Scheduling</span>
-              <h2 class="text-lg font-extrabold text-slate-900">Create Inspection &amp; Send Confirmation Email</h2>
-              <p class="text-xs text-slate-500">Creates the inspection, sets up the agreement &amp; invoice, and emails the client their 1-click portal link.</p>
+              <h2 class="text-lg font-extrabold text-slate-900">New Inspection</h2>
+              <p class="text-xs text-slate-500">Creates the inspection, adds a 2 hr 50 min event to your Google Calendar, and emails the client their portal link.</p>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div class="sm:col-span-2">
                 <label class="block font-bold text-slate-700 mb-1">Property Address *</label>
-                <input id="protoNewAddr" type="text" value="${pre.address}" placeholder="e.g., 7420 Mesa Ridge Pkwy, Fountain, CO 80817" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                <input id="protoNewAddr" type="text" value="${pre.address}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
               </div>
               <div>
-                <label class="block font-bold text-slate-700 mb-1">Inspection Date &amp; Time *</label>
-                <input id="protoNewDate" type="text" value="${pre.date}" placeholder="e.g., Nov 25, 2026 at 9:00 AM" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                <label class="block font-bold text-slate-700 mb-1">Inspection Date *</label>
+                <input id="protoNewDateOnly" type="date" value="${pre.dateOnly || ''}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm bg-white" />
+              </div>
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">Inspection Time *</label>
+                <select id="protoNewTimeOnly" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm bg-white">
+                  ${timeOptionsHTML}
+                </select>
               </div>
               <div>
                 <label class="block font-bold text-slate-700 mb-1">Base Inspection Fee ($)</label>
@@ -3369,23 +3750,27 @@ function submitInspectionQuoteRequest(payload) {
               </div>
               <div>
                 <label class="block font-bold text-slate-700 mb-1">Buyer Name *</label>
-                <input id="protoNewClient" type="text" value="${pre.clientName}" placeholder="Full name" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                <input id="protoNewClient" type="text" value="${pre.clientName}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
               </div>
               <div>
                 <label class="block font-bold text-slate-700 mb-1">Buyer Email *</label>
-                <input id="protoNewClientEmail" type="email" value="${pre.clientEmail}" placeholder="buyer@example.com" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                <input id="protoNewClientEmail" type="email" value="${pre.clientEmail}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
               </div>
               <div>
                 <label class="block font-bold text-slate-700 mb-1">Buyer Phone</label>
-                <input id="protoNewClientPhone" type="tel" value="${pre.clientPhone}" placeholder="(719) 555-0100" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                <input id="protoNewClientPhone" type="tel" value="${pre.clientPhone}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
               </div>
               <div>
-                <label class="block font-bold text-slate-700 mb-1">Agent Name (optional)</label>
-                <input id="protoNewAgent" type="text" value="${pre.agentName}" placeholder="Realtor name" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                <label class="block font-bold text-slate-700 mb-1">Agent Email (auto-fills agent &amp; portal)</label>
+                <input id="protoNewAgentEmail" type="email" list="dhiAgentEmailList" value="${pre.agentEmail}" oninput="protoUpdateAgentMatchHint()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                <datalist id="dhiAgentEmailList">${agentDatalistOpts}</datalist>
+                <div id="protoNewAgentMatchHint" class="mt-1.5">
+                  ${matchedAgent ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">✓ Matched Agent: ${matchedAgent.name}${matchedAgent.brokerage ? ' • ' + matchedAgent.brokerage : ''}</span>` : ''}
+                </div>
               </div>
-              <div class="sm:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Agent Email (links inspection to agent's account)</label>
-                <input id="protoNewAgentEmail" type="email" value="${pre.agentEmail}" placeholder="agent@brokerage.com" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">Agent Name (auto-fills Calendar event)</label>
+                <input id="protoNewAgentName" type="text" placeholder="Auto-filled from saved agents" value="${matchedAgent ? matchedAgent.name : (pre.agentName || '')}" oninput="protoUpdateCalPreview()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
               </div>
             </div>
 
@@ -3409,7 +3794,8 @@ function submitInspectionQuoteRequest(payload) {
 
             <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
               <div class="text-sm font-extrabold text-slate-900">Estimated Total: <span id="protoNewTotalDisplay" class="text-davis-navy">$${calcTotal}</span></div>
-              <button type="button" onclick="protoCreateInspection()" class="px-5 py-2.5 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Create Inspection &amp; Send Confirmation Email</button>
+              <div id="protoCalPreviewText" class="text-xs text-slate-600 bg-sky-50 border border-sky-200 rounded-xl px-3.5 py-2 font-medium">Calendar Event Title: <strong class="text-davis-navy">Inspection with ${(matchedAgent ? matchedAgent.name : (pre.agentName || pre.clientName || 'Buyer / Agent'))}</strong></div>
+              <button type="button" onclick="protoCreateInspection()" class="px-5 py-2.5 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Create Inspection &amp; Add to Google Calendar</button>
             </div>
           </div>
         `;
@@ -3443,16 +3829,22 @@ function submitInspectionQuoteRequest(payload) {
       const r = (protoState.requests || []).find(x => x.id === reqId);
       if (!r) return;
       const addonsStr = (r.addons || []).join(' ').toLowerCase();
+      let dateOnly = '';
+      if (r.preferredDate) {
+        const dm = r.preferredDate.match(/(\d{4}-\d{2}-\d{2})/);
+        if (dm) dateOnly = dm[1];
+      }
       protoState.convertingRequestId = reqId;
       protoState.newInspDraft = {
         address: r.address || '',
-        date: r.preferredDate || '',
+        dateOnly,
+        timeOnly: '',
         clientName: r.clientName || '',
-        clientEmail: r.clientEmail || '',
-        clientPhone: r.clientPhone || '',
-        agentName: '',
-        agentEmail: '',
-        baseFee: 425,
+        clientEmail: (r.clientRole || '').toLowerCase().includes('agent') ? '' : (r.clientEmail || ''),
+        clientPhone: (r.clientRole || '').toLowerCase().includes('agent') ? '' : (r.clientPhone || ''),
+        agentEmail: (r.clientRole || '').toLowerCase().includes('agent') ? (r.clientEmail || '') : '',
+        agentName: (r.clientRole || '').toLowerCase().includes('agent') ? (r.clientName || '') : '',
+        baseFee: '',
         sewer: addonsStr.includes('sewer'),
         radon: addonsStr.includes('radon'),
         termite: addonsStr.includes('termite')
@@ -3463,13 +3855,20 @@ function submitInspectionQuoteRequest(payload) {
 
     async function protoCreateInspection() {
       const addr = (document.getElementById('protoNewAddr')?.value || '').trim();
-      const dateStr = (document.getElementById('protoNewDate')?.value || '').trim() || 'Scheduled • TBD';
+      const dateOnly = (document.getElementById('protoNewDateOnly')?.value || '').trim();
+      const timeOnly = (document.getElementById('protoNewTimeOnly')?.value || '').trim();
+      const dateStr = protoFormatDisplayDateTime(dateOnly, timeOnly);
       const client = (document.getElementById('protoNewClient')?.value || '').trim();
       const email = (document.getElementById('protoNewClientEmail')?.value || '').trim();
       const phone = (document.getElementById('protoNewClientPhone')?.value || '').trim();
-      const agent = (document.getElementById('protoNewAgent')?.value || '').trim();
       const agentEmail = (document.getElementById('protoNewAgentEmail')?.value || '').trim();
-      const fee = Number(document.getElementById('protoNewFee')?.value) || 425;
+      const matchedAgent = protoFindAgentByEmail(agentEmail);
+      const agentInputName = (document.getElementById('protoNewAgentName')?.value || '').trim();
+      const agent = agentInputName || (matchedAgent ? matchedAgent.name : '');
+      if (agentEmail && agent && !matchedAgent) {
+        protoState.agents.push({ id: 'ag-' + Date.now(), name: agent, email: agentEmail, phone: '', brokerage: '' });
+      }
+      const fee = Number(document.getElementById('protoNewFee')?.value) || 0;
 
       if (!addr || !client || !email) {
         protoToastMsg('Please enter at least the Property Address, Buyer Name, and Buyer Email.');
@@ -3477,9 +3876,22 @@ function submitInspectionQuoteRequest(payload) {
       }
 
       const services = [{ name: 'Standard Home Inspection', price: fee }];
-      if (document.getElementById('protoNewSewer')?.checked) services.push({ name: 'Sewer Scope Inspection', price: 165 });
-      if (document.getElementById('protoNewRadon')?.checked) services.push({ name: '48-Hour Radon Testing', price: 150 });
-      if (document.getElementById('protoNewTermite')?.checked) services.push({ name: 'Termite / WDI Inspection', price: 125 });
+      const addonNames = [];
+      if (document.getElementById('protoNewSewer')?.checked) { services.push({ name: 'Sewer Scope Inspection', price: 165 }); addonNames.push('Sewer Scope Inspection'); }
+      if (document.getElementById('protoNewRadon')?.checked) { services.push({ name: '48-Hour Radon Testing', price: 150 }); addonNames.push('48-Hour Radon Testing'); }
+      if (document.getElementById('protoNewTermite')?.checked) { services.push({ name: 'Termite / WDI Inspection', price: 125 }); addonNames.push('Termite / WDI Inspection'); }
+
+      const gcalTitle = `Inspection with ${agent || client}`;
+      const gcalDetails = `Add-Ons: ${addonNames.length ? addonNames.join(', ') : 'None'}\n${agent ? 'Agent: ' + agent + (agentEmail ? ' (' + agentEmail + ')' : '') + '\n' : ''}Buyer: ${client}${phone ? ' • ' + phone : ''} • ${email}`;
+      const gcalUrl = protoBuildGoogleCalendarUrl({
+        title: gcalTitle,
+        dateOnly,
+        timeOnly,
+        address: addr,
+        details: gcalDetails
+      });
+
+      protoUpsertCustomer({ name: client, email, phone, lastAddress: addr });
 
       const newId = 'insp-' + Date.now();
       protoState.inspections.unshift({
@@ -3493,6 +3905,7 @@ function submitInspectionQuoteRequest(payload) {
         agentName: agent,
         agentEmail: agentEmail,
         services,
+        gcalUrl,
         agreementSigned: false,
         signedAt: null,
         auditHash: null,
@@ -3510,10 +3923,13 @@ function submitInspectionQuoteRequest(payload) {
       }
       protoState.newInspDraft = null;
       protoState.activeInspectionId = newId;
-      protoState.adminTab = 'inspections';
+      protoState.adminTab = 'scheduled';
       renderProtoPortal();
 
-      // Send live confirmation email if Supabase Edge Function is active
+      if (gcalUrl) {
+        window.open(gcalUrl, '_blank', 'noopener,noreferrer');
+      }
+
       if (dhiSupabase) {
         try {
           await dhiSupabase.functions.invoke('send-portal-email', {
@@ -3529,7 +3945,7 @@ function submitInspectionQuoteRequest(payload) {
           console.warn('Email send fallback:', err);
         }
       }
-      protoToastMsg('Inspection created & confirmation email sent to ' + email + '!');
+      protoToastMsg('Inspection scheduled, Google Calendar opened, & confirmation sent to ' + email + '!');
     }
 
     function protoAttachExtraPdf(inspId) {
@@ -3568,11 +3984,12 @@ function submitInspectionQuoteRequest(payload) {
       insp.reportUploaded = true;
       insp.reportNotified = true;
       protoState.activeInspectionId = id;
+      protoState.adminTab = 'reports';
       renderProtoPortal();
-      protoToastMsg('Report Ready email sent! Square payment is now unlocked for the buyer.');
+      protoToastMsg('Report Ready email sent! Moved to Inspection Reports.');
     }
 
-    function renderAgentHTML() {
+        function renderAgentHTML() {
       const cards = protoState.inspections.map(insp => {
         const extraBtns = (insp.extraDocs || []).map(d => `
           <button type="button" onclick="protoOpenReport('${insp.id}','${d.id}')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition">${d.title} (PDF)</button>
