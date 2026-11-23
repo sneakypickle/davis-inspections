@@ -2653,8 +2653,8 @@ function submitInspectionQuoteRequest(payload) {
           agentEmail: 'sarah@pikespeakrealty.example',
           services: [
             { name: 'Standard Home Inspection (2,200 sq ft)', price: 425 },
-            { name: '48-Hour Radon Testing', price: 150 },
-            { name: 'Sewer Scope Inspection', price: 165 }
+            { name: '48-Hour Radon Testing', price: 125 },
+            { name: 'Sewer Scope Inspection', price: 145 }
           ],
           agreementSigned: true,
           signedAt: '2026-11-15T16:42:11Z',
@@ -2713,8 +2713,8 @@ function submitInspectionQuoteRequest(payload) {
           agentEmail: 'sarah@pikespeakrealty.example',
           services: [
             { name: 'Standard Home Inspection (2,150 sq ft)', price: 425 },
-            { name: '48-Hour Radon Testing', price: 150 },
-            { name: 'Sewer Scope Inspection', price: 165 }
+            { name: '48-Hour Radon Testing', price: 125 },
+            { name: 'Sewer Scope Inspection', price: 145 }
           ],
           agreementSigned: false,
           signedAt: null,
@@ -2773,7 +2773,7 @@ function submitInspectionQuoteRequest(payload) {
           agentEmail: 'sarah@pikespeakrealty.example',
           services: [
             { name: 'Standard Home Inspection (1,820 sq ft)', price: 395 },
-            { name: '48-Hour Radon Testing', price: 150 }
+            { name: '48-Hour Radon Testing', price: 125 }
           ],
           agreementSigned: true,
           signedAt: '2026-10-11T15:20:08Z',
@@ -2805,7 +2805,7 @@ function submitInspectionQuoteRequest(payload) {
           agentEmail: 'sarah@pikespeakrealty.example',
           services: [
             { name: 'Standard Home Inspection (2,800 sq ft)', price: 475 },
-            { name: 'Sewer Scope Inspection', price: 165 }
+            { name: 'Sewer Scope Inspection', price: 145 }
           ],
           agreementSigned: true,
           signedAt: '2026-11-17T16:42:11Z',
@@ -3118,7 +3118,6 @@ function submitInspectionQuoteRequest(payload) {
             <div class="bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-3">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-sm font-extrabold text-slate-900">Inspector Login</h3>
-                <button type="button" onclick="dhiSendAdminResetEmail()" class="text-xs font-bold text-sky-700 hover:underline">Set / Reset Password</button>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <input type="email" id="dhiAdminEmail" value="" placeholder="Email" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
@@ -3198,27 +3197,14 @@ function submitInspectionQuoteRequest(payload) {
         }
         return;
       }
-      if (email.toLowerCase() === 'matt@davis-inspections.com') {
+      if (email.toLowerCase() === 'matt@davis-inspections.com' && password === '4139295516') {
+        protoState.authErrorMsg = '';
         protoState.role = 'admin';
         protoState.activeCollaborator = 'Matt (Inspector)';
         renderProtoPortal();
-      }
-    }
-
-    async function dhiSendAdminResetEmail() {
-      const email = (document.getElementById('dhiAdminEmail')?.value || 'Matt@Davis-Inspections.com').trim();
-      if (!dhiSupabase) {
-        protoToastMsg('Password reset emails work once connected to live Supabase.');
-        return;
-      }
-      const { error } = await dhiSupabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + window.location.pathname + '?view=portal'
-      });
-      if (error) {
-        protoState.authErrorMsg = error.message;
-        renderProtoPortal();
       } else {
-        protoToastMsg('Password setup/reset email sent to ' + email + '.');
+        protoState.authErrorMsg = 'Invalid inspector email or password.';
+        renderProtoPortal();
       }
     }
 
@@ -3492,6 +3478,7 @@ function submitInspectionQuoteRequest(payload) {
                 <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Open Report</button>
                 ${insp.agreementSigned ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold transition">Signed PDF</button>` : ''}
                 ${insp.gcalUrl ? `<a href="${insp.gcalUrl}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 text-sky-800 text-xs font-bold transition">Google Calendar &nearr;</a>` : ''}
+                <button type="button" onclick="protoRequestDelete('inspection', '${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Delete</button>
               </div>
               ${!insp.reportNotified ? `<div><button type="button" onclick="protoReleaseReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Send Report Ready &amp; Unlock Pay</button></div>` : ''}
             </td>
@@ -3601,11 +3588,15 @@ function submitInspectionQuoteRequest(payload) {
         const q = (protoState.agentSearch || '').toLowerCase();
         const filteredAgents = agentsList.filter(a => !q || (a.name + ' ' + a.email + ' ' + (a.brokerage || '')).toLowerCase().includes(q));
         const agentRows = filteredAgents.map(a => `
-          <tr class="border-t border-slate-100">
-            <td class="py-2.5 pr-3 font-bold text-slate-900 text-xs">${a.name}</td>
+          <tr onclick="protoOpenPersonModal('agent', '${(a.email || '').replace(/'/g, "\\'")}')" class="border-t border-slate-100 hover:bg-sky-50/60 cursor-pointer transition">
+            <td class="py-2.5 pr-3 font-bold text-davis-navy hover:underline text-xs">${a.name}</td>
             <td class="py-2.5 px-2 text-xs text-slate-700">${a.email}</td>
             <td class="py-2.5 px-2 text-xs text-slate-600">${a.phone || '—'}</td>
-            <td class="py-2.5 pl-2 text-xs text-slate-600">${a.brokerage || '—'}</td>
+            <td class="py-2.5 px-2 text-xs text-slate-600">${a.brokerage || '—'}</td>
+            <td class="py-2.5 pl-2 text-right whitespace-nowrap space-x-1" onclick="event.stopPropagation()">
+              <button type="button" onclick="protoOpenPersonModal('agent', '${(a.email || '').replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy text-slate-700 text-[11px] font-bold transition">Edit / Reports</button>
+              <button type="button" onclick="protoRequestDelete('agent', '${a.id || ''}', '${(a.email || '').replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold transition">Delete</button>
+            </td>
           </tr>
         `).join('');
 
@@ -3654,10 +3645,11 @@ function submitInspectionQuoteRequest(payload) {
                       <th class="pb-2 pr-3">Name</th>
                       <th class="pb-2 px-2">Email</th>
                       <th class="pb-2 px-2">Phone</th>
-                      <th class="pb-2 pl-2">Brokerage</th>
+                      <th class="pb-2 px-2">Brokerage</th>
+                      <th class="pb-2 pl-2 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody>${agentRows || '<tr><td colspan="4" class="py-6 text-center text-xs text-slate-400">No agents found.</td></tr>'}</tbody>
+                  <tbody>${agentRows || '<tr><td colspan="5" class="py-6 text-center text-xs text-slate-400">No agents found.</td></tr>'}</tbody>
                 </table>
               </div>
             </div>
@@ -3667,11 +3659,15 @@ function submitInspectionQuoteRequest(payload) {
         const q = (protoState.customerSearch || '').toLowerCase();
         const filteredCusts = customersList.filter(c => !q || (c.name + ' ' + c.email + ' ' + (c.lastAddress || '')).toLowerCase().includes(q));
         const custRows = filteredCusts.map(c => `
-          <tr class="border-t border-slate-100">
-            <td class="py-2.5 pr-3 font-bold text-slate-900 text-xs">${c.name}</td>
+          <tr onclick="protoOpenPersonModal('customer', '${(c.email || '').replace(/'/g, "\\'")}')" class="border-t border-slate-100 hover:bg-sky-50/60 cursor-pointer transition">
+            <td class="py-2.5 pr-3 font-bold text-davis-navy hover:underline text-xs">${c.name}</td>
             <td class="py-2.5 px-2 text-xs text-slate-700">${c.email}</td>
             <td class="py-2.5 px-2 text-xs text-slate-600">${c.phone || '—'}</td>
-            <td class="py-2.5 pl-2 text-xs text-slate-600">${c.lastAddress || '—'}</td>
+            <td class="py-2.5 px-2 text-xs text-slate-600">${c.lastAddress ? c.lastAddress.split(',')[0].trim() : '—'}</td>
+            <td class="py-2.5 pl-2 text-right whitespace-nowrap space-x-1" onclick="event.stopPropagation()">
+              <button type="button" onclick="protoOpenPersonModal('customer', '${(c.email || '').replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy text-slate-700 text-[11px] font-bold transition">Edit / Reports</button>
+              <button type="button" onclick="protoRequestDelete('customer', '${c.id || ''}', '${(c.email || '').replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold transition">Delete</button>
+            </td>
           </tr>
         `).join('');
 
@@ -3694,17 +3690,18 @@ function submitInspectionQuoteRequest(payload) {
                     <th class="pb-2 pr-3">Name</th>
                     <th class="pb-2 px-2">Email</th>
                     <th class="pb-2 px-2">Phone</th>
-                    <th class="pb-2 pl-2">Property Address</th>
+                    <th class="pb-2 px-2">Property Address</th>
+                    <th class="pb-2 pl-2 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody>${custRows || '<tr><td colspan="4" class="py-6 text-center text-xs text-slate-400">No customers found.</td></tr>'}</tbody>
+                <tbody>${custRows || '<tr><td colspan="5" class="py-6 text-center text-xs text-slate-400">No customers found.</td></tr>'}</tbody>
               </table>
             </div>
           </div>
         `;
       } else {
         const pre = protoState.newInspDraft || { address: '', dateOnly: '', timeOnly: '', clientName: '', clientEmail: '', clientPhone: '', agentEmail: '', baseFee: '', sewer: false, radon: false, termite: false };
-        const calcTotal = (Number(pre.baseFee) || 0) + (pre.sewer ? 165 : 0) + (pre.radon ? 150 : 0) + (pre.termite ? 125 : 0);
+        const calcTotal = (Number(pre.baseFee) || 0) + (pre.sewer ? 145 : 0) + (pre.radon ? 125 : 0) + (pre.termite ? 125 : 0);
 
         const timeSlots = [];
         for (let h = 7; h <= 18; h++) {
@@ -3779,11 +3776,11 @@ function submitInspectionQuoteRequest(payload) {
               <div class="flex flex-wrap gap-3 text-xs">
                 <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 cursor-pointer">
                   <input type="checkbox" id="protoNewSewer" ${pre.sewer ? 'checked' : ''} onchange="protoUpdateDraftTotal()" />
-                  <span class="font-semibold">Sewer Scope ($165)</span>
+                  <span class="font-semibold">Sewer Scope ($145)</span>
                 </label>
                 <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 cursor-pointer">
                   <input type="checkbox" id="protoNewRadon" ${pre.radon ? 'checked' : ''} onchange="protoUpdateDraftTotal()" />
-                  <span class="font-semibold">48-Hour Radon ($150)</span>
+                  <span class="font-semibold">48-Hour Radon ($125)</span>
                 </label>
                 <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 cursor-pointer">
                   <input type="checkbox" id="protoNewTermite" ${pre.termite ? 'checked' : ''} onchange="protoUpdateDraftTotal()" />
@@ -3818,8 +3815,8 @@ function submitInspectionQuoteRequest(payload) {
 
     function protoUpdateDraftTotal() {
       const base = Number(document.getElementById('protoNewFee')?.value) || 0;
-      const sewer = document.getElementById('protoNewSewer')?.checked ? 165 : 0;
-      const radon = document.getElementById('protoNewRadon')?.checked ? 150 : 0;
+      const sewer = document.getElementById('protoNewSewer')?.checked ? 145 : 0;
+      const radon = document.getElementById('protoNewRadon')?.checked ? 125 : 0;
       const termite = document.getElementById('protoNewTermite')?.checked ? 125 : 0;
       const el = document.getElementById('protoNewTotalDisplay');
       if (el) el.textContent = '$' + (base + sewer + radon + termite);
@@ -3877,8 +3874,8 @@ function submitInspectionQuoteRequest(payload) {
 
       const services = [{ name: 'Standard Home Inspection', price: fee }];
       const addonNames = [];
-      if (document.getElementById('protoNewSewer')?.checked) { services.push({ name: 'Sewer Scope Inspection', price: 165 }); addonNames.push('Sewer Scope Inspection'); }
-      if (document.getElementById('protoNewRadon')?.checked) { services.push({ name: '48-Hour Radon Testing', price: 150 }); addonNames.push('48-Hour Radon Testing'); }
+      if (document.getElementById('protoNewSewer')?.checked) { services.push({ name: 'Sewer Scope Inspection', price: 145 }); addonNames.push('Sewer Scope Inspection'); }
+      if (document.getElementById('protoNewRadon')?.checked) { services.push({ name: '48-Hour Radon Testing', price: 125 }); addonNames.push('48-Hour Radon Testing'); }
       if (document.getElementById('protoNewTermite')?.checked) { services.push({ name: 'Termite / WDI Inspection', price: 125 }); addonNames.push('Termite / WDI Inspection'); }
 
       const gcalTitle = `Inspection with ${agent || client}`;
@@ -4208,6 +4205,65 @@ function submitInspectionQuoteRequest(payload) {
       if (m) m.classList.remove('hidden');
     }
 
+    let protoPendingDelete = null;
+
+    function protoRequestDelete(type, id, email) {
+      let title = 'Delete Item?';
+      let desc = 'Are you sure you want to delete this item?';
+      if (type === 'inspection') {
+        const insp = (protoState.inspections || []).find(i => i.id === id);
+        title = 'Delete Inspection Report?';
+        desc = insp
+          ? `Are you sure you want to permanently delete the report for "${insp.address}" (${insp.clientName})? This cannot be undone.`
+          : 'Are you sure you want to delete this report? This cannot be undone.';
+      } else if (type === 'agent') {
+        const ag = (protoState.agents || []).find(a => (id && a.id === id) || (email && a.email === email));
+        title = 'Remove Agent from Directory?';
+        desc = `Remove ${ag ? ag.name + ' (' + ag.email + ')' : email || 'this agent'} from your Agent Directory? Existing inspection reports will not be deleted.`;
+      } else if (type === 'customer') {
+        const cu = (protoState.customers || []).find(c => (id && c.id === id) || (email && c.email === email));
+        title = 'Remove Customer from Directory?';
+        desc = `Remove ${cu ? cu.name + ' (' + cu.email + ')' : email || 'this customer'} from your Customer Directory? Existing inspection reports will not be deleted.`;
+      }
+      protoPendingDelete = { type, id, email };
+      const tEl = document.getElementById('protoDeleteModalTitle');
+      const dEl = document.getElementById('protoDeleteModalDesc');
+      const mEl = document.getElementById('protoConfirmDeleteModal');
+      if (tEl) tEl.textContent = title;
+      if (dEl) dEl.textContent = desc;
+      if (mEl) mEl.classList.remove('hidden');
+    }
+
+    function protoCloseDeleteModal() {
+      protoPendingDelete = null;
+      const mEl = document.getElementById('protoConfirmDeleteModal');
+      if (mEl) mEl.classList.add('hidden');
+    }
+
+    async function protoConfirmDeleteAction() {
+      if (!protoPendingDelete) return;
+      const { type, id, email } = protoPendingDelete;
+      protoCloseDeleteModal();
+      if (type === 'inspection') {
+        protoState.inspections = (protoState.inspections || []).filter(i => i.id !== id);
+        if (protoState.activeInspectionId === id) {
+          protoState.activeInspectionId = (protoState.inspections[0] && protoState.inspections[0].id) || null;
+          protoState.viewingReport = false;
+        }
+        if (dhiSupabase) {
+          try { await dhiSupabase.from('inspections').delete().eq('id', id); } catch (e) {}
+        }
+        protoToastMsg('Report deleted.');
+      } else if (type === 'agent') {
+        protoState.agents = (protoState.agents || []).filter(a => !((id && a.id === id) || (email && a.email === email)));
+        protoToastMsg('Agent removed from directory.');
+      } else if (type === 'customer') {
+        protoState.customers = (protoState.customers || []).filter(c => !((id && c.id === id) || (email && c.email === email)));
+        protoToastMsg('Customer removed from directory.');
+      }
+      renderProtoPortal();
+    }
+
     function protoEnterDemoRole(role) {
       const m = document.getElementById('protoDemoRoleModal');
       if (m) m.classList.add('hidden');
@@ -4233,6 +4289,10 @@ function submitInspectionQuoteRequest(payload) {
       protoState.activeDocTab = docTab || 'main';
       protoState.viewingReport = true;
       renderProtoPortal();
+      if (dhiIsLiveSession() && id && id !== 'insp-demo') {
+        dhiLoadInspectionDetails(id);
+        dhiSubscribeReportRealtime(id);
+      }
     }
 
     function protoFormatObjectionLine(finding, item, idx) {
@@ -4612,15 +4672,33 @@ function submitInspectionQuoteRequest(payload) {
       return `${header}\n\n${lines}`;
     }
 
-    function protoToggleObjection(findingId) {
+    async function protoToggleObjection(findingId) {
       const idx = protoState.objectionItems.findIndex(o => o.findingId === findingId);
+      const inspId = protoState.activeInspectionId;
       if (idx >= 0) {
-        protoState.objectionItems.splice(idx, 1);
+        const removed = protoState.objectionItems.splice(idx, 1)[0];
+        renderProtoPortal();
+        if (dhiIsLiveSession() && inspId && inspId !== 'insp-demo') {
+          try { await dhiSupabase.from('objection_items').delete().eq('inspection_id', inspId).eq('finding_id', findingId); } catch (e) {}
+        }
       } else {
-        const f = protoState.findings.find(x => x.id === findingId);
-        protoState.objectionItems.push({ findingId, mode: 'repair', creditAmount: '', customText: '', requestedByBuyer: protoState.role === 'buyer', approvedByAgent: protoState.role !== 'buyer', aiGenerated: false });
+        const newItem = { findingId, mode: 'repair', creditAmount: '', customText: '', requestedByBuyer: protoState.role === 'buyer', approvedByAgent: protoState.role !== 'buyer', aiGenerated: false };
+        protoState.objectionItems.push(newItem);
+        renderProtoPortal();
+        if (dhiIsLiveSession() && inspId && inspId !== 'insp-demo') {
+          try {
+            await dhiSupabase.from('objection_items').insert({
+              inspection_id: inspId,
+              finding_id: findingId,
+              mode: newItem.mode,
+              credit_amount: '',
+              custom_text: '',
+              requested_by_buyer: newItem.requestedByBuyer,
+              approved_by_agent: newItem.approvedByAgent
+            });
+          } catch (e) {}
+        }
       }
-      renderProtoPortal();
     }
 
     function protoGeneratePendingAI() {
@@ -4634,20 +4712,26 @@ function submitInspectionQuoteRequest(payload) {
       protoToastMsg('Generated AI objection wording for ' + pending.length + ' new item(s) only!');
     }
 
-    function protoApproveObj(findingId) {
+    async function protoApproveObj(findingId) {
       const item = protoState.objectionItems.find(o => o.findingId === findingId);
       if (item) {
         item.approvedByAgent = true;
         renderProtoPortal();
         protoToastMsg('Item approved for final Inspection Objection list.');
+        if (dhiIsLiveSession() && protoState.activeInspectionId && protoState.activeInspectionId !== 'insp-demo') {
+          try { await dhiSupabase.from('objection_items').update({ approved_by_agent: true }).eq('inspection_id', protoState.activeInspectionId).eq('finding_id', findingId); } catch (e) {}
+        }
       }
     }
 
-    function protoSetObjMode(findingId, mode) {
+    async function protoSetObjMode(findingId, mode) {
       const item = protoState.objectionItems.find(o => o.findingId === findingId);
       if (item) {
         item.mode = mode;
         renderProtoPortal();
+        if (dhiIsLiveSession() && protoState.activeInspectionId && protoState.activeInspectionId !== 'insp-demo') {
+          try { await dhiSupabase.from('objection_items').update({ mode }).eq('inspection_id', protoState.activeInspectionId).eq('finding_id', findingId); } catch (e) {}
+        }
       }
     }
 
@@ -4655,6 +4739,7 @@ function submitInspectionQuoteRequest(payload) {
       const item = protoState.objectionItems.find(o => o.findingId === findingId);
       if (item) {
         item.creditAmount = val;
+        if (dhiIsLiveSession() && protoState.activeInspectionId && protoState.activeInspectionId !== 'insp-demo') { dhiSupabase.from('objection_items').update({ credit_amount: val }).eq('inspection_id', protoState.activeInspectionId).eq('finding_id', findingId).then(() => {}); }
         const idx = protoState.objectionItems.indexOf(item);
         const f = protoState.findings.find(x => x.id === findingId);
         const panel = document.getElementById('objectionListPanel');
@@ -4665,17 +4750,27 @@ function submitInspectionQuoteRequest(payload) {
       }
     }
 
-    function protoAddComment(findingId) {
+    async function protoAddComment(findingId) {
       const input = document.getElementById('commentInput-' + findingId);
       if (!input || !input.value.trim()) return;
+      const text = input.value.trim();
+      const color = COLLAB_COLORS[protoState.activeCollaborator] || '#0f172a';
       const f = protoState.findings.find(x => x.id === findingId);
       if (f) {
-        f.comments.push({
-          author: protoState.activeCollaborator,
-          color: COLLAB_COLORS[protoState.activeCollaborator] || '#0f172a',
-          text: input.value.trim()
-        });
+        f.comments.push({ author: protoState.activeCollaborator, color, text });
         renderProtoPortal();
+        if (dhiIsLiveSession() && protoState.activeInspectionId && protoState.activeInspectionId !== 'insp-demo') {
+          try {
+            await dhiSupabase.from('report_comments').insert({
+              inspection_id: protoState.activeInspectionId,
+              target_type: 'finding',
+              target_id: findingId,
+              author_name: protoState.activeCollaborator,
+              author_color: color,
+              body: text
+            });
+          } catch (e) {}
+        }
       }
     }
 
@@ -4867,6 +4962,132 @@ function submitInspectionQuoteRequest(payload) {
       console.warn('Supabase init skipped in offline preview:', e);
     }
 
+    
+    let dhiRealtimeChannel = null;
+    let dhiAccountChannel = null;
+
+    function dhiIsLiveSession() {
+      return !!(dhiSupabase && protoState.authUser && !protoState.demoMode);
+    }
+
+    async function dhiLoadInspectionDetails(inspectionId) {
+      if (!dhiIsLiveSession() || !inspectionId || inspectionId === 'insp-demo') return;
+      try {
+        const [fRes, dRes, oRes, mRes, cRes] = await Promise.all([
+          dhiSupabase.from('inspection_findings').select('*').eq('inspection_id', inspectionId).order('item_code', { ascending: true }),
+          dhiSupabase.from('inspection_documents').select('*').eq('inspection_id', inspectionId),
+          dhiSupabase.from('objection_items').select('*').eq('inspection_id', inspectionId),
+          dhiSupabase.from('report_markups').select('*').eq('inspection_id', inspectionId),
+          dhiSupabase.from('report_comments').select('*').eq('inspection_id', inspectionId).order('created_at', { ascending: true })
+        ]);
+
+        if (Array.isArray(fRes.data) && fRes.data.length > 0) {
+          const marksByTarget = {};
+          (mRes.data || []).forEach(m => {
+            const k = m.target_id;
+            if (!marksByTarget[k]) marksByTarget[k] = [];
+            if (Array.isArray(m.strokes)) {
+              m.strokes.forEach(st => marksByTarget[k].push({ ...st, color: m.author_color || st.color || '#ef4444' }));
+            }
+          });
+          const commentsByTarget = {};
+          (cRes.data || []).forEach(c => {
+            const k = c.target_id;
+            if (!commentsByTarget[k]) commentsByTarget[k] = [];
+            commentsByTarget[k].push({
+              id: c.id,
+              author: c.author_name || 'Collaborator',
+              color: c.author_color || '#0ea5e9',
+              text: c.body
+            });
+          });
+
+          protoState.findings = fRes.data.map(f => ({
+            id: f.id,
+            code: f.item_code || '',
+            sectionNum: (f.item_code || '1').split('.')[0],
+            category: f.category || 'General',
+            status: f.severity || 'Inspected',
+            isSummary: (f.severity || '').toLowerCase().includes('repair') || (f.severity || '').toLowerCase().includes('summary') || (f.severity || '').toLowerCase().includes('safety'),
+            severity: f.severity || 'Inspected',
+            title: f.title,
+            narrative: f.narrative,
+            trade: f.trade || 'qualified licensed contractor',
+            repairAction: f.repair_action || 'evaluate and repair per inspection report',
+            photos: f.photo_path ? [{ label: f.title, dataUrl: f.photo_path }] : [],
+            activePhotoIdx: 0,
+            photoLabel: f.title,
+            photoDataUrl: f.photo_path || '',
+            marks: marksByTarget[f.id] || [],
+            comments: commentsByTarget[f.id] || []
+          }));
+        }
+
+        if (Array.isArray(oRes.data)) {
+          protoState.objectionItems = oRes.data.map(o => ({
+            id: o.id,
+            findingId: o.finding_id,
+            mode: o.mode || 'repair',
+            creditAmount: o.credit_amount || '',
+            customText: o.custom_text || '',
+            requestedByBuyer: !!o.requested_by_buyer,
+            approvedByAgent: !!o.approved_by_agent,
+            aiGenerated: !!(o.custom_text && o.custom_text.trim())
+          }));
+        }
+
+        const insp = (protoState.inspections || []).find(i => i.id === inspectionId);
+        if (insp && Array.isArray(dRes.data) && dRes.data.length > 0) {
+          insp.extraDocs = dRes.data.map(d => ({
+            id: d.id,
+            title: d.title,
+            summary: d.summary || '',
+            pdfPreviewUrl: d.storage_path,
+            pdfViewUrl: d.storage_path,
+            currentPage: 1,
+            totalPages: 1,
+            marks: [],
+            comments: []
+          }));
+        }
+        renderProtoPortal();
+      } catch (err) {
+        console.warn('Error loading inspection details:', err);
+      }
+    }
+
+    function dhiSubscribeReportRealtime(inspectionId) {
+      if (!dhiIsLiveSession() || !inspectionId || inspectionId === 'insp-demo') return;
+      if (dhiRealtimeChannel) {
+        try { dhiSupabase.removeChannel(dhiRealtimeChannel); } catch (e) {}
+      }
+      dhiRealtimeChannel = dhiSupabase
+        .channel('report-' + inspectionId)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'objection_items', filter: 'inspection_id=eq.' + inspectionId }, () => {
+          dhiLoadInspectionDetails(inspectionId);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'report_markups', filter: 'inspection_id=eq.' + inspectionId }, () => {
+          dhiLoadInspectionDetails(inspectionId);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'report_comments', filter: 'inspection_id=eq.' + inspectionId }, () => {
+          dhiLoadInspectionDetails(inspectionId);
+        })
+        .subscribe();
+    }
+
+    function dhiSubscribeAccountRealtime(session) {
+      if (!dhiSupabase || !session) return;
+      if (dhiAccountChannel) {
+        try { dhiSupabase.removeChannel(dhiAccountChannel); } catch (e) {}
+      }
+      dhiAccountChannel = dhiSupabase
+        .channel('account-sync-' + (session.user.id || 'user'))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'inspections' }, () => {
+          dhiApplyAuthSession(session);
+        })
+        .subscribe();
+    }
+
     function dhiGetRedirectUrl() {
       if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
         return window.location.origin + window.location.pathname + '?view=portal';
@@ -4916,9 +5137,43 @@ function submitInspectionQuoteRequest(payload) {
       if (protoState.demoMode) return;
       const email = (session.user.email || '').toLowerCase();
       protoState.authUser = session.user;
+      dhiSubscribeAccountRealtime(session);
       if (email === 'matt@davis-inspections.com') {
         protoState.role = 'admin';
         protoState.activeCollaborator = 'Matt (Inspector)';
+        try {
+          const [iRes, aRes, cRes, rRes] = await Promise.all([
+            dhiSupabase.from('inspections').select('*').order('created_at', { ascending: false }),
+            dhiSupabase.from('agents').select('*').order('name', { ascending: true }),
+            dhiSupabase.from('customers').select('*').order('name', { ascending: true }),
+            dhiSupabase.from('inspection_requests').select('*').order('created_at', { ascending: false })
+          ]);
+          if (Array.isArray(iRes.data)) {
+            protoState.inspections = iRes.data.map(r => ({
+              id: r.id,
+              address: r.address,
+              date: r.inspection_date || '',
+              clientName: r.client_name || '',
+              clientEmail: r.client_email || '',
+              buyerName: r.client_name || '',
+              buyerEmail: r.client_email || '',
+              agentName: r.agent_name || '',
+              agentEmail: r.agent_email || '',
+              agreementSigned: !!r.agreement_signed,
+              signedAt: r.signed_at || '',
+              paid: !!r.paid,
+              reportNotified: !!r.report_notified,
+              reportReady: !!r.report_notified,
+              services: r.services || [],
+              extraDocs: []
+            }));
+          }
+          if (Array.isArray(aRes.data) && aRes.data.length) protoState.agents = aRes.data;
+          if (Array.isArray(cRes.data) && cRes.data.length) protoState.customers = cRes.data;
+          if (Array.isArray(rRes.data)) protoState.requests = rRes.data;
+        } catch (err) {
+          console.warn('Error loading admin data:', err);
+        }
       } else {
         protoState.loggedInBuyerEmail = email;
         protoState.loggedInAgentEmail = email;
@@ -4928,7 +5183,7 @@ function submitInspectionQuoteRequest(payload) {
           const { data } = await dhiSupabase
             .from('inspections')
             .select('*')
-            .or(`client_email.eq.${email},agent_email.eq.${email}`);
+            .or(`client_email.ilike.${email},agent_email.ilike.${email}`);
           if (Array.isArray(data) && data.length > 0) {
             const isAgent = data.some(r => (r.agent_email || '').toLowerCase() === email);
             protoState.role = isAgent ? 'agent' : 'buyer';
@@ -4936,6 +5191,8 @@ function submitInspectionQuoteRequest(payload) {
               id: r.id,
               address: r.address,
               date: r.inspection_date || '',
+              clientName: r.client_name || '',
+              clientEmail: r.client_email || '',
               buyerName: r.client_name || '',
               buyerEmail: r.client_email || '',
               agentName: r.agent_name || '',
@@ -4943,7 +5200,8 @@ function submitInspectionQuoteRequest(payload) {
               agreementSigned: !!r.agreement_signed,
               signedAt: r.signed_at || '',
               paid: !!r.paid,
-              reportReady: !!r.report_ready,
+              reportNotified: !!r.report_notified,
+              reportReady: !!r.report_notified,
               services: r.services || [],
               extraDocs: []
             }));
@@ -4959,12 +5217,109 @@ function submitInspectionQuoteRequest(payload) {
     }
 
     if (dhiSupabase) {
+      const hasAuthRedirect = window.location.hash.includes('access_token=') || window.location.search.includes('code=') || window.location.search.includes('view=portal');
       dhiSupabase.auth.getSession().then(({ data }) => {
-        if (data && data.session) dhiApplyAuthSession(data.session);
+        if (data && data.session) {
+          if (hasAuthRedirect) navigatePage('portal', false);
+          dhiApplyAuthSession(data.session);
+        }
       });
-      dhiSupabase.auth.onAuthStateChange((_event, session) => {
-        if (session) dhiApplyAuthSession(session);
+      dhiSupabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+          if (event === 'SIGNED_IN' || hasAuthRedirect) navigatePage('portal', false);
+          dhiApplyAuthSession(session);
+        }
       });
+    }
+
+
+    let protoEditingPerson = null;
+
+    function protoOpenPersonModal(type, email) {
+      const targetEmail = (email || '').toLowerCase();
+      const list = type === 'agent' ? (protoState.agents || []) : (protoState.customers || []);
+      const person = list.find(x => (x.email || '').toLowerCase() === targetEmail);
+      if (!person) return;
+      protoEditingPerson = { type, origEmail: targetEmail, id: person.id || '' };
+      document.getElementById('protoPersonModalType').textContent = type === 'agent' ? 'Agent Directory' : 'Customer Directory';
+      document.getElementById('protoPersonModalTitle').textContent = person.name || person.email;
+      document.getElementById('protoPersonEditName').value = person.name || '';
+      document.getElementById('protoPersonEditEmail').value = person.email || '';
+      document.getElementById('protoPersonEditPhone').value = person.phone || '';
+      const brokWrap = document.getElementById('protoPersonBrokerageWrap');
+      if (type === 'agent') {
+        brokWrap.classList.remove('hidden');
+        document.getElementById('protoPersonEditBrokerage').value = person.brokerage || '';
+      } else {
+        brokWrap.classList.add('hidden');
+      }
+
+      // Associated reports (street number + street name only, clickable straight to report)
+      const matching = (protoState.inspections || []).filter(i => {
+        if (i.isDemo) return false;
+        return type === 'agent'
+          ? (i.agentEmail || '').toLowerCase() === targetEmail
+          : ((i.clientEmail || i.buyerEmail || '').toLowerCase() === targetEmail);
+      });
+      const reportsEl = document.getElementById('protoPersonReportsList');
+      if (matching.length) {
+        reportsEl.innerHTML = matching.map(i => {
+          const streetOnly = (i.address || '').split(',')[0].trim() || i.address;
+          return `
+            <button type="button" onclick="protoClosePersonModal(); protoOpenReport('${i.id}', 'main');" class="w-full text-left px-3 py-2 rounded-xl bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-davis-navy flex items-center justify-between gap-2 transition">
+              <span class="text-xs font-bold text-davis-navy">${streetOnly}</span>
+              <span class="text-[11px] text-slate-500">${i.date || ''} &rarr;</span>
+            </button>
+          `;
+        }).join('');
+      } else {
+        reportsEl.innerHTML = '<div class="text-xs text-slate-400 italic py-2">No inspection reports linked to this email yet.</div>';
+      }
+
+      document.getElementById('protoPersonDeleteBtn').onclick = function() {
+        protoClosePersonModal();
+        protoRequestDelete(type, person.id || '', person.email || '');
+      };
+      document.getElementById('protoPersonModal').classList.remove('hidden');
+    }
+
+    function protoClosePersonModal() {
+      const m = document.getElementById('protoPersonModal');
+      if (m) m.classList.add('hidden');
+      protoEditingPerson = null;
+    }
+
+    async function protoSavePersonEdit() {
+      if (!protoEditingPerson) return;
+      const { type, origEmail, id } = protoEditingPerson;
+      const name = (document.getElementById('protoPersonEditName')?.value || '').trim();
+      const email = (document.getElementById('protoPersonEditEmail')?.value || '').trim();
+      const phone = (document.getElementById('protoPersonEditPhone')?.value || '').trim();
+      const brokerage = (document.getElementById('protoPersonEditBrokerage')?.value || '').trim();
+      if (!name || !email) {
+        protoToastMsg('Name and email are required.');
+        return;
+      }
+      const list = type === 'agent' ? (protoState.agents || []) : (protoState.customers || []);
+      const person = list.find(x => (x.email || '').toLowerCase() === origEmail);
+      if (person) {
+        person.name = name;
+        person.email = email;
+        person.phone = phone;
+        if (type === 'agent') person.brokerage = brokerage;
+      }
+      if (dhiSupabase && id) {
+        try {
+          const table = type === 'agent' ? 'agents' : 'customers';
+          const payload = type === 'agent' ? { name, email, phone, brokerage } : { name, email, phone };
+          await dhiSupabase.from(table).update(payload).eq('id', id);
+        } catch (err) {
+          console.warn('Error updating directory contact:', err);
+        }
+      }
+      protoClosePersonModal();
+      renderProtoPortal();
+      protoToastMsg((type === 'agent' ? 'Agent' : 'Customer') + ' updated & synced.');
     }
 
     // Live ESIGN SHA-256 hash generator
@@ -4974,7 +5329,60 @@ function submitInspectionQuoteRequest(payload) {
     }
   </script>
       <!-- Demo Role Selection Modal -->
-      <div id="protoDemoRoleModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div id="protoPersonModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <span id="protoPersonModalType" class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Directory Profile</span>
+          <h3 id="protoPersonModalTitle" class="text-lg font-extrabold text-slate-900">Edit Contact</h3>
+        </div>
+        <button type="button" onclick="protoClosePersonModal()" class="text-slate-400 hover:text-slate-700 text-sm font-bold">✕</button>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Full Name</label>
+          <input id="protoPersonEditName" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Email Address</label>
+          <input id="protoPersonEditEmail" type="email" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Phone</label>
+          <input id="protoPersonEditPhone" type="tel" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        </div>
+        <div id="protoPersonBrokerageWrap">
+          <label class="block font-bold text-slate-700 mb-1">Brokerage</label>
+          <input id="protoPersonEditBrokerage" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        </div>
+      </div>
+      <div class="space-y-2 pt-1">
+        <div class="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Associated Reports</div>
+        <div id="protoPersonReportsList" class="space-y-1.5 max-h-44 overflow-y-auto"></div>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+        <button type="button" id="protoPersonDeleteBtn" class="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Delete from Directory</button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="protoClosePersonModal()" class="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold transition">Cancel</button>
+          <button type="button" onclick="protoSavePersonEdit()" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="protoConfirmDeleteModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+      <div>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-rose-600">Confirm Deletion</span>
+        <h3 id="protoDeleteModalTitle" class="text-lg font-extrabold text-slate-900 mt-0.5">Delete Item?</h3>
+        <p id="protoDeleteModalDesc" class="text-xs text-slate-600 mt-1.5 leading-relaxed"></p>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" onclick="protoCloseDeleteModal()" class="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold transition">Cancel</button>
+        <button type="button" onclick="protoConfirmDeleteAction()" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition">Delete</button>
+      </div>
+    </div>
+  </div>
+  <div id="protoDemoRoleModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-5">
           <div class="flex items-start justify-between gap-3">
             <div>
