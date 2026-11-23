@@ -5858,11 +5858,21 @@ function submitInspectionQuoteRequest(payload) {
       renderProtoPortal();
     }
 
-    function protoClearMarks(findingId) {
+    async function protoClearMarks(findingId) {
       const f = protoState.findings.find(x => x.id === findingId);
-      if (f) {
-        f.marks = [];
-        drawSingleReportCanvas(findingId);
+      if (!f) return;
+      const activeIdx = f.activePhotoIdx || 0;
+      f.marks = (f.marks || []).filter(s => (s.photoIdx || 0) !== activeIdx);
+      drawSingleReportCanvas(findingId);
+      if (dhiIsLiveSession() && protoState.activeInspectionId && protoState.activeInspectionId !== 'insp-demo') {
+        const { error } = await dhiSupabase.from('report_markups')
+          .delete()
+          .eq('inspection_id', protoState.activeInspectionId)
+          .eq('target_id', findingId)
+          .eq('page_num', activeIdx + 1);
+        if (error) {
+          protoToastMsg('Could not clear marks in database: ' + error.message);
+        }
       }
     }
 
@@ -5881,7 +5891,10 @@ function submitInspectionQuoteRequest(payload) {
       const startDraw = (e) => {
         if (e.touches) e.preventDefault();
         drawing = true;
-        currentStroke = { color: dhiGetLiveCollabColor(), pts: [getPos(e)] };
+        const findingId = canvas.getAttribute('data-finding-id');
+        const fObj = findingId ? (protoState.findings || []).find(x => x.id === findingId) : null;
+        const activePhotoIdx = fObj ? (fObj.activePhotoIdx || 0) : 0;
+        currentStroke = { color: dhiGetLiveCollabColor(), photoIdx: activePhotoIdx, pts: [getPos(e)] };
         marksArr.push(currentStroke);
         redrawFn();
       };
@@ -5902,7 +5915,7 @@ function submitInspectionQuoteRequest(payload) {
             inspection_id: protoState.activeInspectionId,
             target_type: 'finding',
             target_id: findingId,
-            page_num: 1,
+            page_num: (finished.photoIdx || 0) + 1,
             author_name: dhiGetLiveCollabLabel(),
             author_color: finished.color || dhiGetLiveCollabColor(),
             strokes: [finished]
@@ -5999,8 +6012,10 @@ function submitInspectionQuoteRequest(payload) {
         ctx.font = 'bold 11px Inter, sans-serif';
         ctx.fillText(f.photoLabel, 10, canvas.height - 8);
 
-        f.marks.forEach(stroke => {
-          if (!stroke.pts.length) return;
+        const activePhotoIdx = f.activePhotoIdx || 0;
+        (f.marks || []).forEach(stroke => {
+          if (!stroke.pts || !stroke.pts.length) return;
+          if ((stroke.photoIdx || 0) !== activePhotoIdx) return;
           ctx.strokeStyle = stroke.color;
           ctx.lineWidth = 3.5;
           ctx.lineCap = 'round';
@@ -6099,8 +6114,13 @@ function submitInspectionQuoteRequest(payload) {
           (mRes.data || []).forEach(m => {
             const k = m.target_id;
             if (!marksByTarget[k]) marksByTarget[k] = [];
+            const pIdx = Math.max(0, (Number(m.page_num) || 1) - 1);
             if (Array.isArray(m.strokes)) {
-              m.strokes.forEach(st => marksByTarget[k].push({ ...st, color: m.author_color || st.color || '#ef4444' }));
+              m.strokes.forEach(st => marksByTarget[k].push({
+                ...st,
+                photoIdx: (typeof st.photoIdx === 'number') ? st.photoIdx : pIdx,
+                color: m.author_color || st.color || '#ef4444'
+              }));
             }
           });
           const commentsByTarget = {};
@@ -6303,6 +6323,36 @@ function submitInspectionQuoteRequest(payload) {
       };
     }
 
+    async function dhiRefreshMarkupsOnly(inspectionId) {
+      if (!dhiIsLiveSession() || !inspectionId || inspectionId === 'insp-demo') return;
+      try {
+        const { data, error } = await dhiSupabase
+          .from('report_markups')
+          .select('*')
+          .eq('inspection_id', inspectionId);
+        if (error || !Array.isArray(data)) return;
+        const marksByTarget = {};
+        data.forEach(m => {
+          const k = m.target_id;
+          if (!marksByTarget[k]) marksByTarget[k] = [];
+          const pIdx = Math.max(0, (Number(m.page_num) || 1) - 1);
+          if (Array.isArray(m.strokes)) {
+            m.strokes.forEach(st => marksByTarget[k].push({
+              ...st,
+              photoIdx: (typeof st.photoIdx === 'number') ? st.photoIdx : pIdx,
+              color: m.author_color || st.color || '#ef4444'
+            }));
+          }
+        });
+        (protoState.findings || []).forEach(f => {
+          f.marks = marksByTarget[f.id] || [];
+          drawSingleReportCanvas(f.id);
+        });
+      } catch (e) {
+        console.warn('Error refreshing markups:', e);
+      }
+    }
+
     function dhiSubscribeReportRealtime(inspectionId) {
       if (!dhiIsLiveSession() || !inspectionId || inspectionId === 'insp-demo') return;
       if (dhiRealtimeChannel) {
@@ -6314,7 +6364,7 @@ function submitInspectionQuoteRequest(payload) {
           dhiLoadInspectionDetails(inspectionId);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'report_markups', filter: 'inspection_id=eq.' + inspectionId }, () => {
-          dhiLoadInspectionDetails(inspectionId);
+          dhiRefreshMarkupsOnly(inspectionId);
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'report_comments', filter: 'inspection_id=eq.' + inspectionId }, () => {
           dhiLoadInspectionDetails(inspectionId);
