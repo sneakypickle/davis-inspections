@@ -29,7 +29,7 @@
 </head>
 <body class="min-h-screen flex flex-col">
   <header class="sticky top-0 z-30 bg-davis-dark text-white border-b border-white/10 shadow-sm">
-    <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2">
+    <div class="w-full max-w-none mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-2.5">
         <span class="px-2 py-0.5 rounded-lg bg-sky-500/20 border border-sky-300/30 text-[11px] font-extrabold tracking-wide text-sky-200">DHI FIELD</span>
         <span id="hdrTitle" class="text-sm font-extrabold truncate max-w-[200px] sm:max-w-md">Field &amp; Report Editor</span>
@@ -44,7 +44,7 @@
     </div>
   </header>
 
-  <main id="appRoot" class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-5 py-4 pb-20"></main>
+  <main id="appRoot" class="flex-grow max-w-none w-full mx-auto px-3 sm:px-6 py-4 pb-20"></main>
 
   <!-- Toast -->
   <div id="toastBox" class="hidden fixed bottom-4 right-4 z-50 max-w-sm bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-slate-700"></div>
@@ -67,6 +67,15 @@
         </div>
         <select id="aiModelSelect" class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-800"></select>
         <p id="aiModelHelp" class="text-[11px] text-slate-500">Pulls active models directly from Google AI Studio so new releases appear automatically.</p>
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-1.5">
+        <label for="photoQualitySelect" class="block text-xs font-extrabold text-slate-800">Photo resolution &amp; compression</label>
+        <select id="photoQualitySelect" onchange="setPhotoQualityPreset(this.value)" class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-800">
+          <option value="compact">Compact (800px max, 70% JPEG &bull; smallest reports &amp; fastest upload)</option>
+          <option value="standard">Standard (1024px max, 75% JPEG &bull; recommended balance)</option>
+          <option value="high">High (1280px max, 82% JPEG &bull; highest detail)</option>
+        </select>
+        <p class="text-[11px] text-slate-500">Applies to camera photos, gallery uploads, Photo Tray imports, and saved annotations. Cover photos stay at 1200px.</p>
       </div>
       <textarea id="globalInstructionsInput" rows="10" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono leading-relaxed focus:ring-2 focus:ring-davis-navy focus:outline-none"></textarea>
       <div class="flex justify-end gap-2">
@@ -118,7 +127,7 @@
 
   <!-- Desktop Photo Annotation & Editor Modal -->
   <div id="photoEditorModal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
-    <div class="bg-white rounded-2xl max-w-3xl w-full p-5 space-y-3 shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col">
+    <div class="bg-white rounded-2xl max-w-6xl w-[95vw] p-5 space-y-3 shadow-2xl border border-slate-200 max-h-[94vh] flex flex-col">
       <div class="flex items-center justify-between gap-2">
         <div>
           <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Photo Editor (Desktop / Review)</span>
@@ -164,7 +173,7 @@
         </label>
       </div>
       <div class="flex-1 overflow-auto flex items-center justify-center bg-slate-900 rounded-xl p-2 min-h-[260px]">
-        <canvas id="photoEditorCanvas" class="max-w-full max-h-[50vh] cursor-crosshair touch-none rounded-lg"></canvas>
+        <canvas id="photoEditorCanvas" class="max-w-full max-h-[68vh] cursor-crosshair touch-none rounded-lg"></canvas>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
         <input id="photoCaptionInput" type="text" placeholder="Photo caption..." class="flex-grow px-3 py-2 rounded-lg border border-slate-300 text-xs" />
@@ -212,6 +221,9 @@
       showContactsCard: false,
       showPhotoTray: false,
       photoTray: [], // [{ id, name, dataUrl, used }]
+      trayThumbSize: (function(){ try { return localStorage.getItem('dhi_tray_thumb_size') || 'md'; } catch(_e) { return 'md'; } })(),
+      trayWidthPct: (function(){ try { const n = Number(localStorage.getItem('dhi_photo_tray_width_pct')); return (n >= 22 && n <= 68) ? n : 44; } catch(_e) { return 44; } })(),
+      photoQualityPreset: (function(){ try { return localStorage.getItem('dhi_photo_quality_preset') || 'standard'; } catch(_e) { return 'standard'; } })(),
       dragPhotoTrayId: null, // { inspectionId, address, propertyInfo, sections: [{ num, name, stylesMaterials: [{label, value, options}], items: [{ id, code, title, status, isSummary, roughNotes, narrative, photos: [{ id, label, dataUrl, storagePath }] }] }], updatedAt, dirty }
       activeSecIdx: 0,
       showPropInfo: true,
@@ -396,7 +408,7 @@
           try {
             const cPaths = state.inspections.map(x => x.property_info && x.property_info.coverPhotoPath).filter(Boolean);
             if (cPaths.length) {
-              const { data: signedCovers } = await sb.storage.from('inspection-reports').createSignedUrls(cPaths, 60 * 60 * 6);
+              const { data: signedCovers } = await sb.storage.from('reports').createSignedUrls(cPaths, 60 * 60 * 6);
               if (Array.isArray(signedCovers)) {
                 const cMap = new Map(signedCovers.filter(s => s && s.path && s.signedUrl).map(s => [s.path, s.signedUrl]));
                 state.inspections.forEach(x => {
@@ -982,7 +994,7 @@
       inp.onchange = async () => {
         const file = inp.files && inp.files[0];
         if (!file) return;
-        const dataUrl = await compressImageFile(file, 1400, 0.85);
+        const dataUrl = await compressImageFile(file, 1200, 0.80);
         state.draft.propertyInfo = state.draft.propertyInfo || {};
         state.draft.propertyInfo.coverPhoto = dataUrl;
         state.draft.propertyInfo.coverPhotoPath = '';
@@ -1014,7 +1026,7 @@
         toast(`Loading ${files.length} photo(s) into sidebar tray...`);
         for (const f of files) {
           try {
-            const dataUrl = await compressImageFile(f, 1280, 0.82);
+            const dataUrl = await compressImageFile(f);
             state.photoTray.push({
               id: 'tray-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
               name: f.name,
@@ -1220,7 +1232,64 @@
     }
 
     // Compress image on Pixel 10 Pro / Desktop to crisp ~1280px JPEG before saving to IndexedDB
-    function compressImageFile(file, maxDim = 1280, quality = 0.82) {
+    const DHI_PHOTO_QUALITY_PRESETS = {
+      compact: { maxDim: 800, quality: 0.70 },
+      standard: { maxDim: 1024, quality: 0.75 },
+      high: { maxDim: 1280, quality: 0.82 }
+    };
+    function getActivePhotoQuality() {
+      return DHI_PHOTO_QUALITY_PRESETS[state.photoQualityPreset] || DHI_PHOTO_QUALITY_PRESETS.standard;
+    }
+    function setPhotoQualityPreset(val) {
+      state.photoQualityPreset = DHI_PHOTO_QUALITY_PRESETS[val] ? val : 'standard';
+      try { localStorage.setItem('dhi_photo_quality_preset', state.photoQualityPreset); } catch (_e) {}
+      toast('Photo quality set to ' + state.photoQualityPreset + '.');
+    }
+    function setTrayThumbSize(sz) {
+      state.trayThumbSize = ['sm', 'md', 'lg'].includes(sz) ? sz : 'md';
+      try { localStorage.setItem('dhi_tray_thumb_size', state.trayThumbSize); } catch (_e) {}
+      render();
+    }
+    function startTraySplitResize(e) {
+      e.preventDefault();
+      const wrap = document.getElementById('dhiSplitWorkspace');
+      const tray = document.getElementById('dhiPhotoTrayAside');
+      if (!wrap || !tray) return;
+      const onMove = (ev) => {
+        const rect = wrap.getBoundingClientRect();
+        const clientX = ev.touches && ev.touches[0] ? ev.touches[0].clientX : ev.clientX;
+        const pct = Math.max(22, Math.min(68, Math.round(((rect.right - clientX) / rect.width) * 100)));
+        state.trayWidthPct = pct;
+        tray.style.width = pct + '%';
+      };
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        window.removeEventListener('touchmove', onMove);
+        window.removeEventListener('touchend', onUp);
+        try { localStorage.setItem('dhi_photo_tray_width_pct', String(state.trayWidthPct)); } catch (_e) {}
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('touchend', onUp);
+    }
+    function togglePermitShareFlag(roleKey, checked) {
+      if (!state.draft) return;
+      state.draft.propertyInfo = state.draft.propertyInfo || {};
+      const cur = state.draft.propertyInfo.permitShare || {};
+      state.draft.propertyInfo.permitShare = {
+        buyer: !!cur.buyer,
+        agent: !!cur.agent,
+        [roleKey]: !!checked
+      };
+      saveDraftLocally(true);
+    }
+
+    function compressImageFile(file, maxDim, quality) {
+      const pq = getActivePhotoQuality();
+      if (typeof maxDim !== 'number') maxDim = pq.maxDim;
+      if (typeof quality !== 'number') quality = pq.quality;
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
@@ -1770,7 +1839,7 @@
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
-        const maxW = 1000;
+        const maxW = getActivePhotoQuality().maxDim;
         const scale = img.naturalWidth > maxW ? (maxW / img.naturalWidth) : 1;
         canvas.width = Math.round(img.naturalWidth * scale);
         canvas.height = Math.round(img.naturalHeight * scale);
@@ -2320,7 +2389,7 @@
       photoEditCtx.linePendingStart = null;
       redrawPhotoEditor();
       const canvas = document.getElementById('photoEditorCanvas');
-      const newDataUrl = canvas.toDataURL('image/jpeg', 0.86);
+      const newDataUrl = canvas.toDataURL('image/jpeg', getActivePhotoQuality().quality);
       const p = state.draft.sections[photoEditCtx.secIdx].items[photoEditCtx.itemIdx].photos[photoEditCtx.photoIdx];
       p.dataUrl = newDataUrl;
       p.storagePath = ''; // Force re-upload of annotated photo
@@ -2508,6 +2577,8 @@
 
     function openInstructionsModal() {
       document.getElementById('globalInstructionsInput').value = state.globalInstructions;
+      const pqSel = document.getElementById('photoQualitySelect');
+      if (pqSel) pqSel.value = state.photoQualityPreset || 'standard';
       renderModelSelectOptions();
       document.getElementById('instructionsModal').classList.remove('hidden');
       refreshAvailableModels();
@@ -2860,6 +2931,18 @@
                       <label class="block font-bold text-slate-600 mb-1">MLS # (optional)</label>
                       <input type="text" value="${esc(pi.mls || '')}" oninput="updatePropInfo('mls', this.value)" placeholder="Optional" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
                     </div>
+                    <div class="col-span-2 sm:col-span-6 flex flex-wrap items-center gap-3 pt-1">
+                      <span class="font-bold text-slate-600">Show permit link on report to:</span>
+                      <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer font-semibold text-slate-700">
+                        <input type="checkbox" ${pi.permitShare && pi.permitShare.agent ? 'checked' : ''} onchange="togglePermitShareFlag('agent', this.checked)" class="rounded border-slate-300" />
+                        <span>Agent</span>
+                      </label>
+                      <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer font-semibold text-slate-700">
+                        <input type="checkbox" ${pi.permitShare && pi.permitShare.buyer ? 'checked' : ''} onchange="togglePermitShareFlag('buyer', this.checked)" class="rounded border-slate-300" />
+                        <span>Buyer</span>
+                      </label>
+                      <span class="text-[11px] text-slate-400">(Always visible to you; off for others by default)</span>
+                    </div>
                     <div class="col-span-1 sm:col-span-2">
                       <label class="block font-bold text-slate-600 mb-1">Year built</label>
                       <input type="text" value="${esc(pi.yearBuilt || '')}" oninput="updatePropInfo('yearBuilt', this.value)" placeholder="e.g., 1984" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
@@ -2982,31 +3065,42 @@
             </div>
           ` : ''}
 
-          <!-- Items List + Optional Desktop Photo Tray Sidebar -->
-          <div class="grid grid-cols-1 ${state.showPhotoTray ? 'lg:grid-cols-12' : ''} gap-4 items-start">
-            <div class="${state.showPhotoTray ? 'lg:col-span-8' : ''} space-y-3">${itemCards}</div>
-            ${state.showPhotoTray ? `
-              <aside class="lg:col-span-4 lg:sticky lg:top-16 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+          <!-- Items List + Draggable Ultrawide Photo Tray Sidebar -->
+          <div id="dhiSplitWorkspace" class="${state.showPhotoTray ? 'flex flex-col lg:flex-row items-start gap-3 lg:gap-0' : 'space-y-3'}">
+            <div class="${state.showPhotoTray ? 'w-full lg:flex-1 lg:min-w-[460px] lg:pr-2' : 'w-full'} space-y-3">${itemCards}</div>
+            ${state.showPhotoTray ? (() => {
+              const szCfg = state.trayThumbSize === 'sm' ? { min: 130, h: 'h-28' } : (state.trayThumbSize === 'lg' ? { min: 270, h: 'h-56' } : { min: 195, h: 'h-40' });
+              return `
+              <div onmousedown="startTraySplitResize(event)" ontouchstart="startTraySplitResize(event)" title="Drag to resize Photo Tray" class="hidden lg:flex w-3 shrink-0 self-stretch cursor-col-resize items-center justify-center group select-none">
+                <div class="w-1 h-24 rounded-full bg-slate-300 group-hover:bg-sky-500 transition"></div>
+              </div>
+              <aside id="dhiPhotoTrayAside" style="width:${state.trayWidthPct}%" class="w-full lg:w-auto lg:shrink-0 lg:sticky lg:top-16 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div class="text-xs font-extrabold text-slate-900">Photo tray (${state.photoTray.length})</div>
-                    <div class="text-[11px] text-slate-500">Drag any photo onto an item card to insert &amp; edit.</div>
+                    <div class="text-[11px] text-slate-500">Drag onto any item card to insert &amp; edit. Drag divider to widen.</div>
                   </div>
-                  <div class="flex gap-1.5">
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <div class="inline-flex rounded-lg border border-slate-300 overflow-hidden bg-white text-[10px] font-bold">
+                      <button type="button" onclick="setTrayThumbSize('sm')" class="px-2 py-1 ${state.trayThumbSize === 'sm' ? 'bg-davis-navy text-white' : 'text-slate-600 hover:bg-slate-100'}">S</button>
+                      <button type="button" onclick="setTrayThumbSize('md')" class="px-2 py-1 ${state.trayThumbSize === 'md' ? 'bg-davis-navy text-white' : 'text-slate-600 hover:bg-slate-100'}">M</button>
+                      <button type="button" onclick="setTrayThumbSize('lg')" class="px-2 py-1 ${state.trayThumbSize === 'lg' ? 'bg-davis-navy text-white' : 'text-slate-600 hover:bg-slate-100'}">L</button>
+                    </div>
                     <button type="button" onclick="openPhotoFolderPicker(true)" class="px-2.5 py-1.5 rounded-lg bg-davis-navy text-white text-[11px] font-bold">Load folder</button>
                     <button type="button" onclick="openPhotoFolderPicker(false)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-[11px] font-bold">+ Files</button>
                   </div>
                 </div>
-                <div class="grid grid-cols-3 gap-2 max-h-[65vh] overflow-y-auto pr-1">
+                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(${szCfg.min}px, 1fr)); gap: 0.625rem;" class="max-h-[78vh] overflow-y-auto pr-1">
                   ${state.photoTray.map(p => `
-                    <div draggable="true" ondragstart="handleTrayDragStart(event, '${p.id}')" class="relative cursor-grab active:cursor-grabbing rounded-xl overflow-hidden border ${p.used ? 'border-emerald-400 opacity-70' : 'border-slate-300 hover:border-davis-navy'} bg-slate-100">
-                      <img src="${p.dataUrl}" class="w-full h-20 object-cover pointer-events-none" />
-                      ${p.used ? '<span class="absolute top-1 right-1 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold">Used</span>' : ''}
+                    <div draggable="true" ondragstart="handleTrayDragStart(event, '${p.id}')" class="relative cursor-grab active:cursor-grabbing rounded-xl overflow-hidden border ${p.used ? 'border-emerald-400 opacity-75' : 'border-slate-300 hover:border-davis-navy'} bg-slate-100 shadow-sm">
+                      <img src="${p.dataUrl}" class="w-full ${szCfg.h} object-cover pointer-events-none" />
+                      ${p.name ? `<div class="px-1.5 py-1 text-[10px] font-semibold text-slate-600 bg-white/90 truncate border-t border-slate-200">${esc(p.name)}</div>` : ''}
+                      ${p.used ? '<span class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold shadow">Used</span>' : ''}
                     </div>
-                  `).join('') || '<div class="col-span-3 text-xs text-slate-400 text-center py-8 border border-dashed border-slate-200 rounded-xl">Click <strong>Load folder</strong> to open your inspection photos here.</div>'}
+                  `).join('') || '<div style="grid-column:1/-1" class="text-xs text-slate-400 text-center py-10 border border-dashed border-slate-200 rounded-xl">Click <strong>Load folder</strong> to open your inspection photos here.</div>'}
                 </div>
-              </aside>
-            ` : ''}
+              </aside>`;
+            })() : ''}
           </div>
         </div>
       `;
