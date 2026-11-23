@@ -35,7 +35,7 @@
         <span id="hdrTitle" class="text-sm font-extrabold truncate max-w-[200px] sm:max-w-md">Field &amp; Report Editor</span>
       </div>
       <div class="flex flex-wrap items-center gap-1.5 text-xs">
-        <span id="hdrBackupBadge" class="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 text-[11px] font-semibold text-sky-100">Local Save Ready</span>
+        <span id="hdrBackupBadge" class="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 text-[11px] font-semibold text-sky-100">Local save ready</span>
         <button type="button" onclick="openInstructionsModal()" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">AI Rules</button>
         <button type="button" onclick="openBackupsModal()" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">Backups</button>
         <a href="./index.html?view=portal" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">Admin Portal</a>
@@ -55,10 +55,18 @@
       <div class="flex items-start justify-between gap-2">
         <div>
           <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Global AI Preset</span>
-          <h3 class="text-lg font-extrabold text-slate-900">Narrative Rewriting Instructions</h3>
+          <h3 class="text-lg font-extrabold text-slate-900">Narrative rewriting instructions</h3>
           <p class="text-xs text-slate-500">Applies to all reports on both phone and desktop. Property details, Styles &amp; Materials, prior narratives, and item photos are sent automatically.</p>
         </div>
         <button type="button" onclick="closeInstructionsModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <label for="aiModelSelect" class="text-xs font-extrabold text-slate-800">Gemini model</label>
+          <button type="button" id="refreshModelsBtn" onclick="refreshAvailableModels()" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-[11px] font-bold text-slate-700">Refresh live models</button>
+        </div>
+        <select id="aiModelSelect" class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-800"></select>
+        <p id="aiModelHelp" class="text-[11px] text-slate-500">Pulls active models directly from Google AI Studio so new releases appear automatically.</p>
       </div>
       <textarea id="globalInstructionsInput" rows="10" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono leading-relaxed focus:ring-2 focus:ring-davis-navy focus:outline-none"></textarea>
       <div class="flex justify-end gap-2">
@@ -74,7 +82,7 @@
       <div class="flex items-start justify-between gap-2">
         <div>
           <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Saved Comment Library</span>
-          <h3 id="libModalTitle" class="text-base font-extrabold text-slate-900">Insert or Prune Comments</h3>
+          <h3 id="libModalTitle" class="text-base font-extrabold text-slate-900">Insert or remove comments</h3>
         </div>
         <button type="button" onclick="closeLibraryModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
       </div>
@@ -95,14 +103,14 @@
       <div class="flex items-start justify-between gap-2">
         <div>
           <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Crash Recovery (Every 2 Minutes)</span>
-          <h3 class="text-base font-extrabold text-slate-900">Local Phone Backups</h3>
+          <h3 class="text-base font-extrabold text-slate-900">Local phone backups</h3>
           <p class="text-xs text-slate-500">Snapshots are saved automatically to IndexedDB every 2 minutes while editing an inspection.</p>
         </div>
         <button type="button" onclick="closeBackupsModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
       </div>
       <div class="flex gap-2">
-        <button type="button" onclick="createManualBackupSnapshot()" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white text-xs font-bold">Take Snapshot Now</button>
-        <button type="button" onclick="exportActiveDraftJson()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold">Download JSON Backup</button>
+        <button type="button" onclick="createManualBackupSnapshot()" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white text-xs font-bold">Take snapshot now</button>
+        <button type="button" onclick="exportActiveDraftJson()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold">Download JSON backup</button>
       </div>
       <div id="backupsListContainer" class="space-y-2 overflow-y-auto flex-1"></div>
     </div>
@@ -114,20 +122,20 @@
       <div class="flex items-center justify-between gap-2">
         <div>
           <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Photo Editor (Desktop / Review)</span>
-          <h3 class="text-base font-extrabold text-slate-900">Annotate or Update Photo</h3>
+          <h3 class="text-base font-extrabold text-slate-900">Annotate or update photo</h3>
         </div>
         <button type="button" onclick="closePhotoEditor()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
       </div>
       <div class="flex flex-wrap items-center gap-2 text-xs">
-        <button type="button" id="toolArrowBtn" onclick="setPhotoTool('arrow')" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white font-bold">Draw Arrow</button>
-        <button type="button" id="toolCircleBtn" onclick="setPhotoTool('circle')" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">Draw Circle</button>
+        <button type="button" id="toolArrowBtn" onclick="setPhotoTool('arrow')" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white font-bold">Draw arrow</button>
+        <button type="button" id="toolCircleBtn" onclick="setPhotoTool('circle')" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">Draw circle</button>
         <select id="photoColorSelect" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold">
           <option value="#ef4444">Red</option>
           <option value="#f59e0b">Amber Gold</option>
           <option value="#0ea5e9">Sky Blue</option>
         </select>
         <button type="button" onclick="undoPhotoAnnotation()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 font-bold">Undo</button>
-        <button type="button" onclick="clearPhotoAnnotations()" class="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 font-bold">Reset Photo</button>
+        <button type="button" onclick="clearPhotoAnnotations()" class="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 font-bold">Reset photo</button>
       </div>
       <div class="flex-1 overflow-auto flex items-center justify-center bg-slate-900 rounded-xl p-2 min-h-[260px]">
         <canvas id="photoEditorCanvas" class="max-w-full max-h-[54vh] cursor-crosshair rounded-lg"></canvas>
@@ -136,7 +144,7 @@
         <input id="photoCaptionInput" type="text" placeholder="Photo caption..." class="flex-grow px-3 py-2 rounded-lg border border-slate-300 text-xs" />
         <div class="flex gap-2">
           <button type="button" onclick="closePhotoEditor()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">Cancel</button>
-          <button type="button" onclick="saveEditedPhoto()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Save Annotated Photo</button>
+          <button type="button" onclick="saveEditedPhoto()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Save annotated photo</button>
         </div>
       </div>
     </div>
@@ -146,7 +154,7 @@
     const DHI_SUPABASE_URL = 'https://uzelxunzussqmxrzeyke.supabase.co';
     const DHI_SUPABASE_ANON_KEY = 'sb_publishable_-XO_qBYL5CDILZR05KpaDA_0qMDmYi3';
     const DHI_TEMPLATE = [{"num": "1", "name": "Roofing", "optional": false, "stylesMaterials": [{"label": "Roof Covering", "options": ["3-Tab fiberglass", "Architectural", "Asphalt/Fiberglass", "Built-up", "Cedar", "Ceramic/Clay", "Concrete", "Dimensional", "Metal", "Modified bitumen", "Panel", "Roll/Selvage", "EPDM Membrane (Black)", "TPO/PVC Membrane (White)", "Simulated", "Slate", "T-Lock Shingles", "TPO", "Tar and gravel", "Tile", "Wood shakes", "Asphalt roll"]}, {"label": "Viewed roof covering from", "options": ["Ground", "Ladder", "Walked roof", "Binoculars", "Drone"]}, {"label": "Sky Light(s)", "options": ["None", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Ventilating", "Fixed", "Fixed glass with vent flap", "Motorized", "Roof windows", "Custom-made", "Home made", "Solar tube"]}, {"label": "Chimney (exterior)", "options": ["Block", "Brick", "Cement Fiber", "Composition board", "EIFS/Stucco", "Masonite", "Masonry Stucco", "Metal Flue Pipe", "Metal Siding", "N/A", "Panel", "Rock", "Stove Pipe", "Vinyl siding", "Wood"]}], "items": [{"code": "1.0", "title": "Roof Coverings"}, {"code": "1.1", "title": "Flashings"}, {"code": "1.2", "title": "Skylights, Chimneys and Roof Penetrations"}, {"code": "1.3", "title": "Roof Drainage Systems"}]}, {"num": "2", "name": "Exterior", "optional": false, "stylesMaterials": [{"label": "Siding Style", "options": ["Beaded", "Bevel", "Channel rustic", "Drop", "Lap", "Log", "Shiplap", "Tongue and Groove", "V-groove", "German", "T-111", "RB&B (Reverse board and batten)", "Rock and Mortar", "Brick", "Stucco", "Batten", "Wood shakes", "Block and mortar", "Pebble dash", "Pebble", "Shake", "Panel"]}, {"label": "Siding Material", "options": ["Composite board", "Vinyl", "Wood", "Cedar", "Brick veneer", "Stone", "Full brick", "Cement-Fiber", "Metal", "Masonry", "Masonry panel", "EIFS", "Logs", "Fiber cement"]}, {"label": "Exterior Entry Doors", "options": ["Wood", "Steel", "Fiberglass", "Hollow core", "Single pane", "Insulated glass", "Metal"]}, {"label": "Appurtenance", "options": ["Deck with steps", "Balcony", "Covered porch", "Porch", "Sidewalk", "Deck", "Patio", "Ramp"]}, {"label": "Driveway", "options": ["Concrete", "Asphalt", "Brick", "Cobblestone", "Gravel", "Dirt", "Shared access", "Street Parking", "Parking lot"]}], "items": [{"code": "2.0", "title": "Wall Cladding Flashing and Trim"}, {"code": "2.1", "title": "Doors (Exterior)"}, {"code": "2.2", "title": "Windows"}, {"code": "2.3", "title": "Decks, Balconies, Stoops, Steps, Areaways, Porches, Patio/Cover and Applicable Railings"}, {"code": "2.4", "title": "Vegetation, Grading, Drainage, Driveways, Patio Floor, Walkways and Retaining Walls (With respect to their effect on the condition of the building)"}, {"code": "2.5", "title": "Eaves, Soffits and Fascias"}, {"code": "2.6", "title": "Other"}, {"code": "2.7", "title": "Additional Buildings on Property"}]}, {"num": "3", "name": "Garage", "optional": false, "stylesMaterials": [{"label": "Garage Door Type", "options": ["N/A", "One manual", "Two manual", "Three manual", "Four manual", "One automatic", "Two automatic", "Three automatic", "Four automatic"]}, {"label": "Garage Door Material", "options": ["N/A", "Fiberglass", "Compressed board", "Hardboard", "Insulated", "Light inserts", "Metal", "Wood"]}, {"label": "Auto-opener Manufacturer", "options": ["N/A", "ALLOMATIC", "ALLISTER", "ALL STAR", "AMARR", "AUTOMATIC DOORMAN", "CHAMBERLAIN", "CRAWFORD", "GENIE", "HOLMES", "HOWELL", "IDEAL", "KNOX", "MASTER", "OVERHEAD DOOR", "QUANTIM", "RAYNOR", "RYOBI", "ROLL-LITE", "SEARS", "SOLID STATE", "STANLEY", "TELECTRON", "ULTRA-LIFT", "WAYNE-DALTON", "WINDSOR", "GOOD", "LINEAR", "UNKNOWN", "1/3 HORSEPOWER", "1/2 HORSEPOWER", "3/4 HORSEPOWER", "MARTIN", "LIFTMASTER"]}], "items": [{"code": "3.0", "title": "Detatched Garage Roof Covering/Structure"}, {"code": "3.1", "title": "Garage Ceilings"}, {"code": "3.2", "title": "Garage Walls (including Firewall Separation)"}, {"code": "3.3", "title": "Garage Floor"}, {"code": "3.4", "title": "Garage Door(s)"}, {"code": "3.5", "title": "Occupant Door (from garage to inside of home)"}, {"code": "3.6", "title": "Garage Door Operators (Report whether or not doors will reverse when met with resistance)"}]}, {"num": "4", "name": "Interiors", "optional": false, "stylesMaterials": [{"label": "Ceiling Materials", "options": ["Gypsum Board", "Plaster", "Wallpaper", "Suspended ceiling panels", "Ceiling Tile", "Wood", "Compressed board", "Painted-over wallpaper", "Unfinished", "VOB (Vinyl-over-board)"]}, {"label": "Wall Material", "options": ["Gypsum Board", "Plaster", "Paneling", "Wallpaper", "Wood", "Unfinshed", "Compressed board", "Painted-over wall paper", "Tile", "VOB (Vinyl-over-board)"]}, {"label": "Floor Covering(s)", "options": ["(Tongue and Groove)", "Brick", "Carpet", "Engineered T&G", "Hardwood T&G", "Laminated T&G", "Linoleum", "Epoxy/Resin", "Finished Concrete", "LVP", "LVT", "Old 9\" square tile (possible asbestos)", "Peel and Stick LVP", "Rock", "Self adhesive tile", "Stone", "Tile", "Unfinished", "Vinyl Sheet", "Wood"]}, {"label": "Interior Doors", "options": ["Hollow core", "Solid", "Masonite", "Raised panel", "Wood", "Metal"]}, {"label": "Window Types", "options": ["Both", "AGED", "Thermal/Insulated", "Double-hung", "Single-hung", "Tilt feature", "Single pane", "Storm windows", "Casement", "Jalousie", "Sliders", "Awning"]}, {"label": "Cabinetry", "options": ["Wood", "Tile", "Marble", "Veneer", "Laminate", "Melamine", "Plastic", "Metal"]}, {"label": "Countertop", "options": ["Laminate", "Wood", "Tile", "Composite", "Cultured marble", "Metal", "Corian", "Granite", "Marble", "Slate", "Stone", "Cast iron", "Vinyl", "Quartz", "Epoxy/Resin"]}, {"label": "Refrigerator Opening Width", "options": ["30 inches", "32 inches", "32 1/2 inches", "33 inches", "33 1/2 inches", "34 inches", "34 1/2 inches", "35 inches", "35 1/2 inches", "36 inches", "36 1/2 inches", "37 inches", "37 1/2 inches", "38 inches", "38 1/2 inches", "39 inches", "39 1/2 inches", "40 inches", "40 1/2 inches", "41 inches", "PLUS"]}, {"label": "Refrigerator Opening Height", "options": ["60 inches", "60 1/4 inches", "60 1/2 inches", "60 3/4 inches", "60 7/8 inches", "61 inches", "61 1/4 inches", "61 1/2 inches", "61 3/4 inches", "61 7/8 inches", "62 inches", "62 1/4 inches", "62 1/2 inches", "62 3/4 inches", "62 7/8 inches", "63 inches", "63 1/4 inches", "63 1/2 inches", "63 3/4 inches", "63 7/8 inches", "64 inches", "64 1/4 inches", "64 1/2 inches", "64 3/4 inches", "64 7/8 inches", "65 inches", "65 1/4 inches", "65 1/2 inches", "65 3/4 inches", "65 7/8 inches", "66 inches", "66 1/4 inches", "66 1/2 inches", "66 3/4 inches", "66 7/8 inches", "67 inches", "67 1/4 inches", "67 1/2 inches", "67 3/4 inches", "67 7/8 inches"]}], "items": [{"code": "4.0", "title": "Ceilings"}, {"code": "4.1", "title": "Walls"}, {"code": "4.2", "title": "Floors"}, {"code": "4.3", "title": "Steps, Stairways, Balconies and Railings"}, {"code": "4.4", "title": "Counters and Cabinets (representative number)"}, {"code": "4.5", "title": "Doors (representative number)"}, {"code": "4.6", "title": "Windows (representative number)"}, {"code": "4.7", "title": "Pests"}]}, {"num": "5", "name": "Structural Components", "optional": false, "stylesMaterials": [{"label": "Foundation", "options": ["Masonry block", "Brick", "Rock", "Poured concrete", "Underpinning", "Skirting"]}, {"label": "Method used to observe Crawlspace", "options": ["From entry", "Crawled", "No crawlspace", "Could not access", "Unsafe conditions", "Pests", "Standing water", "Debris", "Obstructed", "No access", "Walked", "Limited access"]}, {"label": "Floor Structure", "options": ["2 X 6", "2 X 8", "2 X 10", "2 X12", "Wood joists", "Slab", "6\" or better", "8\" or better", "Diameter logs", "Wood beams", "Engineered floor trusses", "Not visible", "Engineered floor joists"]}, {"label": "Wall Structure", "options": ["Wood", "Masonry", "Metal studs", "2 X 4 Wood", "2 X 6 Wood", "Brick"]}, {"label": "Columns or Piers", "options": ["Brick piers", "Concrete piers", "Dry stacked rock or stone", "Jack Posts", "Jacks", "Masonry block", "Not Visible", "Steel lally columns", "Steel screw jacks", "Supporting walls", "Wood piers"]}, {"label": "Ceiling Structure", "options": ["2X4", "2X6", "2X8", "2X10", "4\" or better", "6'\" or better", "Diameter logs", "Not visible"]}, {"label": "Roof Structure", "options": ["Engineered wood trusses", "Stick-built", "2 X 4 Rafters", "2 X 6 Rafters", "2 X 8 Rafters", "2 X 10 Rafters", "2 X 12 Rafters", "Steel trusses", "Lateral bracing", "Common board", "Wood slats", "Plywood", "Sheathing", "Not visible"]}, {"label": "Roof-Type", "options": ["A-frame", "Flat", "Gable", "Gambrel", "Geodesic", "Hip", "Hip and Valley", "Round", "Shed", "Skillion"]}, {"label": "Attic info", "options": ["Attic access", "Scuttle hole", "Pull Down stairs", "Storage", "Light in attic", "No Storage", "Attic hatch", "No Attic"]}, {"label": "Method used to observe attic", "options": ["From entry", "Walked", "Inaccessible"]}], "items": [{"code": "5.0", "title": "Foundations, Basement and Crawlspace (Report signs of abnormal or harmful water penetration into the building or signs of abnormal or harmful condensation on building components.)"}, {"code": "5.1", "title": "Walls (Structural)"}, {"code": "5.2", "title": "Columns or Piers"}, {"code": "5.3", "title": "Floors (Structural)"}, {"code": "5.4", "title": "Ceilings (Structural)"}, {"code": "5.5", "title": "Roof Structure and Attic"}]}, {"num": "6", "name": "Plumbing System", "optional": false, "stylesMaterials": [{"label": "Water Source", "options": ["Well or Spring", "Well", "Public", "Spring", "Unable to determine", "Shared well", "Cistern"]}, {"label": "Water Filters", "options": ["Sediment filter", "Whole house conditioner", "System flush", "None", "(We do not inspect filtration systems)"]}, {"label": "Plumbing Water Supply (into home)", "options": ["Copper", "Pex", "Poly", "CPVC", "Galvanized (old)", "PVC", "Not visible", "Black hose"]}, {"label": "Plumbing Water Distribution (inside home)", "options": ["Copper", "CPVC", "Galvanized", "Not visible", "PEX", "POLY", "PVC", "Stainless Steel"]}, {"label": "Washer Drain Size", "options": ["1 1/2\" Diameter (undersized)", "2\" Diameter", "Not visible", "None", "Undersized"]}, {"label": "Plumbing Waste", "options": ["AGED", "PVC", "Cast iron", "ABS", "Copper", "Galvanized Steel", "Lead", "Not Visible", "Stainless Steel"]}, {"label": "Water Heater Power Source", "options": ["Electric", "Gas (quick recovery)", "Hybrid (electric) Hybrid (electric) Hybrid (electric) Hybrid (electric)", "None (Boiler only)", "Propane (quick recovery)"]}, {"label": "Water Heater Capacity", "options": ["(2) 40 Gallon", "100 Gallon", "150 Gallon", "30 Gallon (small)", "40 Gallon (1-2 people)", "50 Gallon (2-3 people)", "60 Gallon", "65 Gallon", "66 Gallon", "70 Gallon", "75 Gallon", "80 Gallon (plenty)", "Tankless", "Two units", "Unknown"]}, {"label": "Manufacturer", "options": ["A.O. SMITH", "AGED", "AMANA", "AMERICAN", "AMTROL", "APOLLO", "AQUASTAR", "BRADFORD-WHITE", "BURNHAM", "CRAFTMASTER", "CRANE", "DAYTON", "ENVIROTEMP", "ETERNAL", "GE", "GLOW CORE", "HARDWARE", "HEAT-FLO", "HEDGES", "HOTPOINT", "HTP", "JACKSON", "KENMORE", "LENNOX", "LOCHINVAR", "LOWES", "MAYTAG", "MONITOR", "MORFLO", "MYSON", "NAVIEN", "NONE", "NORDYNE", "NOT VISIBLE", "OLD", "PEERLESS", "PENNFIELD", "POLARIS", "RAYPAK", "REDI-HOT"]}, {"label": "Water Heater Location", "options": ["Attic", "Basement", "Closet downstairs", "Concealed", "Concealed hallway panel", "Crawlspace", "Main Floor", "No Water heater", "Under Stairs", "Upper level", "Utility Room", "Washer Dryer Room", "Lower level bathroom", "Closet", "Garage closet"]}], "items": [{"code": "6.0", "title": "Plumbing Drain, Waste and Vent Systems"}, {"code": "6.1", "title": "Plumbing Water Supply, Distribution System and Fixtures"}, {"code": "6.2", "title": "Hot Water Systems, Controls, Chimneys, Flues and Vents"}, {"code": "6.3", "title": "Main Water Shut-off Device (Describe location)"}, {"code": "6.4", "title": "Fuel Storage and Distribution Systems (Interior fuel storage, piping, venting, supports, leaks)"}, {"code": "6.5", "title": "Main Fuel Shut-off (Describe Location)"}, {"code": "6.6", "title": "Sump Pump/Pit"}]}, {"num": "7", "name": "Electrical System", "optional": false, "stylesMaterials": [{"label": "Electrical Service Conductors", "options": ["Overhead service", "Below ground", "Aluminum", "Copper", "220 volts", "110 volt only"]}, {"label": "Panel capacity", "options": ["(inadequate)", "100 AMP", "125 AMP", "150 AMP", "200 AMP", "225 AMP", "60 AMP", "80 AMP", "90 AMP", "(2) 100 AMP service panel", "(2) 150 AMP service panel", "(2) 200 AMP service panel", "Adequate"]}, {"label": "Panel Type", "options": ["Fuses", "Circuit breakers"]}, {"label": "Electric Panel Manufacturer", "options": ["ABB", "BRYANT", "CHALLENGER", "CROUSE-HINDS", "CUTLER HAMMER", "EATON", "FEDERAL PACIFIC", "GENERAL ELECTRIC", "GENERAL SWITCH", "GOULD", "ITE", "LEVITON", "MURRAY", "SIEMENS", "SQUARE D", "SYLVANIA", "THOMAS& BETTS(T&B)", "Unknown", "WALKER", "WESTINGHOUSE"]}, {"label": "Branch wire 15 and 20 AMP", "options": ["Copper", "Aluminum"]}, {"label": "Wiring Methods", "options": ["Romex", "Knob and Tube", "Conduit", "Not Visible"]}], "items": [{"code": "7.0", "title": "Service Entrance Conductors"}, {"code": "7.1", "title": "Service and Grounding Equipment, Main Overcurrent Device, Main and Distribution Panels"}, {"code": "7.2", "title": "Branch Circuit Conductors, Overcurrent Devices and Compatability of their Amperage and Voltage"}, {"code": "7.3", "title": "Connected Devices and Fixtures (Observed from a representative number operation of ceiling fans, lighting fixtures, switches and receptacles located inside the house, garage, and on the dwelling's exterior walls)"}, {"code": "7.4", "title": "Polarity and Grounding of Receptacles within 6 feet of interior plumbing fixtures, all receptacles in garage, carport and exterior walls of inspected structure"}, {"code": "7.5", "title": "Operation of GFCI (Ground Fault Circuit Interrupters)"}, {"code": "7.6", "title": "Location of Main and Distribution Panels"}, {"code": "7.7", "title": "Smoke and Carbon Monoxide Detectors"}]}, {"num": "8", "name": "Heating / Central Air Conditioning", "optional": false, "stylesMaterials": [{"label": "Heat Type", "options": ["Circulating boiler", "Coal furnace converted to gas", "Coal furnace converted to oil", "Direct Vent Wall Furnace", "Electric Base", "Electric heat", "Floor Furnace", "Forced Air", "Geothermal heat pump", "Heat Pump Forced Air (also provides cool air)", "Horizontal Air Handler", "Hydronic", "None", "Oil furnace converted to gas", "Old oil furnace as back up to heat pump", "Radiant Ceiling", "Radiant Floor", "Radiant Hydronic", "Space heater", "Steam boiler", "Vented Room Heater", "Vertical Air Handler", "Gas Heater"]}, {"label": "Energy Source", "options": ["Oil", "Gas", "Propane", "Kerosene", "Solar", "Electric", "Wood", "Coal", "Corn", "Natural gas"]}, {"label": "Number of Heat Systems (excluding wood)", "options": ["One", "Two", "Three", "Four", "Five", "None"]}, {"label": "Heat System Manufacturer", "options": ["AGED", "AIRE-FLO", "AIREASE", "AMANA", "AMERICAN STANDARD", "AMERICANAIRE", "AMERISTAR", "AO SMITH", "APOLLO", "AQUATHERM", "ARCOAIRE", "ARMSTRONG", "BRYANT", "BURNHAM", "CARRIER", "CHAMPION", "CLIMATE MASTER", "COLEMAN", "COMFORTMAKER", "CROWN", "DAIKIN", "DUCANE", "DUNKIRK", "EMPIRE", "ENVIROTEMP", "FIRST COMPANY", "FRIGIDAIRE", "GENERAL ELECTRIC", "GIBSON", "GOODMAN", "GUARDIAN", "HALLMARK", "HB SMITH", "HEATWAVE", "HEIL", "INT. COMFORT", "INTERTHERM", "JANITROL", "JOHNSTONE", "KENMORE"]}, {"label": "Ductwork", "options": ["N/A", "Insulated", "and", "Non-insulated", "Partially insulated", "Possible asbestos tape", "Possible asbestos sleeving"]}, {"label": "Filter Type", "options": ["N/A", "Washable", "Disposable", "Cartridge", "Electronic air cleaner", "(Operable)", "(Inoperable)", "Missing"]}, {"label": "Filter Size", "options": ["(Four filters)", "(Three filters)", "(Two filters)", "10x15", "10x20", "10x24", "10x30", "12x12", "12x16", "12x18", "12x20", "12x24", "12x30", "14x14", "14x20", "14x24", "14x25", "14x30", "15x20", "15x25", "16x16", "16x20", "16x22", "16x24", "16x25", "18x18", "18x20", "18x24", "20x20", "20x24", "20x25", "20x30", "22x22", "22x24", "24x24", "25x23", "25x25", "25x30", "30x30", "8x30"]}, {"label": "Types of Fireplaces", "options": ["None", "Solid Fuel", "Conventional", "Stand-alone", "Vented gas logs", "Non-vented gas logs", "Propane gas logs vented", "Propane gas logs non-vented", "Gas/LP Log starter", "Pellet burning", "Insert", "Sealed off", "Electric"]}, {"label": "Operable Fireplaces", "options": ["None", "One", "Two", "Three", "Four", "Five"]}, {"label": "Number of Woodstoves", "options": ["None", "One", "Two", "Three", "Four"]}, {"label": "Cooling Equipment Type", "options": ["None", "Heat Pump Forced Air (also provides warm air)", "Air conditioner unit", "Window AC", "Swamp Cooler", "Ductless Mini-Split"]}, {"label": "Number of AC Only Units", "options": ["One", "Two", "Three", "Four", "Five", "None"]}, {"label": "Central Air Manufacturer", "options": ["AGED", "AIREASE", "AMANA", "AMERICAN", "ARCOAIRE", "ARMSTRONG", "BRYANT", "CARRIER", "CHAMPION", "CLIMATE MASTER", "COLEMAN", "COMFORT MAKER", "CONCORD", "COPELAND", "DAIKIIN", "DAIKIN", "DAYTON", "DUCANE", "ENVIROMASTER", "FRIEDRICH AIR", "FRIGIDAIRE", "GENERAL ELECTRIC", "GIBSON", "GOETTL", "GOODMAN", "GUARDIAN", "HEIL", "INT. COMFORT", "INTERTHERM", "JANITROL", "KENMORE", "LENNOX", "LUXAIRE", "MITSUBISHI", "N/A", "NONE", "NORDYNE", "PAYNE", "RHEEM", "RUDD"]}], "items": [{"code": "8.0", "title": "Heating Equipment"}, {"code": "8.1", "title": "Normal Operating Controls"}, {"code": "8.2", "title": "Automatic Safety Controls"}, {"code": "8.3", "title": "Distribution Systems (including fans, pumps, ducts and piping, with supports, insulation, air filters, registers, radiators, fan coil units and convectors)"}, {"code": "8.4", "title": "Presence of Installed Heat Source in Each Room"}, {"code": "8.5", "title": "Chimneys, Flues and Vents (for fireplaces or heat systems)"}, {"code": "8.6", "title": "Solid Fuel Heating Devices (Fireplaces, Woodstove)"}, {"code": "8.7", "title": "Gas/LP Firelogs and Fireplaces"}, {"code": "8.8", "title": "Cooling and Air Handler Equipment"}, {"code": "8.9", "title": "Normal Operating Controls"}]}, {"num": "9", "name": "Insulation and Ventilation", "optional": false, "stylesMaterials": [{"label": "Attic Insulation", "options": ["Blown", "Batt", "Roll", "Fiberglass", "Rock wool", "Cellulose", "Polyurethane foam", "Vermiculite", "Perlite", "Mineral", "Unknown", "None", "Approximate", "Below", "R-19", "R-19 or better", "R-30 or better", "R-45", "Spray Foam"]}, {"label": "Ventilation", "options": ["Gable vents", "Ridge vents", "Soffit Vents", "Turbines", "Passive", "None found", "Thermostatically controlled fan"]}, {"label": "Dryer Power Source", "options": ["None", "220 Electric", "Gas Connection", "Propane Connection", "Both (your choice)", "110 volt only (Stackable)"]}, {"label": "Dryer Vent", "options": ["Both", "Flexible Vinyl", "Flexible Metal", "PVC Rigid", "Unknown", "None", "Metal"]}, {"label": "Floor System Insulation", "options": ["NONE", "Faced", "Unfaced", "Batts", "Reflective system (foil faced)", "Loose fill (netted)", "Fiberglass", "Foam", "R-19", "R-25", "Below R-19", "Below R-25", "Above R-19", "Above R-25", "Spray Foam", "Not Visible"]}], "items": [{"code": "9.0", "title": "Insulation in Attic"}, {"code": "9.1", "title": "Insulation in Exterior Walls"}, {"code": "9.2", "title": "Insulation Under Floor System"}, {"code": "9.3", "title": "Vapor Retarders (in Crawlspace or basement)"}, {"code": "9.4", "title": "Ventilation of Attic and Foundation Areas"}, {"code": "9.5", "title": "Venting Systems (Kitchens, Baths and Laundry)"}, {"code": "9.6", "title": "Ventilation Fans and Thermostatic Controls in Attic"}, {"code": "9.7", "title": "Radon Mitigation Systems"}]}, {"num": "10", "name": "Built-In Kitchen Appliances", "optional": false, "stylesMaterials": [{"label": "Dishwasher Brand", "options": ["\"IKEA\"", "ADMIRAL", "AGED", "AMANA", "ASKO", "BOSCH", "BRAND NOT VISIBLE", "DCS", "FRIGIDAIRE", "GAGGENAU", "GENERAL ELECTRIC", "GIBSON", "GOOD", "HOLIDAY", "HOTPOINT", "JENN AIR", "KENMORE", "KITCHEN AIDE", "LG", "MAGIC CHEF", "MAYTAG", "MIELE", "NONE", "RCA", "ROPER", "SAMSUNG", "SEARS", "TAPPAN", "THERMADOR", "VIKING", "WESTINGHOUSE", "WHIRLPOOL", "DACOR", "MIDEA"]}, {"label": "Disposer Brand", "options": ["AGED", "AMERICAN STANDARD", "BADGER", "DISPOSALL", "EMERSON", "FRANKE", "FRIGIDAIRE", "GENERAL ELECTRIC", "GRIND-ALL", "HOTPOINT", "HYDROMAID", "IN SINK ERATOR", "JENN AIR", "KENMORE", "KITCHEN AIDE", "MAYTAG", "MOEN", "NONE", "ROPER", "SEARS", "SINKMASTER", "TAPPAN", "UNKNOWN", "VIKING", "WASTE KING", "WESTINGHOUSE", "WHIRLAWAY", "WHIRLPOOL", "WHITE ROCK"]}, {"label": "Range/Oven", "options": ["ADMIRAL", "AMANA", "AMERICAN", "BOSCH", "BROWN", "CALDERA", "CALORIC", "CREDA", "CROSLEY", "DACOR", "DCS", "DYNAMIC", "DYNASTY", "FRIGIDAIRE", "GAGGENAU", "GALAXY", "GENERAL ELECTRIC", "GIBSON", "GOOD", "HOLIDAY", "HOTPOINT", "JENN AIR", "KENMORE", "KENYON", "KITCHEN AIDE", "LG", "MAGIC CHEF", "MAYTAG", "NONE", "NXR", "RINNAI", "ROPER", "SAMSUNG", "SEARS", "TAPPAN", "THERMADOR", "UNKNOWN", "VIKING", "WESTINGHOUSE", "WHIRLPOOL"]}, {"label": "Exhaust/Range hood", "options": ["ADMIRAL", "AIRCARE", "AMANA", "BROAN", "BROWN", "CALDERA", "CUSTOM MADE", "DAYCOR", "DOWNDRAFT", "DYNAMIC", "ECF", "EXHAUSTO", "FANTECH", "FASCO", "FIVESTAR", "FRIGIDAIRE", "GAGGENAU", "GARLAND", "GENERAL ELECTRIC", "GOLDSTAR", "HEARTLAND", "HOTPOINT", "IMPERIAL", "JENN AIR", "KENMORE", "KITCHEN AIDE", "KITCHEN-AIRE", "MAGIC CHEF", "MIAMI CAREY", "NAUTILUS", "NONE", "NUTONE", "NUVENT", "NXR", "RANGAIRE", "RE-CIRCULATE", "SEARS", "TAPPAN", "THERMADOR", "UNKNOWN BRAND"]}, {"label": "Built in Microwave", "options": ["AGED", "AMANA", "BOSCH", "DACOR", "FRIGIDAIRE", "GENERAL ELECTRIC", "GOLDSTAR", "HOTPOINT", "JENN AIR", "KENMORE", "KITCHEN AIDE", "LG", "LITTON-AIRE", "MAGIC CHEF", "MAYTAG", "MCA", "MVP", "NONE", "PANASONIC", "RCA", "ROPER", "SAMSUNG", "SEARS", "SHARP", "TAPPAN", "THERMADOR", "VIKING", "WHIRLPOOL", "WOLF"]}, {"label": "Refrigerator Brand", "options": ["\"IKEA\"", "ACER", "ADMIRAL", "AGED", "AMANA", "BOSCH", "CERVITOR", "DACOR", "ELECTROLUX", "FRIGIDAIRE", "GENERAL ELECTRIC", "GIBSON", "GOOD", "HEARTLAND", "HOLIDAY", "HOTPOINT", "INSIGNIA", "JENN AIR", "KELVINATOR", "KENMORE", "KITCHEN AIDE", "LG", "MAGIC CHEF", "MARVEL", "MAYTAG", "NONE", "NOT INSPECTED", "ROPER", "SAMSUNG", "SCOTSMAN", "SEARS", "SUB ZERO", "TAPPAN", "THERMADOR", "VIKING", "WESTINGHOUSE", "WHIRLPOOL"]}], "items": [{"code": "10.0", "title": "Dishwasher"}, {"code": "10.1", "title": "Ranges/Ovens/Cooktops"}, {"code": "10.2", "title": "Range Hood (s)"}, {"code": "10.3", "title": "Food Waste Disposer"}, {"code": "10.4", "title": "Microwave Cooking Equipment"}, {"code": "10.5", "title": "Refrigerator"}, {"code": "10.6", "title": "Trash Compactor"}]}, {"num": "11", "name": "Home Warranty Information", "optional": true, "stylesMaterials": [], "items": [{"code": "11.0", "title": "This home is eligible for a one year Home Warranty offer!"}]}, {"num": "12", "name": "Lawn Sprinklers", "optional": true, "stylesMaterials": [], "items": [{"code": "12.0", "title": "Sprinkler Operation"}, {"code": "12.1", "title": "Controllers"}, {"code": "12.2", "title": "Rotary Heads"}, {"code": "12.3", "title": "Visible Connections or Clamps"}, {"code": "12.4", "title": "Drains"}, {"code": "12.5", "title": "Sensors"}]}, {"num": "13", "name": "Swimming Pools, Equipment and Safety", "optional": true, "stylesMaterials": [{"label": "Style", "options": ["Above ground", "In ground", "Heated", "Un-heated"]}, {"label": "Shape", "options": ["Round", "Freeform", "Square", "Rectangle", "Kidney", "Oval", "Grecian"]}, {"label": "Wall Material", "options": ["Plastic Liner", "Galvanized", "Stainless steel", "Aluminum", "Concrete", "Tile", "Gunite (concrete)", "Fiberglass"]}], "items": [{"code": "13.0", "title": "Operational Condition of Pool"}, {"code": "13.1", "title": "Pool Liner Condition"}, {"code": "13.2", "title": "Surface Walls and Floor of Pool"}, {"code": "13.3", "title": "Permanent Accessories Condition"}, {"code": "13.4", "title": "Pumps for Circulation of Water"}, {"code": "13.5", "title": "Pumps for Vacuum or Cleaning"}, {"code": "13.6", "title": "Pool Heaters"}, {"code": "13.7", "title": "Verify the Electrucal outlet (s) and any Lighting for Pools is on a Ground Fault Circuit (GFCI)"}, {"code": "13.8", "title": "Overflow Skimmers and Drains"}, {"code": "13.9", "title": "Chemicals for Pool (Capable of being stored with a lock)"}, {"code": "13.10", "title": "Does Pool have any rescue equipment?"}, {"code": "13.11", "title": "Do Steps and ladders exist on both sides of the pool?"}, {"code": "13.12", "title": "Is the Pool depth marked on outside area of Pool?"}, {"code": "13.13", "title": "Is there a depth of at least eight feet to allow for safe diving?"}, {"code": "13.14", "title": "Are there any obstructions (walls, shrubs, etc.) that would prevent full view of pool from home?"}, {"code": "13.15", "title": "Is the pool fenced?"}, {"code": "13.16", "title": "Does the fence have a self closing latch and a lock on door?"}, {"code": "13.17", "title": "Can someone climb the fence by the use of personal items or structures against fence?"}, {"code": "13.18", "title": "Does the door latch height and location attempt to make difficult for young children to reach?"}, {"code": "13.19", "title": "Are Electric Lights Secure?"}, {"code": "13.20", "title": "Water Level should be within inches from Rim to allow an easier climb out."}, {"code": "13.21", "title": "Pool Design at waters edge should not include protrusions that could injure swimmer"}, {"code": "13.22", "title": "Does the surface around pool encourage drainage away from pool?"}]}, {"num": "14", "name": "Additional Apartment/Cottage", "optional": true, "stylesMaterials": [{"label": "Roof Covering", "options": ["3-Tab fiberglass", "Metal", "Architectural", "Cedar", "Pine", "Wood shakes", "Ceramic/Clay", "Concrete", "Tile", "Simulated", "Slate", "Roll/Selvage", "Rubber membrane", "Built-up", "Modified bitumen", "Tar and gravel", "Asphalt/Fiberglass", "Asbestos", "Dimensional"]}, {"label": "Siding Style", "options": ["Beaded", "Bevel", "Channel rustic", "Drop", "Lap", "Log", "Shiplap", "Tongue and Groove", "V-groove", "German", "T-111", "RB&B (Reverse board and batten)", "Rock and Mortar", "Brick", "Cement stucco", "Batten", "Wood shakes", "Block and mortar", "Pebble dash", "Pebble", "Shakes"]}, {"label": "Plumbing Supply", "options": ["Copper", "Pex", "Poly", "CPVC", "Galvanized (old)", "PVC", "Not visible", "Black hose"]}, {"label": "Plumbing Distribution", "options": ["Galvanized", "Copper", "PEX", "PVC", "POLY", "Not visible", "CPVC"]}, {"label": "Water Heater Power Source", "options": ["Electric", "Gas (quick recovery)", "Propane (quick recovery)", "None (Boiler only)"]}, {"label": "Heat Type", "options": ["None", "Heat Pump (Forced Air)", "Steam boiler", "Circulating boiler", "Hydronic", "Forced Air", "Radiant Floor", "Radiant Ceiling", "Electric Base", "Oil furnace converted to gas", "Electric heat", "Space heater"]}], "items": [{"code": "14.0", "title": "Roof Coverings"}, {"code": "14.1", "title": "Wall Cladding Flashing and Trim"}, {"code": "14.2", "title": "Windows (representative number)"}, {"code": "14.3", "title": "Structural (Foundation and Framing)"}, {"code": "14.4", "title": "Doors (Exterior)"}, {"code": "14.5", "title": "Doors (representative number)"}, {"code": "14.6", "title": "Plumbing Water Supply, Distribution System and Fixtures"}, {"code": "14.7", "title": "Plumbing Drain, Waste and Vent Systems"}, {"code": "14.8", "title": "Hot Water Systems, Controls, Chimneys, Flues and Vents"}, {"code": "14.9", "title": "Electrical Connected Devices and Fixtures"}, {"code": "14.10", "title": "Heating Equipment"}, {"code": "14.11", "title": "Cooling and Air Handler Equipment"}]}, {"num": "15", "name": "Out Building", "optional": true, "stylesMaterials": [], "items": [{"code": "15.0", "title": "Foundations (If all crawlspace areas are not inspected, provide an explanation. An opinion on performance is necessary)"}, {"code": "15.1", "title": "Grading and Drainage"}, {"code": "15.2", "title": "Roof Covering (If the roof is inaccessible, report the method used to inspect)"}, {"code": "15.3", "title": "Roof Structure and Attic (If the attic is inaccessible, report the method used to inspect)"}, {"code": "15.4", "title": "Walls (interior and Exterior)"}, {"code": "15.5", "title": "Ceiling and Floors"}, {"code": "15.6", "title": "Doors (Interior and Exterior)"}, {"code": "15.7", "title": "Windows"}, {"code": "15.8", "title": "Fireplace/Chimney"}, {"code": "15.9", "title": "Porches Decks and Carports (Attached)"}, {"code": "15.10", "title": "Service Entrance and Panels"}, {"code": "15.11", "title": "Branch Circuits, Connected Devices and Fixtures (Report as in need of repair the lack of ground fault circuit protection where required.)"}, {"code": "15.12", "title": "Smoke Detectors"}, {"code": "15.13", "title": "Heating Equipment"}, {"code": "15.14", "title": "Cooling Equipment"}, {"code": "15.15", "title": "Ducts and Vents"}, {"code": "15.16", "title": "Water Supply System and Fixtures"}, {"code": "15.17", "title": "Drains, Wastes and Vents"}, {"code": "15.18", "title": "Water Heating Equipment"}, {"code": "15.19", "title": "Dishwasher"}, {"code": "15.20", "title": "Food Waste Disposer"}, {"code": "15.21", "title": "Range Hood"}, {"code": "15.22", "title": "Ranges/Ovens/Cooktops"}, {"code": "15.23", "title": "Microwave Cooking Equipment"}, {"code": "15.24", "title": "Trash Compactor"}, {"code": "15.25", "title": "Bathroom Exhaust Fans / heaters"}, {"code": "15.26", "title": "Garage Door Operators"}, {"code": "15.27", "title": "Dryer Vents"}]}, {"num": "16", "name": "Outdoor Cooking Equipment", "optional": true, "stylesMaterials": [{"label": "Fuel Source", "options": ["Natural gas", "Propane", "Charcoal"]}], "items": [{"code": "16.0", "title": "Cooking Equipment"}]}, {"num": "17", "name": "Water Wells", "optional": true, "stylesMaterials": [{"label": "Pump Type", "options": ["Above ground", "In-line", "Below ground", "Not accessible", "Gravity fed spring"]}, {"label": "Accessories", "options": ["Air bladder tank", "Booster pump"]}], "items": [{"code": "17.0", "title": "Well Pump and Equipment"}, {"code": "17.1", "title": "Filters and Conditioners"}]}, {"num": "18", "name": "Septic System", "optional": true, "stylesMaterials": [{"label": "Septic Tank", "options": ["Not Inspected (Below ground)", "Above ground access lid", "Below ground"]}], "items": [{"code": "18.0", "title": "Septic Field"}, {"code": "18.1", "title": "Booster Pump and Alarm"}, {"code": "18.2", "title": "Visible Inspection of Inside Tank"}]}, {"num": "19", "name": "Additional Photos", "optional": true, "stylesMaterials": [], "items": [{"code": "19.0", "title": "Photos"}]}, {"num": "20", "name": "Defects (lists/photos)", "optional": true, "stylesMaterials": [], "items": [{"code": "20.0", "title": "A"}, {"code": "20.1", "title": "B"}, {"code": "20.2", "title": "C"}, {"code": "20.3", "title": "D"}, {"code": "20.4", "title": "E"}, {"code": "20.5", "title": "F"}, {"code": "20.6", "title": "G"}, {"code": "20.7", "title": "H"}]}];
-    const DEFAULT_AI_INSTRUCTIONS = "Write a formal, technically accurate, educational home inspection narrative in 3 sentences (up to 4 sentences only if the defect is complex):\n1. Observation: State objectively what was observed and where.\n2. Implication / Consequence: Explain why it matters or what could happen if left uncorrected.\n3. Recommendation: End with a clear recommendation starting with \"Recommend that a...\" or \"Recommend that you...\".\n\nHard rules:\n- Output plain prose only: NO bolding, NO italics, NO bullet points, NO headings, NO emojis, and NO em dashes (use commas or periods).\n- NEVER use the word \"immediate\" or sensational phrases like \"major hazard\" or \"significant defect\".\n- NEVER mention, reference, or allude to any photograph, picture, or image in the narrative text.\n- Consider the property location, age, Styles & Materials, and prior narratives for this home so findings stay consistent.";
+    const DEFAULT_AI_INSTRUCTIONS = "For every item provided, create a formal, plain-speech, technically detailed, concise, and factually correct home inspection narrative (use search to verify technical items, materials, or standards when needed).\n\nStructure:\n- Write a concise three-sentence narrative (up to four sentences only if it is a complex item that needs more explanation): one sentence for the observation, one sentence for the implication/consequence, and one sentence for the recommendation.\n\nFollow these rules strictly:\n- All recommendations must start with the exact phrase \"Recommend that a...\".\n- Do not use the word \"immediate\" in any recommendation.\n- Do not use bolding, italics, bullet points, or long hyphens/em dashes in the text of the narrative (use commas or periods instead).\n- Do not use emojis, or insert videos or images.\n- No headlines, labels, preamble, or follow-up questions; output only the narrative paragraph.\n- Use careful judgment and do not overuse phrases like \"significant defect\" or \"major hazard.\" Describe the condition and its consequences factually and objectively.\n- Never mention, reference, or allude to any photograph, picture, or image in the narrative text (\"in the photo\", \"as pictured\", \"as shown\", etc.). Use any attached photos strictly to understand the physical defect details, since photos may later be added, swapped, or removed.\n- Take the property location, age, Styles & Materials, and prior narratives for this home into consideration so terminology and findings remain consistent across the report.";
 
     const sb = window.supabase.createClient(DHI_SUPABASE_URL, DHI_SUPABASE_ANON_KEY, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -161,6 +169,19 @@
       showPropInfo: true,
       showSM: true,
       globalInstructions: DEFAULT_AI_INSTRUCTIONS,
+      aiModel: 'gemini-4-hydrogen',
+      availableModels: [
+        { id: 'gemini-4-hydrogen', displayName: 'Gemini 4 Hydrogen (Default)' },
+        { id: 'gemini-4-argon', displayName: 'Gemini 4 Argon' },
+        { id: 'gemini-4-carbon', displayName: 'Gemini 4 Carbon' },
+        { id: 'gemini-3.8-flash', displayName: 'Gemini 3.8 Flash' },
+        { id: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash' }
+      ],
+      templates: [{ id: 'local-default', name: 'Residential - By System', is_default: true, sections: DHI_TEMPLATE }],
+      activeTemplateId: 'local-default',
+      editTemplateMode: false,
+      taskRunning: false,
+      taskProgressText: '',
       commentLibrary: [],
       libTargetItem: null,
       uploading: false,
@@ -316,14 +337,25 @@
       state.user = user;
       document.getElementById('hdrSignOutBtn')?.classList.remove('hidden');
       try {
-        const [iRes, setRes, libRes] = await Promise.all([
+        const [iRes, setRes, libRes, tplRes] = await Promise.all([
           sb.from('inspections').select('*').order('created_at', { ascending: false }),
-          sb.from('app_settings').select('*').eq('key', 'ai_narrative_instructions').maybeSingle(),
-          sb.from('comment_library').select('*').order('section_name', { ascending: true })
+          sb.from('app_settings').select('*').in('key', ['ai_narrative_instructions', 'ai_model']),
+          sb.from('comment_library').select('*').order('section_name', { ascending: true }),
+          sb.from('inspection_templates').select('*').order('name', { ascending: true })
         ]);
         if (Array.isArray(iRes.data)) state.inspections = iRes.data;
-        if (setRes.data && setRes.data.value) state.globalInstructions = setRes.data.value;
+        if (Array.isArray(setRes.data)) {
+          setRes.data.forEach(row => {
+            if (row.key === 'ai_narrative_instructions' && row.value) state.globalInstructions = row.value;
+            if (row.key === 'ai_model' && row.value) state.aiModel = row.value;
+          });
+        }
         if (Array.isArray(libRes.data)) state.commentLibrary = libRes.data;
+        if (Array.isArray(tplRes.data) && tplRes.data.length) {
+          state.templates = tplRes.data;
+          const def = tplRes.data.find(t => t.is_default) || tplRes.data[0];
+          state.activeTemplateId = def.id;
+        }
       } catch (e) {
         console.warn('Offline or load warning:', e);
       }
@@ -346,8 +378,16 @@
     // =========================================================================
     // DRAFT CREATION / LOADING FROM TEMPLATE OR SUPABASE OR INDEXEDDB
     // =========================================================================
+    function getActiveTemplate() {
+      return (state.templates || []).find(t => String(t.id) === String(state.activeTemplateId))
+        || (state.templates || [])[0]
+        || { id: 'local-default', name: 'Residential - By System', sections: DHI_TEMPLATE };
+    }
+
     function buildBlankDraftFromTemplate(insp) {
-      const coreSections = DHI_TEMPLATE.filter(s => !s.optional).map(s => ({
+      const tpl = getActiveTemplate();
+      const tplSecs = Array.isArray(tpl.sections) && tpl.sections.length ? tpl.sections : DHI_TEMPLATE;
+      const coreSections = tplSecs.filter(s => !s.optional).map(s => ({
         num: s.num,
         name: s.name,
         stylesMaterials: s.stylesMaterials.map(sm => ({ label: sm.label, value: '', options: sm.options })),
@@ -355,6 +395,7 @@
           id: 'item-' + s.num + '-' + idx + '-' + Math.random().toString(36).slice(2, 7),
           code: it.code,
           title: it.title,
+          statuses: ['IN'],
           status: 'IN',
           isSummary: false,
           roughNotes: '',
@@ -367,6 +408,8 @@
         : { address: insp.address || '', yearBuilt: '', sqft: '', weather: '', occupancy: '', utilities: 'All On', coverPhoto: '' };
       return {
         inspectionId: insp.id,
+        templateId: tpl.id,
+        templateName: tpl.name,
         address: insp.address || '',
         propertyInfo: pInfo,
         sections: coreSections,
@@ -444,10 +487,30 @@
       saveDraftLocally(true);
     }
 
-    function setItemStatus(secIdx, itemIdx, status) {
+    function getItemStatuses(it) {
+      if (Array.isArray(it.statuses)) return it.statuses;
+      return it.status ? [it.status] : [];
+    }
+
+    function formatItemStatuses(it) {
+      const labels = { IN: 'Inspected', NI: 'Not Inspected', NP: 'Not Present', RR: 'Repair or Replace' };
+      const list = getItemStatuses(it);
+      if (!list.length) return 'Inspected';
+      return list.map(code => labels[code] || code).join(', ');
+    }
+
+    function toggleItemStatus(secIdx, itemIdx, code) {
       const it = state.draft.sections[secIdx].items[itemIdx];
-      it.status = status;
-      if (status === 'RR') it.isSummary = true;
+      const list = getItemStatuses(it).slice();
+      const idx = list.indexOf(code);
+      if (idx >= 0) {
+        list.splice(idx, 1);
+      } else {
+        list.push(code);
+        if (code === 'RR') it.isSummary = true;
+      }
+      it.statuses = list;
+      it.status = list.join(', ');
       saveDraftLocally(true);
       render();
     }
@@ -471,7 +534,8 @@
         id: 'item-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
         code: src.code,
         title: src.title + ' (Itemized)',
-        status: src.status,
+        statuses: Array.isArray(src.statuses) ? src.statuses.slice() : (src.status ? [src.status] : ['IN']),
+        status: src.status || 'IN',
         isSummary: src.isSummary,
         roughNotes: '',
         narrative: '',
@@ -504,6 +568,7 @@
           id: 'item-' + nextNum + '-' + idx + '-' + Math.random().toString(36).slice(2, 6),
           code: nextNum + '.' + idx,
           title: it.title,
+          statuses: ['IN'],
           status: 'IN',
           isSummary: false,
           roughNotes: '',
@@ -644,18 +709,34 @@
 
         const { data, error } = await sb.functions.invoke('generate-narrative', {
           body: {
+            model: state.aiModel || 'gemini-4-hydrogen',
             globalInstructions: state.globalInstructions,
             propertyInfo: state.draft.propertyInfo,
             stylesMaterials: allSM,
             previousNarratives: prevNarratives,
             sectionName: sec.name,
             itemTitle: it.title,
-            status: it.status,
+            status: formatItemStatuses(it),
             roughNotes: it.roughNotes,
             images
           }
         });
-        if (error) throw new Error(error.message);
+        if (error) {
+          let detail = error.message || 'Edge Function error';
+          try {
+            if (error.context && typeof error.context.text === 'function') {
+              const rawBody = await error.context.text();
+              try {
+                const parsed = JSON.parse(rawBody);
+                detail = parsed.error || parsed.message || detail;
+              } catch (_) {
+                if (rawBody) detail = rawBody.slice(0, 180);
+              }
+              if (error.context.status) detail = `[HTTP ${error.context.status}] ` + detail;
+            }
+          } catch (_) {}
+          throw new Error(detail);
+        }
         if (data && data.error) throw new Error(data.error);
         if (data && data.narrative) {
           it.narrative = data.narrative;
@@ -668,6 +749,243 @@
         state.aiBusyItemId = null;
         render();
       }
+    }
+
+    function countPendingAITaskItems() {
+      if (!state.draft) return 0;
+      let n = 0;
+      (state.draft.sections || []).forEach(sec => {
+        (sec.items || []).forEach(it => {
+          const hasInput = !!(it.roughNotes && it.roughNotes.trim());
+          const hasFinished = !!(it.narrative && it.narrative.trim());
+          if (hasInput && !hasFinished) n++;
+        });
+      });
+      return n;
+    }
+
+    async function runWholeHomeAITask() {
+      if (!state.draft || state.taskRunning) return;
+      const queue = [];
+      (state.draft.sections || []).forEach((sec, secIdx) => {
+        (sec.items || []).forEach((it, itemIdx) => {
+          const hasInput = !!(it.roughNotes && it.roughNotes.trim());
+          const hasFinished = !!(it.narrative && it.narrative.trim());
+          if (hasInput && !hasFinished) queue.push({ secIdx, itemIdx, title: it.title });
+        });
+      });
+      if (!queue.length) {
+        toast('No pending items with rough notes and empty narratives.');
+        return;
+      }
+      state.taskRunning = true;
+      let done = 0;
+      for (const job of queue) {
+        done++;
+        state.taskProgressText = `Rewriting ${done} of ${queue.length}: ${job.title}...`;
+        render();
+        await generateAINarrative(job.secIdx, job.itemIdx);
+      }
+      state.taskRunning = false;
+      state.taskProgressText = '';
+      await saveDraftLocally(true);
+      render();
+      toast(`AI task finished (${queue.length} narrative${queue.length === 1 ? '' : 's'} generated).`);
+    }
+
+    // =========================================================================
+    // TEMPLATE EDIT MODE (EDIT S&M FIELDS/OPTIONS, ITEMS, SECTIONS + 2 SAVES)
+    // =========================================================================
+    function toggleEditTemplateMode() {
+      state.editTemplateMode = !state.editTemplateMode;
+      render();
+    }
+
+    function addSMField(secIdx) {
+      const label = prompt('New Styles & Materials field name (e.g., Sump Pump Backup):');
+      if (!label || !label.trim()) return;
+      const optsRaw = prompt('Optional preset choices separated by commas (leave blank for none):') || '';
+      const options = optsRaw.split(',').map(x => x.trim()).filter(Boolean);
+      state.draft.sections[secIdx].stylesMaterials.push({ label: label.trim(), value: '', options });
+      saveDraftLocally(true);
+      render();
+    }
+
+    function renameSMField(secIdx, smIdx) {
+      const sm = state.draft.sections[secIdx].stylesMaterials[smIdx];
+      const next = prompt('Rename Styles & Materials field:', sm.label);
+      if (!next || !next.trim()) return;
+      sm.label = next.trim();
+      saveDraftLocally(true);
+      render();
+    }
+
+    function deleteSMField(secIdx, smIdx) {
+      const sm = state.draft.sections[secIdx].stylesMaterials[smIdx];
+      if (!confirm('Remove "' + sm.label + '" from this section?')) return;
+      state.draft.sections[secIdx].stylesMaterials.splice(smIdx, 1);
+      saveDraftLocally(true);
+      render();
+    }
+
+    function addSMOptionChip(secIdx, smIdx) {
+      const val = prompt('Add new preset option chip:');
+      if (!val || !val.trim()) return;
+      const sm = state.draft.sections[secIdx].stylesMaterials[smIdx];
+      sm.options = sm.options || [];
+      if (!sm.options.includes(val.trim())) sm.options.push(val.trim());
+      saveDraftLocally(true);
+      render();
+    }
+
+    function removeSMOptionChip(secIdx, smIdx, optVal) {
+      const sm = state.draft.sections[secIdx].stylesMaterials[smIdx];
+      sm.options = (sm.options || []).filter(o => o !== optVal);
+      saveDraftLocally(true);
+      render();
+    }
+
+    function addNewItemToSection(secIdx) {
+      const title = prompt('New inspection item title:');
+      if (!title || !title.trim()) return;
+      const sec = state.draft.sections[secIdx];
+      const nextIdx = sec.items.length;
+      sec.items.push({
+        id: 'item-' + sec.num + '-' + Date.now(),
+        code: sec.num + '.' + nextIdx,
+        title: title.trim(),
+        statuses: ['IN'],
+        status: 'IN',
+        isSummary: false,
+        roughNotes: '',
+        narrative: '',
+        photos: []
+      });
+      saveDraftLocally(true);
+      render();
+    }
+
+    function renameSectionItem(secIdx, itemIdx) {
+      const it = state.draft.sections[secIdx].items[itemIdx];
+      const next = prompt('Rename inspection item:', it.title);
+      if (!next || !next.trim()) return;
+      it.title = next.trim();
+      saveDraftLocally(true);
+      render();
+    }
+
+    function moveSectionItem(secIdx, itemIdx, delta) {
+      const items = state.draft.sections[secIdx].items;
+      const target = itemIdx + delta;
+      if (target < 0 || target >= items.length) return;
+      const tmp = items[itemIdx];
+      items[itemIdx] = items[target];
+      items[target] = tmp;
+      items.forEach((it, idx) => { it.code = state.draft.sections[secIdx].num + '.' + idx; });
+      saveDraftLocally(true);
+      render();
+    }
+
+    function addBrandNewCustomSection() {
+      const name = prompt('New component / section name (e.g., Solar System):');
+      if (!name || !name.trim()) return;
+      const num = String(state.draft.sections.length + 1);
+      state.draft.sections.push({
+        num,
+        name: name.trim(),
+        stylesMaterials: [],
+        items: [{
+          id: 'item-' + num + '-' + Date.now(),
+          code: num + '.0',
+          title: name.trim() + ' General',
+          statuses: ['IN'],
+          status: 'IN',
+          isSummary: false,
+          roughNotes: '',
+          narrative: '',
+          photos: []
+        }]
+      });
+      state.activeSecIdx = state.draft.sections.length - 1;
+      saveDraftLocally(true);
+      render();
+    }
+
+    function buildTemplateSnapshotFromDraft() {
+      const activeNames = new Set(state.draft.sections.map(s => s.name));
+      const baseTpl = getActiveTemplate();
+      const keptOptional = (baseTpl.sections || DHI_TEMPLATE).filter(s => s.optional && !activeNames.has(s.name));
+      const mainSecs = state.draft.sections.map((s, idx) => ({
+        num: String(idx + 1),
+        name: s.name,
+        optional: false,
+        stylesMaterials: (s.stylesMaterials || []).map(sm => ({ label: sm.label, options: sm.options || [] })),
+        items: (s.items || []).map((it, iIdx) => ({ code: (idx + 1) + '.' + iIdx, title: it.title }))
+      }));
+      return mainSecs.concat(keptOptional);
+    }
+
+    async function saveTemplateEditsToReportOnly() {
+      await saveDraftLocally(true);
+      state.editTemplateMode = false;
+      render();
+      toast('Saved template edits to this report only.');
+    }
+
+    async function saveTemplateEditsToMaster(asNew) {
+      const sectionsPayload = buildTemplateSnapshotFromDraft();
+      const tpl = getActiveTemplate();
+      if (asNew) {
+        const newName = prompt('Name for new template (e.g., Condo, New Construction, 4-Point):');
+        if (!newName || !newName.trim()) return;
+        const { data, error } = await sb.from('inspection_templates').insert({
+          name: newName.trim(),
+          is_default: false,
+          sections: sectionsPayload
+        }).select().single();
+        if (error) { toast('Could not save new template: ' + error.message); return; }
+        if (data) {
+          state.templates.push(data);
+          state.activeTemplateId = data.id;
+          state.draft.templateId = data.id;
+          state.draft.templateName = data.name;
+        }
+        await saveDraftLocally(true);
+        state.editTemplateMode = false;
+        render();
+        toast('Saved new template: ' + newName.trim());
+        return;
+      }
+
+      if (tpl && tpl.id && !String(tpl.id).startsWith('local-')) {
+        const { error } = await sb.from('inspection_templates').update({
+          sections: sectionsPayload,
+          updated_at: new Date().toISOString()
+        }).eq('id', tpl.id);
+        if (error) { toast('Could not update template: ' + error.message); return; }
+        tpl.sections = sectionsPayload;
+      } else {
+        const { data, error } = await sb.from('inspection_templates').upsert({
+          name: tpl.name || 'Residential - By System',
+          is_default: true,
+          sections: sectionsPayload,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'name' }).select().single();
+        if (error) { toast('Could not save template: ' + error.message); return; }
+        if (data) {
+          state.templates = [data];
+          state.activeTemplateId = data.id;
+        }
+      }
+      await saveDraftLocally(true);
+      state.editTemplateMode = false;
+      render();
+      toast('Updated master template "' + (tpl.name || 'Residential - By System') + '" in Supabase.');
+    }
+
+    function applyTemplateToNewInspection(tplId) {
+      state.activeTemplateId = tplId;
+      render();
     }
 
     // =========================================================================
@@ -941,7 +1259,7 @@
             name: sec.name,
             stylesMaterials: sec.stylesMaterials.map(sm => ({ label: sm.label, value: sm.value, options: sm.options })),
             items: sec.items.map(it => ({
-              id: it.id, code: it.code, title: it.title, status: it.status, isSummary: !!it.isSummary,
+              id: it.id, code: it.code, title: it.title, statuses: getItemStatuses(it), status: formatItemStatuses(it), isSummary: !!it.isSummary,
               roughNotes: it.roughNotes || '', narrative: it.narrative || '',
               photos: (it.photos || []).map(p => ({ id: p.id, label: p.label, storagePath: p.storagePath || '' }))
             }))
@@ -967,19 +1285,19 @@
           toast('Publishing findings to Customer Portal...');
           await sb.from('inspection_findings').delete().eq('inspection_id', inspId);
           const rows = [];
-          const statusLabels = { IN: 'Inspected', NI: 'Not Inspected', NP: 'Not Present', RR: 'Inspected, Repair or Replace' };
           state.draft.sections.forEach(sec => {
             sec.items.forEach(it => {
               const photoArr = (it.photos || []).filter(p => p.storagePath).map(p => ({ label: p.label || it.title, path: p.storagePath }));
+              const sevText = formatItemStatuses(it);
               rows.push({
                 inspection_id: inspId,
                 item_code: it.code,
                 section_num: sec.num,
                 category: sec.name,
-                severity: statusLabels[it.status] || it.status || 'Inspected',
+                severity: sevText,
                 is_summary: !!it.isSummary,
                 title: it.title,
-                narrative: (it.narrative || it.roughNotes || statusLabels[it.status] || 'Inspected').trim(),
+                narrative: (it.narrative || it.roughNotes || sevText).trim(),
                 trade: 'qualified licensed contractor',
                 repair_action: 'evaluate and repair per inspection report',
                 photo_path: photoArr[0] ? photoArr[0].path : '',
@@ -1007,19 +1325,56 @@
     // =========================================================================
     // MODALS: GLOBAL AI RULES & 2-MINUTE BACKUPS
     // =========================================================================
+    function renderModelSelectOptions() {
+      const sel = document.getElementById('aiModelSelect');
+      if (!sel) return;
+      const list = state.availableModels || [];
+      const hasCurrent = list.some(m => m.id === state.aiModel);
+      const opts = hasCurrent ? list : [{ id: state.aiModel, displayName: state.aiModel }].concat(list);
+      sel.innerHTML = opts.map(m => `<option value="${esc(m.id)}" ${m.id === state.aiModel ? 'selected' : ''}>${esc(m.displayName || m.id)} (${esc(m.id)})</option>`).join('');
+    }
+
+    async function refreshAvailableModels() {
+      const btn = document.getElementById('refreshModelsBtn');
+      const help = document.getElementById('aiModelHelp');
+      if (btn) { btn.disabled = true; btn.textContent = 'Checking...'; }
+      try {
+        const { data, error } = await sb.functions.invoke('generate-narrative', { body: { action: 'list_models' } });
+        if (error) throw new Error(error.message);
+        if (data && data.error) throw new Error(data.error);
+        if (data && Array.isArray(data.models) && data.models.length) {
+          state.availableModels = data.models;
+          renderModelSelectOptions();
+          if (help) help.textContent = `Loaded ${data.models.length} live Gemini models from Google AI Studio.`;
+        }
+      } catch (err) {
+        if (help) help.textContent = 'Could not refresh live list (' + (err.message || err) + '). Showing saved presets.';
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Refresh live models'; }
+      }
+    }
+
     function openInstructionsModal() {
       document.getElementById('globalInstructionsInput').value = state.globalInstructions;
+      renderModelSelectOptions();
       document.getElementById('instructionsModal').classList.remove('hidden');
+      refreshAvailableModels();
     }
     function closeInstructionsModal() { document.getElementById('instructionsModal').classList.add('hidden'); }
     async function saveGlobalInstructions() {
       const val = (document.getElementById('globalInstructionsInput')?.value || '').trim();
+      const chosenModel = document.getElementById('aiModelSelect')?.value || state.aiModel || 'gemini-4-hydrogen';
       if (!val) return;
       state.globalInstructions = val;
-      const { error } = await sb.from('app_settings').upsert({ key: 'ai_narrative_instructions', value: val, updated_at: new Date().toISOString() });
+      state.aiModel = chosenModel;
+      const now = new Date().toISOString();
+      const { error } = await sb.from('app_settings').upsert([
+        { key: 'ai_narrative_instructions', value: val, updated_at: now },
+        { key: 'ai_model', value: chosenModel, updated_at: now }
+      ]);
       if (error) { toast('Save failed: ' + error.message); return; }
       closeInstructionsModal();
-      toast('Global AI instructions saved to Supabase.');
+      toast('Saved AI rules and model (' + chosenModel + ').');
     }
 
     async function openBackupsModal() {
@@ -1090,17 +1445,23 @@
               <div class="font-extrabold text-slate-900 text-sm">${esc(i.address)}</div>
               <div class="text-xs text-slate-500">${esc(i.client_name)} • ${esc(i.inspection_date || '')}</div>
             </div>
-            <button type="button" onclick="openInspectionDraft('${i.id}')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Open in Field / Editor &rarr;</button>
+            <button type="button" onclick="openInspectionDraft('${i.id}')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Open in editor &rarr;</button>
           </div>
         `).join('');
         root.innerHTML = `
           <div class="space-y-4">
             <div class="bg-white rounded-2xl border border-slate-200 p-5 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h1 class="text-lg font-extrabold text-slate-900">Select an Inspection</h1>
+                <h1 class="text-lg font-extrabold text-slate-900">Select an inspection</h1>
                 <p class="text-xs text-slate-500">Work offline on your Pixel 10 Pro (auto-backed up every 2 minutes), then upload when done and polish photos/narratives at home.</p>
               </div>
-              <span class="px-3 py-1 rounded-xl bg-sky-50 border border-sky-200 text-xs font-bold text-davis-navy">${state.commentLibrary.length} Saved Comments Loaded</span>
+              <div class="flex flex-wrap items-center gap-2">
+                <label class="text-xs font-bold text-slate-600">Default template:</label>
+                <select onchange="applyTemplateToNewInspection(this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800">
+                  ${(state.templates || []).map(t => `<option value="${esc(t.id)}" ${String(t.id) === String(state.activeTemplateId) ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
+                </select>
+                <span class="px-3 py-1 rounded-xl bg-sky-50 border border-sky-200 text-xs font-bold text-davis-navy">${state.commentLibrary.length} saved comments</span>
+              </div>
             </div>
             <div class="space-y-2.5">${cards || '<div class="text-xs text-slate-400 text-center py-8">No scheduled inspections found yet. Create one in the Admin Portal first.</div>'}</div>
           </div>
@@ -1114,7 +1475,7 @@
       const optionalLeft = DHI_TEMPLATE.filter(s => !usedNames.has(s.name));
 
       const secTabs = state.draft.sections.map((s, idx) => {
-        const rrCount = s.items.filter(it => it.status === 'RR' || it.isSummary).length;
+        const rrCount = s.items.filter(it => getItemStatuses(it).includes('RR') || it.isSummary).length;
         return `
           <button type="button" onclick="state.activeSecIdx=${idx}; render();" class="px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${idx === state.activeSecIdx ? 'bg-davis-navy text-white shadow' : 'bg-white border border-slate-200 text-slate-700 hover:border-davis-navy'}">
             <span>${s.num}. ${esc(s.name)}</span>
@@ -1125,14 +1486,30 @@
 
       const smCards = (sec.stylesMaterials || []).map((sm, smIdx) => {
         const selected = new Set((sm.value || '').split(',').map(x => x.trim()).filter(Boolean));
-        const chips = (sm.options || []).slice(0, 14).map(opt => `
-          <button type="button" onclick="toggleSMOption(${state.activeSecIdx}, ${smIdx}, '${esc(opt).replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${selected.has(opt) ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>
-        `).join('');
+        const chips = (sm.options || []).map(opt => {
+          const safeOpt = esc(opt).replace(/'/g, "\\'");
+          if (state.editTemplateMode) {
+            return `
+              <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold border border-slate-300 bg-slate-50 text-slate-700">
+                ${esc(opt)}
+                <button type="button" onclick="removeSMOptionChip(${state.activeSecIdx}, ${smIdx}, '${safeOpt}')" class="text-rose-600 hover:text-rose-800 font-bold ml-0.5">&times;</button>
+              </span>`;
+          }
+          return `<button type="button" onclick="toggleSMOption(${state.activeSecIdx}, ${smIdx}, '${safeOpt}')" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${selected.has(opt) ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
+        }).join('');
         return `
-          <div class="p-3 rounded-xl border border-slate-200 bg-white space-y-2">
+          <div class="p-3 rounded-xl border ${state.editTemplateMode ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200 bg-white'} space-y-2">
             <div class="flex items-center justify-between gap-2">
               <label class="text-xs font-extrabold text-slate-800">${esc(sm.label)}</label>
-              <input type="text" value="${esc(sm.value || '')}" oninput="setSMText(${state.activeSecIdx}, ${smIdx}, this.value)" placeholder="Custom or selected..." class="w-44 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
+              ${state.editTemplateMode ? `
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="addSMOptionChip(${state.activeSecIdx}, ${smIdx})" class="px-2 py-1 rounded-lg bg-sky-50 border border-sky-200 text-davis-navy text-[11px] font-bold">+ Option</button>
+                  <button type="button" onclick="renameSMField(${state.activeSecIdx}, ${smIdx})" class="px-2 py-1 rounded-lg bg-white border border-slate-300 text-slate-700 text-[11px] font-bold">Rename</button>
+                  <button type="button" onclick="deleteSMField(${state.activeSecIdx}, ${smIdx})" class="px-2 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold">Delete</button>
+                </div>
+              ` : `
+                <input type="text" value="${esc(sm.value || '')}" oninput="setSMText(${state.activeSecIdx}, ${smIdx}, this.value)" placeholder="Custom or selected..." class="w-44 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
+              `}
             </div>
             ${chips ? `<div class="flex flex-wrap gap-1">${chips}</div>` : ''}
           </div>
@@ -1140,12 +1517,13 @@
       }).join('');
 
       const itemCards = (sec.items || []).map((it, itemIdx) => {
+        const selectedRatings = getItemStatuses(it);
         const ratings = ['IN', 'NI', 'NP', 'RR'].map(r => {
-          const active = it.status === r;
+          const active = selectedRatings.includes(r);
           const cls = active
             ? (r === 'RR' ? 'bg-rose-600 text-white border-rose-600' : 'bg-davis-navy text-white border-davis-navy')
             : 'bg-white text-slate-700 border-slate-300 hover:border-davis-navy';
-          return `<button type="button" onclick="setItemStatus(${state.activeSecIdx}, ${itemIdx}, '${r}')" class="px-2.5 py-1.5 rounded-lg border text-xs font-extrabold transition ${cls}">${r}</button>`;
+          return `<button type="button" onclick="toggleItemStatus(${state.activeSecIdx}, ${itemIdx}, '${r}')" class="px-2.5 py-1.5 rounded-lg border text-xs font-extrabold transition ${cls}">${r}</button>`;
         }).join('');
 
         const photosHTML = (it.photos || []).map((p, pIdx) => `
@@ -1170,7 +1548,13 @@
               <div class="flex flex-wrap items-center gap-1.5">
                 ${ratings}
                 <button type="button" onclick="toggleItemSummary(${state.activeSecIdx}, ${itemIdx})" class="px-2.5 py-1.5 rounded-lg border text-xs font-bold transition ${it.isSummary ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-slate-600 border-slate-200'}">Summary</button>
-                <button type="button" onclick="duplicateItem(${state.activeSecIdx}, ${itemIdx})" title="Itemize / duplicate this item" class="px-2 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:border-davis-navy text-xs font-bold text-slate-600">+ Itemize</button>
+                ${state.editTemplateMode ? `
+                  <button type="button" onclick="moveSectionItem(${state.activeSecIdx}, ${itemIdx}, -1)" class="px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700">&uarr;</button>
+                  <button type="button" onclick="moveSectionItem(${state.activeSecIdx}, ${itemIdx}, 1)" class="px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700">&darr;</button>
+                  <button type="button" onclick="renameSectionItem(${state.activeSecIdx}, ${itemIdx})" class="px-2 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-xs font-bold">Rename</button>
+                ` : `
+                  <button type="button" onclick="duplicateItem(${state.activeSecIdx}, ${itemIdx})" title="Itemize / duplicate this item" class="px-2 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:border-davis-navy text-xs font-bold text-slate-600">+ Itemize</button>
+                `}
                 <button type="button" onclick="deleteItem(${state.activeSecIdx}, ${itemIdx})" title="Remove item" class="px-2 py-1.5 rounded-lg text-slate-400 hover:text-rose-600 text-xs font-bold">&times;</button>
               </div>
             </div>
@@ -1190,17 +1574,17 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between">
-                  <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Field Notes (for AI)</label>
+                  <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Field notes (for AI)</label>
                   <button type="button" onclick="generateAINarrative(${state.activeSecIdx}, ${itemIdx})" ${isBusy ? 'disabled' : ''} class="px-3 py-1 rounded-lg bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-[11px] font-bold transition">${isBusy ? 'Rewriting...' : 'Rewrite with AI'}</button>
                 </div>
                 <textarea rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'roughNotes', this.value)" placeholder="Quick field notes (e.g., east gutter downspout discharging onto driveway)..." class="w-full p-2.5 rounded-xl border border-slate-300 text-xs leading-relaxed">${esc(it.roughNotes || '')}</textarea>
               </div>
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between gap-1">
-                  <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Finished Report Narrative</label>
+                  <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Finished report narrative</label>
                   <div class="flex gap-1.5">
                     <button type="button" onclick="openLibraryModal(${state.activeSecIdx}, ${itemIdx})" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-[11px] font-bold">Library</button>
-                    <button type="button" onclick="saveNarrativeToLibrary(${state.activeSecIdx}, ${itemIdx})" class="px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold">+ Save to Library</button>
+                    <button type="button" onclick="saveNarrativeToLibrary(${state.activeSecIdx}, ${itemIdx})" class="px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold">+ Save to library</button>
                   </div>
                 </div>
                 <textarea rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'narrative', this.value)" placeholder="Final 3-sentence narrative (edit freely or click Rewrite with AI / Library)..." class="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50/50 text-xs leading-relaxed">${esc(it.narrative || '')}</textarea>
@@ -1215,38 +1599,56 @@
           <!-- Top Action Bar -->
           <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-2.5">
             <div class="flex items-center gap-2">
-              <button type="button" onclick="closeActiveDraft()" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">&larr; All Inspections</button>
-              <span class="text-xs font-bold text-slate-500">${state.draft.dirty ? 'Unsynced Local Changes' : 'Synced'}</span>
+              <button type="button" onclick="closeActiveDraft()" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">&larr; All inspections</button>
+              <span class="text-xs font-bold text-slate-500">${state.draft.dirty ? 'Unsynced local changes' : 'Synced'}</span>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-              <button type="button" onclick="saveDraftLocally(false)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-xs font-bold text-slate-700">Save Local</button>
-              <button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-bold">${state.uploading ? 'Uploading...' : 'Upload Draft to Cloud'}</button>
-              <button type="button" onclick="uploadDraftToSupabase(true)" ${state.uploading ? 'disabled' : ''} class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-extrabold shadow-sm">Publish to Customer Portal</button>
+              <button type="button" onclick="runWholeHomeAITask()" ${state.taskRunning ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold transition">${state.taskRunning ? esc(state.taskProgressText || 'Running AI task...') : `Run AI task (${countPendingAITaskItems()} pending)`}</button>
+              <button type="button" onclick="toggleEditTemplateMode()" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.editTemplateMode ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">${state.editTemplateMode ? 'Editing template' : 'Edit template'}</button>
+              <button type="button" onclick="saveDraftLocally(false)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-xs font-bold text-slate-700">Save locally</button>
+              <button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-bold">${state.uploading ? 'Uploading...' : 'Upload draft to cloud'}</button>
+              <button type="button" onclick="uploadDraftToSupabase(true)" ${state.uploading ? 'disabled' : ''} class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-extrabold shadow-sm">Publish to customer portal</button>
             </div>
           </div>
+          ${state.editTemplateMode ? `
+            <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+              <div class="space-y-0.5">
+                <div class="text-xs font-extrabold uppercase tracking-wider text-amber-900">Template Edit Mode (${esc(getActiveTemplate().name)})</div>
+                <div class="text-xs text-amber-800">Add, rename, reorder, or remove Styles &amp; Materials fields, preset chips, and items below.</div>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="addSMField(${state.activeSecIdx})" class="px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-900 text-xs font-bold">+ S&amp;M field</button>
+                <button type="button" onclick="addNewItemToSection(${state.activeSecIdx})" class="px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-900 text-xs font-bold">+ Item</button>
+                <button type="button" onclick="addBrandNewCustomSection()" class="px-3 py-1.5 rounded-lg bg-white border border-amber-300 text-amber-900 text-xs font-bold">+ Section</button>
+                <button type="button" onclick="saveTemplateEditsToReportOnly()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold">Save to this report only</button>
+                <button type="button" onclick="saveTemplateEditsToMaster(false)" class="px-3 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Save to template</button>
+                <button type="button" onclick="saveTemplateEditsToMaster(true)" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Save as new template</button>
+              </div>
+            </div>
+          ` : ''}
 
           <!-- Property Info Card (Feeds AI Context) -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <button type="button" onclick="state.showPropInfo=!state.showPropInfo; render();" class="w-full px-4 py-3 flex items-center justify-between text-xs font-extrabold text-slate-800 bg-slate-50 border-b border-slate-200">
-              <span>Property Info (Feeds AI Context: Age, Location, Conditions)</span>
+              <span>Property info (feeds AI context: age, location, conditions)</span>
               <span>${state.showPropInfo ? 'Hide' : 'Show'}</span>
             </button>
             ${state.showPropInfo ? `
               <div class="p-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
                 <div class="col-span-2 sm:col-span-2">
-                  <label class="block font-bold text-slate-600 mb-1">Property Address / City</label>
+                  <label class="block font-bold text-slate-600 mb-1">Property address / city</label>
                   <input type="text" value="${esc(pi.address || state.draft.address)}" oninput="updatePropInfo('address', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
                 </div>
                 <div>
-                  <label class="block font-bold text-slate-600 mb-1">Year Built</label>
+                  <label class="block font-bold text-slate-600 mb-1">Year built</label>
                   <input type="text" value="${esc(pi.yearBuilt || '')}" oninput="updatePropInfo('yearBuilt', this.value)" placeholder="e.g., 1984" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
                 </div>
                 <div>
-                  <label class="block font-bold text-slate-600 mb-1">Approx. Sq Ft</label>
+                  <label class="block font-bold text-slate-600 mb-1">Approx. sq ft</label>
                   <input type="text" value="${esc(pi.sqft || '')}" oninput="updatePropInfo('sqft', this.value)" placeholder="e.g., 2,400" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
                 </div>
                 <div>
-                  <label class="block font-bold text-slate-600 mb-1">Weather / Temp</label>
+                  <label class="block font-bold text-slate-600 mb-1">Weather / temp</label>
                   <input type="text" value="${esc(pi.weather || '')}" oninput="updatePropInfo('weather', this.value)" placeholder="Clear, 48F" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
                 </div>
                 <div>
@@ -1263,11 +1665,11 @@
           </div>
 
           <!-- Section Tabs + Add Optional Section -->
-          <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <div class="flex flex-wrap items-center gap-2 pb-1">
             ${secTabs}
             ${optionalLeft.length ? `
               <select onchange="if(this.value) addOptionalSection(this.value);" class="px-3 py-2 rounded-xl border border-dashed border-slate-400 bg-slate-50 text-xs font-bold text-slate-700 shrink-0">
-                <option value="">+ Add Section...</option>
+                <option value="">+ Add section...</option>
                 ${optionalLeft.map(s => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('')}
               </select>
             ` : ''}
