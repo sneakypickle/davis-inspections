@@ -80,6 +80,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"></script>
   <script src="https://web.squarecdn.com/v1/square.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -2650,7 +2651,7 @@ function submitInspectionQuoteRequest(payload) {
       authLoading: false,
       magicLinkSentContext: '',
       serviceCatalogCat: 'Base Inspections',
-      serviceCatalog: [{"id": "cat-1", "name": "Apartment", "category": "Base Inspections", "priceCents": 25000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 1}, {"id": "cat-2", "name": "Condo up to Sq Ft 1400", "category": "Base Inspections", "priceCents": 29000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 2}, {"id": "cat-3", "name": "Sq Ft 0 - 2,000", "category": "Base Inspections", "priceCents": 32000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 3}, {"id": "cat-4", "name": "Sq Ft 2,001 - 2,500", "category": "Base Inspections", "priceCents": 34000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 4}, {"id": "cat-5", "name": "Sq Ft 2,501 - 3,000", "category": "Base Inspections", "priceCents": 36500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 5}, {"id": "cat-6", "name": "Sq Ft 3,001 - 3,500", "category": "Base Inspections", "priceCents": 39000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 6}, {"id": "cat-7", "name": "Sq Ft 3,501 - 4,000", "category": "Base Inspections", "priceCents": 41500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 7}, {"id": "cat-8", "name": "Sq Ft 4,000 - 4,500", "category": "Base Inspections", "priceCents": 44000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 8}, {"id": "cat-9", "name": "Sq Ft 4,501 - 5,000", "category": "Base Inspections", "priceCents": 46500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 9}, {"id": "cat-10", "name": "Additional Sq Ft Over 5,000", "category": "Base Inspections", "priceCents": 10, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 10}, {"id": "cat-11", "name": "New Construction", "category": "Base Inspections", "priceCents": 35000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 11}, {"id": "cat-12", "name": "New Construction (4,000+ Sq Ft)", "category": "Base Inspections", "priceCents": 42500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 12}, {"id": "cat-13", "name": "New Construction (No Report)", "category": "Base Inspections", "priceCents": 25000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 13}, {"id": "cat-14", "name": "4 Point Inspection", "category": "Base Inspections", "priceCents": 25000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 14}, {"id": "cat-15", "name": "Phase Inspection (Per Phase)", "category": "Base Inspections", "priceCents": 15000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 15}, {"id": "cat-16", "name": "Pre-listing Inspection (No Report)", "category": "Base Inspections", "priceCents": 20000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 16}, {"id": "cat-17", "name": "Warranty Inspection", "category": "Base Inspections", "priceCents": 22000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 17}, {"id": "cat-18", "name": "Sewer Scope Inspection", "category": "Testing & Ancillaries", "priceCents": 14500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 18}, {"id": "cat-19", "name": "Termite / WDI Inspection", "category": "Testing & Ancillaries", "priceCents": 12500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 19}, {"id": "cat-20", "name": "Radon Test", "category": "Testing & Ancillaries", "priceCents": 10000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 20}, {"id": "cat-21", "name": "Radon Test (Douglas)", "category": "Testing & Ancillaries", "priceCents": 12500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 21}, {"id": "cat-22", "name": "Radon Test without Inspection", "category": "Testing & Ancillaries", "priceCents": 16000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 22}, {"id": "cat-23", "name": "Water Test (Bacteriological Only)", "category": "Testing & Ancillaries", "priceCents": 8500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 23}, {"id": "cat-24", "name": "Water Test (Bacteriological, Lead, Nitrite-N, Nitrate-N)", "category": "Testing & Ancillaries", "priceCents": 14500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 24}, {"id": "cat-25", "name": "Extra Building (Sm)", "category": "Surcharges & Fees", "priceCents": 5000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 25}, {"id": "cat-26", "name": "Extra Building (Lg)", "category": "Surcharges & Fees", "priceCents": 10000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 26}, {"id": "cat-27", "name": "Over 50 Years Old", "category": "Surcharges & Fees", "priceCents": 3000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 27}, {"id": "cat-28", "name": "Over 100 Years Old", "category": "Surcharges & Fees", "priceCents": 6000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 28}, {"id": "cat-29", "name": "Trip Charge - Douglas County", "category": "Surcharges & Fees", "priceCents": 3000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 29}, {"id": "cat-30", "name": "Trip Charge 1Hr+", "category": "Surcharges & Fees", "priceCents": 10000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 30}, {"id": "cat-31", "name": "Late Fee (29%)", "category": "Surcharges & Fees", "priceCents": 3900, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 31}, {"id": "cat-32", "name": "Military Discount (10%)", "category": "Discounts", "priceCents": -4650, "isPercentDiscount": true, "percentRate": 10, "sortOrder": 32}, {"id": "cat-33", "name": "Inspection Discount", "category": "Discounts", "priceCents": -1800, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 33}, {"id": "cat-34", "name": "Large Condo/Townhome Discount", "category": "Discounts", "priceCents": -4000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 34}, {"id": "cat-35", "name": "Discount", "category": "Discounts", "priceCents": -10000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 35}],
+      serviceCatalog: [{"id": "cat-1", "name": "Apartment", "category": "Base Inspections", "priceCents": 30000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 1}, {"id": "cat-2", "name": "Condo up to Sq Ft 1,400", "category": "Base Inspections", "priceCents": 33000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 2}, {"id": "cat-3", "name": "Condo up to Sq Ft 2,000", "category": "Base Inspections", "priceCents": 35000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 3}, {"id": "cat-4", "name": "Condo Sq Ft 2,000+", "category": "Base Inspections", "priceCents": 38000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 4}, {"id": "cat-5", "name": "Condo Sq Ft 3,000+", "category": "Base Inspections", "priceCents": 40000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 5}, {"id": "cat-6", "name": "Manufactured Sq Ft 0 - 2,000", "category": "Base Inspections", "priceCents": 40000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 6}, {"id": "cat-7", "name": "Sq Ft 0 - 1,500", "category": "Base Inspections", "priceCents": 34000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 7}, {"id": "cat-8", "name": "Sq Ft 0 - 2,000", "category": "Base Inspections", "priceCents": 36000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 8}, {"id": "cat-9", "name": "Sq Ft 2,001 - 2,500", "category": "Base Inspections", "priceCents": 38000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 9}, {"id": "cat-10", "name": "Sq Ft 2,501 - 3,000", "category": "Base Inspections", "priceCents": 40000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 10}, {"id": "cat-11", "name": "Sq Ft 3,001 - 3,500", "category": "Base Inspections", "priceCents": 43000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 11}, {"id": "cat-12", "name": "Sq Ft 3,501 - 4,000", "category": "Base Inspections", "priceCents": 46000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 12}, {"id": "cat-13", "name": "Sq Ft 4,001 - 4,500", "category": "Base Inspections", "priceCents": 49000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 13}, {"id": "cat-14", "name": "Sq Ft 4,501 - 5,000", "category": "Base Inspections", "priceCents": 54000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 14}, {"id": "cat-15", "name": "Sq Ft 5,001 - 5,500", "category": "Base Inspections", "priceCents": 60000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 15}, {"id": "cat-16", "name": "Sq Ft 5,501 - 6,000", "category": "Base Inspections", "priceCents": 65000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 16}, {"id": "cat-17", "name": "Additional Sq Ft Over 5,500", "category": "Base Inspections", "priceCents": 20, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 17}, {"id": "cat-18", "name": "New Construction", "category": "Base Inspections", "priceCents": 36000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 18}, {"id": "cat-19", "name": "New Construction (Punch List)", "category": "Base Inspections", "priceCents": 30000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 19}, {"id": "cat-20", "name": "New Construction (No Report)", "category": "Base Inspections", "priceCents": 30000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 20}, {"id": "cat-21", "name": "4 Point Inspection", "category": "Base Inspections", "priceCents": 25000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 21}, {"id": "cat-22", "name": "Phase Inspection (Per Phase)", "category": "Base Inspections", "priceCents": 15000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 22}, {"id": "cat-23", "name": "Pre-listing Inspection (Punch List)", "category": "Base Inspections", "priceCents": 30000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 23}, {"id": "cat-24", "name": "Multi-Family (per unit)", "category": "Base Inspections", "priceCents": 17500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 24}, {"id": "cat-25", "name": "Warranty Inspection (Punch List)", "category": "Base Inspections", "priceCents": 30000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 25}, {"id": "cat-26", "name": "Warranty Inspection (Follow-up Punch List)", "category": "Base Inspections", "priceCents": 20000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 26}, {"id": "cat-27", "name": "Over 50 Years Old", "category": "Surcharges & Fees", "priceCents": 5000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 27}, {"id": "cat-28", "name": "Extra Building (Sm)", "category": "Surcharges & Fees", "priceCents": 6000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 28}, {"id": "cat-29", "name": "Extra Building (Lg)", "category": "Surcharges & Fees", "priceCents": 12000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 29}, {"id": "cat-30", "name": "Over 100 Years Old", "category": "Surcharges & Fees", "priceCents": 10000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 30}, {"id": "cat-31", "name": "Trip Charge (Teller County)", "category": "Surcharges & Fees", "priceCents": 3000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 31}, {"id": "cat-32", "name": "Trip Charge", "category": "Surcharges & Fees", "priceCents": 5000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 32}, {"id": "cat-33", "name": "Military Discount (10%)", "category": "Discounts", "priceCents": -3300, "isPercentDiscount": true, "percentRate": 10, "sortOrder": 33}, {"id": "cat-34", "name": "Inspection Discount", "category": "Discounts", "priceCents": -10000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 34}, {"id": "cat-35", "name": "Large Condo/Townhome Discount", "category": "Discounts", "priceCents": -4000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 35}, {"id": "cat-36", "name": "Radon Test", "category": "Testing & Ancillaries", "priceCents": 12500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 36}, {"id": "cat-37", "name": "Radon Test (Pueblo)", "category": "Testing & Ancillaries", "priceCents": 16500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 37}, {"id": "cat-38", "name": "Termite Inspection", "category": "Testing & Ancillaries", "priceCents": 12500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 38}, {"id": "cat-39", "name": "Termite Inspection w/o Home Inspection", "category": "Testing & Ancillaries", "priceCents": 16500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 39}, {"id": "cat-40", "name": "Radon Test (Teller County)", "category": "Testing & Ancillaries", "priceCents": 14500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 40}, {"id": "cat-41", "name": "Trip Charge for Radon Testing", "category": "Testing & Ancillaries", "priceCents": 6500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 41}, {"id": "cat-42", "name": "Radon Test without Inspection", "category": "Testing & Ancillaries", "priceCents": 16000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 42}, {"id": "cat-43", "name": "Water Test (Bacteriological Only)", "category": "Testing & Ancillaries", "priceCents": 8500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 43}, {"id": "cat-44", "name": "Water Test (Bacteriological, Lead, Nitrate-N, Nitrite-N)", "category": "Testing & Ancillaries", "priceCents": 14500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 44}, {"id": "cat-45", "name": "Sewer Scope", "category": "Testing & Ancillaries", "priceCents": 14500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 45}, {"id": "cat-46", "name": "Late Fee (29%)", "category": "Surcharges & Fees", "priceCents": 3900, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 46}, {"id": "cat-47", "name": "Discount - 25%", "category": "Discounts", "priceCents": -16250, "isPercentDiscount": true, "percentRate": 25, "sortOrder": 47}, {"id": "cat-48", "name": "Paid by Agent", "category": "Discounts", "priceCents": -50000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 48}],
       draftLineItems: [],
       convertingRequestId: null,
       requests: [{"id": "req-sample-1", "createdAt": "2026-11-22T18:10:00Z", "clientName": "Jordan Lee", "clientRole": "Home Buyer", "clientEmail": "jordan.lee@example.com", "clientPhone": "(719) 555-0148", "preferredResponse": "Text", "address": "7420 Mesa Ridge Pkwy, Fountain, CO 80817", "sqft": "2,150", "yearBuilt": "2004", "preferredDate": "2026-11-25 9:00 AM", "addons": ["Sewer Scope ($145)", "48-Hour Radon Testing ($125+)"], "notes": "Crawlspace access is in the hall closet.", "status": "New"}],
@@ -2871,6 +2872,8 @@ function submitInspectionQuoteRequest(payload) {
     ];
 
     const DHI_DEMO_INSPECTION_SNAPSHOT = (protoState.inspections || []).find(i => i.id === 'insp-demo') || null;
+    const DHI_DEMO_SECTIONS_SNAPSHOT = (protoState.sections || []).slice();
+    const DHI_DEMO_FINDINGS_SNAPSHOT = (protoState.findings || []).slice();
 
     function initAgreementSigPad() {
       const canvas = document.getElementById('protoAgreementSigCanvas');
@@ -3711,6 +3714,7 @@ function submitInspectionQuoteRequest(payload) {
             </td>
             <td class="py-3.5 pl-2 text-right align-top space-y-1.5 whitespace-nowrap">
               <div class="flex flex-wrap justify-end gap-1.5">
+                <button type="button" onclick="protoUploadHomeGaugeReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 border border-sky-300 hover:border-davis-navy text-davis-navy text-xs font-bold transition">Upload HG Report (.zip)</button>
                 <button type="button" onclick="protoAttachExtraPdf('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">+ Attach PDF</button>
                 <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Open Report</button>
                 ${insp.agreementSigned ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold transition">Signed PDF</button>` : ''}
@@ -4464,6 +4468,216 @@ function submitInspectionQuoteRequest(payload) {
       protoToastMsg('Inspection scheduled, Google Calendar opened, & confirmation sent to ' + email + '!');
     }
 
+    function protoParseHomeGaugeHtml(htmlText) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlText, 'text/html');
+      const cleanTxt = (el) => (el ? (el.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim() : '');
+
+      // 1. Collect all Summary item codes from General Summary
+      const summaryCodes = new Set();
+      doc.querySelectorAll('span.summary-question-number').forEach(el => {
+        const c = cleanTxt(el);
+        if (c) summaryCodes.add(c);
+      });
+
+      // 2. Parse each numbered inspection section (<div class="screen-page"> with <div class="section-header">)
+      const sections = [];
+      const findings = [];
+      doc.querySelectorAll('div.screen-page').forEach(page => {
+        const hdr = page.querySelector('div.section-header');
+        if (!hdr) return;
+        const numSpan = hdr.querySelector('span.header-number');
+        if (!numSpan) return; // Skip General Info / non-numbered headers
+        const secNum = cleanTxt(numSpan).replace(/\.+$/, '').trim();
+        const hdrClone = hdr.cloneNode(true);
+        hdrClone.querySelectorAll('span.header-number').forEach(n => n.remove());
+        const secName = cleanTxt(hdrClone);
+        if (!secNum || !secName) return;
+
+        // Styles & Materials
+        const stylesMaterials = [];
+        page.querySelectorAll('div.sm-whole').forEach(sm => {
+          const label = cleanTxt(sm.querySelector('span.sm-header')).replace(/:$/, '').trim();
+          const value = cleanTxt(sm.querySelector('span.sm-answer'));
+          if (label && value) stylesMaterials.push({ label, value });
+        });
+        sections.push({ num: secNum, name: secName, stylesMaterials });
+
+        // Items inside table.form
+        page.querySelectorAll('table.form').forEach(tbl => {
+          const code = cleanTxt(tbl.querySelector('span.question-number'));
+          const title = cleanTxt(tbl.querySelector('span.question'));
+          const status = cleanTxt(tbl.querySelector('span.answer')) || 'Inspected';
+          if (!code && !title) return;
+
+          const commentParts = [];
+          tbl.querySelectorAll('span.comments').forEach(sp => {
+            const t = (sp.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+            if (t) commentParts.push(t);
+          });
+          const narrative = commentParts.join('\n\n');
+
+          const photos = [];
+          tbl.querySelectorAll('div.pic-wrap').forEach(pw => {
+            const img = pw.querySelector('img');
+            const src = img ? (img.getAttribute('src') || '').trim() : '';
+            if (!src) return;
+            const cap = cleanTxt(pw.querySelector('div.comments')) || title;
+            photos.push({ label: cap, filename: src.split('/').pop() });
+          });
+
+          const statusLow = status.toLowerCase();
+          const isSummary = summaryCodes.has(code) || statusLow.includes('repair') || statusLow.includes('replace') || statusLow.includes('safety');
+          findings.push({
+            code,
+            sectionNum: secNum,
+            category: secName,
+            severity: status,
+            isSummary,
+            title: title || ('Item ' + code),
+            narrative: narrative || status,
+            photos
+          });
+        });
+      });
+
+      return { sections, findings };
+    }
+
+    function protoUploadHomeGaugeReport(inspId) {
+      const insp = (protoState.inspections || []).find(i => i.id === inspId);
+      if (!insp) return;
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = '.zip,.html,.htm,application/zip,text/html';
+      inp.onchange = async () => {
+        const file = inp.files && inp.files[0];
+        if (!file) return;
+        try {
+          protoToastMsg('Reading HomeGauge report "' + file.name + '"...');
+          let htmlText = '';
+          const imageBlobs = new Map();
+
+          if (file.name.toLowerCase().endsWith('.zip')) {
+            if (!window.JSZip) {
+              protoToastMsg('ZIP library not loaded yet. Please refresh and try again.');
+              return;
+            }
+            const zip = await window.JSZip.loadAsync(file);
+            let htmlEntry = null;
+            zip.forEach((relPath, entry) => {
+              if (entry.dir) return;
+              const base = relPath.split('/').pop();
+              const low = base.toLowerCase();
+              if (!htmlEntry && (low === 'fullreportforupload.html' || low.endsWith('.html') || low.endsWith('.htm'))) {
+                htmlEntry = entry;
+              }
+            });
+            if (!htmlEntry) {
+              protoToastMsg('No HTML report file found inside that ZIP archive.');
+              return;
+            }
+            htmlText = await htmlEntry.async('string');
+
+            // Index all image entries by lowercase basename
+            const imgEntries = [];
+            zip.forEach((relPath, entry) => {
+              if (entry.dir) return;
+              const base = relPath.split('/').pop();
+              if (/\.(jpe?g|png|gif|webp)$/i.test(base)) {
+                imgEntries.push({ base, low: base.toLowerCase(), entry });
+              }
+            });
+            for (const ie of imgEntries) {
+              imageBlobs.set(ie.low, { base: ie.base, entry: ie.entry });
+            }
+          } else {
+            htmlText = await file.text();
+          }
+
+          const { sections, findings } = protoParseHomeGaugeHtml(htmlText);
+          if (!findings.length) {
+            protoToastMsg('Could not find HomeGauge inspection items in that file.');
+            return;
+          }
+
+          // Collect unique referenced photos to upload
+          const neededFiles = new Set();
+          findings.forEach(f => (f.photos || []).forEach(p => {
+            if (p.filename) neededFiles.add(p.filename.toLowerCase());
+          }));
+
+          const uploadedPathByLow = new Map();
+          if (dhiIsLiveSession() && inspId !== 'insp-demo' && neededFiles.size > 0) {
+            const list = Array.from(neededFiles).filter(k => imageBlobs.has(k));
+            protoToastMsg(`Uploading ${list.length} report photos to Supabase...`);
+            const BATCH = 6;
+            for (let i = 0; i < list.length; i += BATCH) {
+              const slice = list.slice(i, i + BATCH);
+              await Promise.all(slice.map(async (lowKey) => {
+                const info = imageBlobs.get(lowKey);
+                const blob = await info.entry.async('blob');
+                const ext = (info.base.split('.').pop() || 'jpg').toLowerCase();
+                const contentType = ext === 'png' ? 'image/png' : (ext === 'gif' ? 'image/gif' : 'image/jpeg');
+                const storagePath = `${inspId}/photos/${info.base}`;
+                const { error } = await dhiSupabase.storage.from('reports').upload(storagePath, blob, { contentType, upsert: true });
+                if (!error) uploadedPathByLow.set(lowKey, storagePath);
+              }));
+            }
+          }
+
+          // Save report_sections + findings to Supabase
+          if (dhiIsLiveSession() && inspId !== 'insp-demo') {
+            protoToastMsg(`Saving ${findings.length} inspection items to Supabase...`);
+            const { error: secErr } = await dhiSupabase.from('inspections').update({ report_sections: sections }).eq('id', inspId);
+            if (secErr) {
+              protoToastMsg('Could not save report sections (did you run migration_v3_reports_and_catalog.sql?): ' + secErr.message);
+              return;
+            }
+            // Replace existing findings for this inspection so re-uploads are clean
+            await dhiSupabase.from('inspection_findings').delete().eq('inspection_id', inspId);
+            const rowsToInsert = findings.map(f => {
+              const photoArr = (f.photos || []).map(p => ({
+                label: p.label,
+                path: uploadedPathByLow.get((p.filename || '').toLowerCase()) || ''
+              })).filter(p => p.path);
+              return {
+                inspection_id: inspId,
+                item_code: f.code,
+                section_num: f.sectionNum,
+                category: f.category,
+                severity: f.severity,
+                is_summary: f.isSummary,
+                title: f.title,
+                narrative: f.narrative,
+                trade: 'qualified licensed contractor',
+                repair_action: 'evaluate and repair per inspection report',
+                photo_path: photoArr[0] ? photoArr[0].path : '',
+                photo_paths: photoArr
+              };
+            });
+            for (let i = 0; i < rowsToInsert.length; i += 100) {
+              const { error: fErr } = await dhiSupabase.from('inspection_findings').insert(rowsToInsert.slice(i, i + 100));
+              if (fErr) {
+                protoToastMsg('Error saving findings: ' + fErr.message);
+                return;
+              }
+            }
+          }
+
+          insp.reportSections = sections;
+          insp.reportUploaded = true;
+          renderProtoPortal();
+          const summaryCount = findings.filter(f => f.isSummary).length;
+          protoToastMsg(`Uploaded HomeGauge report: ${sections.length} sections, ${findings.length} items (${summaryCount} summary), ${uploadedPathByLow.size} photos!`);
+        } catch (err) {
+          console.error('HomeGauge report upload error:', err);
+          protoToastMsg('Upload error: ' + (err.message || err));
+        }
+      };
+      inp.click();
+    }
+
     function protoAttachExtraPdf(inspId) {
       const insp = protoState.inspections.find(i => i.id === inspId);
       if (!insp) return;
@@ -4971,6 +5185,12 @@ function submitInspectionQuoteRequest(payload) {
         if (!(protoState.inspections || []).some(i => i.id === 'insp-demo')) {
           protoState.inspections = [DHI_DEMO_INSPECTION_SNAPSHOT].concat(protoState.inspections || []);
         }
+      }
+      if (typeof DHI_DEMO_SECTIONS_SNAPSHOT !== 'undefined' && DHI_DEMO_SECTIONS_SNAPSHOT.length) {
+        protoState.sections = DHI_DEMO_SECTIONS_SNAPSHOT;
+      }
+      if (typeof DHI_DEMO_FINDINGS_SNAPSHOT !== 'undefined' && DHI_DEMO_FINDINGS_SNAPSHOT.length) {
+        protoState.findings = DHI_DEMO_FINDINGS_SNAPSHOT;
       }
       protoState.demoMode = true;
       protoState.role = role;
@@ -5750,25 +5970,76 @@ function submitInspectionQuoteRequest(payload) {
             });
           });
 
-          protoState.findings = fRes.data.map(f => ({
-            id: f.id,
-            code: f.item_code || '',
-            sectionNum: (f.item_code || '1').split('.')[0],
-            category: f.category || 'General',
-            status: f.severity || 'Inspected',
-            isSummary: (f.severity || '').toLowerCase().includes('repair') || (f.severity || '').toLowerCase().includes('summary') || (f.severity || '').toLowerCase().includes('safety'),
-            severity: f.severity || 'Inspected',
-            title: f.title,
-            narrative: f.narrative,
-            trade: f.trade || 'qualified licensed contractor',
-            repairAction: f.repair_action || 'evaluate and repair per inspection report',
-            photos: f.photo_path ? [{ label: f.title, dataUrl: f.photo_path }] : [],
-            activePhotoIdx: 0,
-            photoLabel: f.title,
-            photoDataUrl: f.photo_path || '',
-            marks: marksByTarget[f.id] || [],
-            comments: commentsByTarget[f.id] || []
-          }));
+          // Batch-sign all storage photo paths in one fast request
+          const pathsToSign = new Set();
+          fRes.data.forEach(f => {
+            if (Array.isArray(f.photo_paths) && f.photo_paths.length) {
+              f.photo_paths.forEach(p => {
+                if (p && p.path && !/^https?:\/\//i.test(p.path)) pathsToSign.add(p.path);
+              });
+            } else if (f.photo_path && !/^https?:\/\//i.test(f.photo_path)) {
+              pathsToSign.add(f.photo_path);
+            }
+          });
+          const signedUrlMap = new Map();
+          if (pathsToSign.size > 0) {
+            try {
+              const { data: signedList } = await dhiSupabase.storage.from('reports').createSignedUrls(Array.from(pathsToSign), 3600);
+              if (Array.isArray(signedList)) {
+                signedList.forEach(s => {
+                  if (s && s.path && s.signedUrl) signedUrlMap.set(s.path, s.signedUrl);
+                });
+              }
+            } catch (e) { console.warn('Photo signing error:', e); }
+          }
+
+          const activeInspObj = (protoState.inspections || []).find(i => i.id === inspectionId);
+          if (activeInspObj && Array.isArray(activeInspObj.reportSections) && activeInspObj.reportSections.length) {
+            protoState.sections = activeInspObj.reportSections;
+          }
+
+          // Natural numeric sort by item_code (e.g. 1.2 before 1.10, 2.0 before 10.0)
+          const sortedFindings = fRes.data.slice().sort((a, b) => {
+            const pa = String(a.item_code || '0').split('.').map(Number);
+            const pb = String(b.item_code || '0').split('.').map(Number);
+            for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+              const diff = (pa[i] || 0) - (pb[i] || 0);
+              if (diff !== 0) return diff;
+            }
+            return 0;
+          });
+
+          protoState.findings = sortedFindings.map(f => {
+            let photos = [];
+            if (Array.isArray(f.photo_paths) && f.photo_paths.length) {
+              photos = f.photo_paths.map(p => ({
+                label: p.label || f.title,
+                dataUrl: signedUrlMap.get(p.path) || p.path || ''
+              })).filter(p => p.dataUrl);
+            } else if (f.photo_path) {
+              photos = [{ label: f.title, dataUrl: signedUrlMap.get(f.photo_path) || f.photo_path }];
+            }
+            const sevLow = (f.severity || '').toLowerCase();
+            return {
+              id: f.id,
+              code: f.item_code || '',
+              sectionNum: f.section_num || (f.item_code || '1').split('.')[0],
+              category: f.category || 'General',
+              status: f.severity || 'Inspected',
+              isSummary: (typeof f.is_summary === 'boolean') ? f.is_summary : (sevLow.includes('repair') || sevLow.includes('summary') || sevLow.includes('safety')),
+              severity: f.severity || 'Inspected',
+              title: f.title,
+              narrative: f.narrative,
+              trade: f.trade || 'qualified licensed contractor',
+              repairAction: f.repair_action || 'evaluate and repair per inspection report',
+              photos,
+              activePhotoIdx: 0,
+              photoLabel: photos[0] ? photos[0].label : f.title,
+              photoDataUrl: photos[0] ? photos[0].dataUrl : '',
+              marks: marksByTarget[f.id] || [],
+              comments: commentsByTarget[f.id] || []
+            };
+          });
         }
 
         if (Array.isArray(oRes.data)) {
@@ -5881,6 +6152,7 @@ function submitInspectionQuoteRequest(payload) {
         reportNotified: !!r.report_notified,
         reportReady: !!r.report_notified,
         services: Array.isArray(r.services) ? r.services : [],
+        reportSections: Array.isArray(r.report_sections) ? r.report_sections : [],
         extraDocs: []
       };
     }
