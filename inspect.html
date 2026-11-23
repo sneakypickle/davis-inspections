@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#004677" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="./field-manifest.json" />
+  <link rel="icon" type="image/png" href="./dhi_favicon_badge.png" />
+  <title>DHI Field &amp; Report Editor | Davis Home Inspections</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            davis: { navy: '#004677', dark: '#002E50', blue: '#1B6CA8', light: '#EBF4FA' }
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"></script>
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, sans-serif; background: #F4F7FA; color: #0F172A; -webkit-tap-highlight-color: transparent; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <header class="sticky top-0 z-30 bg-davis-dark text-white border-b border-white/10 shadow-sm">
+    <div class="max-w-7xl mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <span class="px-2 py-0.5 rounded-lg bg-sky-500/20 border border-sky-300/30 text-[11px] font-extrabold tracking-wide text-sky-200">DHI FIELD</span>
+        <span id="hdrTitle" class="text-sm font-extrabold truncate max-w-[200px] sm:max-w-md">Field &amp; Report Editor</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-1.5 text-xs">
+        <span id="hdrBackupBadge" class="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 text-[11px] font-semibold text-sky-100">Local Save Ready</span>
+        <button type="button" onclick="openInstructionsModal()" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">AI Rules</button>
+        <button type="button" onclick="openBackupsModal()" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">Backups</button>
+        <a href="./index.html?view=portal" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">Admin Portal</a>
+        <button type="button" id="hdrSignOutBtn" onclick="fieldSignOut()" class="hidden px-2.5 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 text-rose-100 font-bold transition">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="appRoot" class="flex-grow max-w-7xl w-full mx-auto px-3 sm:px-5 py-4 pb-20"></main>
+
+  <!-- Toast -->
+  <div id="toastBox" class="hidden fixed bottom-4 right-4 z-50 max-w-sm bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-slate-700"></div>
+
+  <!-- AI Global Instructions Modal -->
+  <div id="instructionsModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-5 space-y-4 shadow-2xl border border-slate-200">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Global AI Preset</span>
+          <h3 class="text-lg font-extrabold text-slate-900">Narrative Rewriting Instructions</h3>
+          <p class="text-xs text-slate-500">Applies to all reports on both phone and desktop. Property details, Styles &amp; Materials, prior narratives, and item photos are sent automatically.</p>
+        </div>
+        <button type="button" onclick="closeInstructionsModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
+      </div>
+      <textarea id="globalInstructionsInput" rows="10" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono leading-relaxed focus:ring-2 focus:ring-davis-navy focus:outline-none"></textarea>
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeInstructionsModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">Cancel</button>
+        <button type="button" onclick="saveGlobalInstructions()" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Save to Supabase</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comment Library Modal -->
+  <div id="libraryModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-5 space-y-3 shadow-2xl border border-slate-200 max-h-[85vh] flex flex-col">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Saved Comment Library</span>
+          <h3 id="libModalTitle" class="text-base font-extrabold text-slate-900">Insert or Prune Comments</h3>
+        </div>
+        <button type="button" onclick="closeLibraryModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
+      </div>
+      <div class="flex gap-2">
+        <input id="libSearchInput" type="search" oninput="renderLibraryResults()" placeholder="Search comments by keyword or section..." class="flex-grow px-3 py-2 rounded-xl border border-slate-300 text-xs" />
+        <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 whitespace-nowrap">
+          <input type="checkbox" id="libFilterSectionChk" onchange="renderLibraryResults()" checked />
+          This section
+        </label>
+      </div>
+      <div id="libResultsContainer" class="space-y-2 overflow-y-auto flex-1 pr-1"></div>
+    </div>
+  </div>
+
+  <!-- Local 2-Minute Backups Modal -->
+  <div id="backupsModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-5 space-y-4 shadow-2xl border border-slate-200 max-h-[82vh] flex flex-col">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Crash Recovery (Every 2 Minutes)</span>
+          <h3 class="text-base font-extrabold text-slate-900">Local Phone Backups</h3>
+          <p class="text-xs text-slate-500">Snapshots are saved automatically to IndexedDB every 2 minutes while editing an inspection.</p>
+        </div>
+        <button type="button" onclick="closeBackupsModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
+      </div>
+      <div class="flex gap-2">
+        <button type="button" onclick="createManualBackupSnapshot()" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white text-xs font-bold">Take Snapshot Now</button>
+        <button type="button" onclick="exportActiveDraftJson()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold">Download JSON Backup</button>
+      </div>
+      <div id="backupsListContainer" class="space-y-2 overflow-y-auto flex-1"></div>
+    </div>
+  </div>
+
+  <!-- Desktop Photo Annotation & Editor Modal -->
+  <div id="photoEditorModal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white rounded-2xl max-w-3xl w-full p-5 space-y-3 shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col">
+      <div class="flex items-center justify-between gap-2">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Photo Editor (Desktop / Review)</span>
+          <h3 class="text-base font-extrabold text-slate-900">Annotate or Update Photo</h3>
+        </div>
+        <button type="button" onclick="closePhotoEditor()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <button type="button" id="toolArrowBtn" onclick="setPhotoTool('arrow')" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white font-bold">Draw Arrow</button>
+        <button type="button" id="toolCircleBtn" onclick="setPhotoTool('circle')" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">Draw Circle</button>
+        <select id="photoColorSelect" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold">
+          <option value="#ef4444">Red</option>
+          <option value="#f59e0b">Amber Gold</option>
+          <option value="#0ea5e9">Sky Blue</option>
+        </select>
+        <button type="button" onclick="undoPhotoAnnotation()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 font-bold">Undo</button>
+        <button type="button" onclick="clearPhotoAnnotations()" class="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 font-bold">Reset Photo</button>
+      </div>
+      <div class="flex-1 overflow-auto flex items-center justify-center bg-slate-900 rounded-xl p-2 min-h-[260px]">
+        <canvas id="photoEditorCanvas" class="max-w-full max-h-[54vh] cursor-crosshair rounded-lg"></canvas>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+        <input id="photoCaptionInput" type="text" placeholder="Photo caption..." class="flex-grow px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+        <div class="flex gap-2">
+          <button type="button" onclick="closePhotoEditor()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">Cancel</button>
+          <button type="button" onclick="saveEditedPhoto()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Save Annotated Photo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DHI_SUPABASE_URL = 'https://uzelxunzussqmxrzeyke.supabase.co';
+    const DHI_SUPABASE_ANON_KEY = 'sb_publishable_-XO_qBYL5CDILZR05KpaDA_0qMDmYi3';
+    const DHI_TEMPLATE = [{"num": "1", "name": "Roofing", "optional": false, "stylesMaterials": [{"label": "Roof Covering", "options": ["3-Tab fiberglass", "Architectural", "Asphalt/Fiberglass", "Built-up", "Cedar", "Ceramic/Clay", "Concrete", "Dimensional", "Metal", "Modified bitumen", "Panel", "Roll/Selvage", "EPDM Membrane (Black)", "TPO/PVC Membrane (White)", "Simulated", "Slate", "T-Lock Shingles", "TPO", "Tar and gravel", "Tile", "Wood shakes", "Asphalt roll"]}, {"label": "Viewed roof covering from", "options": ["Ground", "Ladder", "Walked roof", "Binoculars", "Drone"]}, {"label": "Sky Light(s)", "options": ["None", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Ventilating", "Fixed", "Fixed glass with vent flap", "Motorized", "Roof windows", "Custom-made", "Home made", "Solar tube"]}, {"label": "Chimney (exterior)", "options": ["Block", "Brick", "Cement Fiber", "Composition board", "EIFS/Stucco", "Masonite", "Masonry Stucco", "Metal Flue Pipe", "Metal Siding", "N/A", "Panel", "Rock", "Stove Pipe", "Vinyl siding", "Wood"]}], "items": [{"code": "1.0", "title": "Roof Coverings"}, {"code": "1.1", "title": "Flashings"}, {"code": "1.2", "title": "Skylights, Chimneys and Roof Penetrations"}, {"code": "1.3", "title": "Roof Drainage Systems"}]}, {"num": "2", "name": "Exterior", "optional": false, "stylesMaterials": [{"label": "Siding Style", "options": ["Beaded", "Bevel", "Channel rustic", "Drop", "Lap", "Log", "Shiplap", "Tongue and Groove", "V-groove", "German", "T-111", "RB&B (Reverse board and batten)", "Rock and Mortar", "Brick", "Stucco", "Batten", "Wood shakes", "Block and mortar", "Pebble dash", "Pebble", "Shake", "Panel"]}, {"label": "Siding Material", "options": ["Composite board", "Vinyl", "Wood", "Cedar", "Brick veneer", "Stone", "Full brick", "Cement-Fiber", "Metal", "Masonry", "Masonry panel", "EIFS", "Logs", "Fiber cement"]}, {"label": "Exterior Entry Doors", "options": ["Wood", "Steel", "Fiberglass", "Hollow core", "Single pane", "Insulated glass", "Metal"]}, {"label": "Appurtenance", "options": ["Deck with steps", "Balcony", "Covered porch", "Porch", "Sidewalk", "Deck", "Patio", "Ramp"]}, {"label": "Driveway", "options": ["Concrete", "Asphalt", "Brick", "Cobblestone", "Gravel", "Dirt", "Shared access", "Street Parking", "Parking lot"]}], "items": [{"code": "2.0", "title": "Wall Cladding Flashing and Trim"}, {"code": "2.1", "title": "Doors (Exterior)"}, {"code": "2.2", "title": "Windows"}, {"code": "2.3", "title": "Decks, Balconies, Stoops, Steps, Areaways, Porches, Patio/Cover and Applicable Railings"}, {"code": "2.4", "title": "Vegetation, Grading, Drainage, Driveways, Patio Floor, Walkways and Retaining Walls (With respect to their effect on the condition of the building)"}, {"code": "2.5", "title": "Eaves, Soffits and Fascias"}, {"code": "2.6", "title": "Other"}, {"code": "2.7", "title": "Additional Buildings on Property"}]}, {"num": "3", "name": "Garage", "optional": false, "stylesMaterials": [{"label": "Garage Door Type", "options": ["N/A", "One manual", "Two manual", "Three manual", "Four manual", "One automatic", "Two automatic", "Three automatic", "Four automatic"]}, {"label": "Garage Door Material", "options": ["N/A", "Fiberglass", "Compressed board", "Hardboard", "Insulated", "Light inserts", "Metal", "Wood"]}, {"label": "Auto-opener Manufacturer", "options": ["N/A", "ALLOMATIC", "ALLISTER", "ALL STAR", "AMARR", "AUTOMATIC DOORMAN", "CHAMBERLAIN", "CRAWFORD", "GENIE", "HOLMES", "HOWELL", "IDEAL", "KNOX", "MASTER", "OVERHEAD DOOR", "QUANTIM", "RAYNOR", "RYOBI", "ROLL-LITE", "SEARS", "SOLID STATE", "STANLEY", "TELECTRON", "ULTRA-LIFT", "WAYNE-DALTON", "WINDSOR", "GOOD", "LINEAR", "UNKNOWN", "1/3 HORSEPOWER", "1/2 HORSEPOWER", "3/4 HORSEPOWER", "MARTIN", "LIFTMASTER"]}], "items": [{"code": "3.0", "title": "Detatched Garage Roof Covering/Structure"}, {"code": "3.1", "title": "Garage Ceilings"}, {"code": "3.2", "title": "Garage Walls (including Firewall Separation)"}, {"code": "3.3", "title": "Garage Floor"}, {"code": "3.4", "title": "Garage Door(s)"}, {"code": "3.5", "title": "Occupant Door (from garage to inside of home)"}, {"code": "3.6", "title": "Garage Door Operators (Report whether or not doors will reverse when met with resistance)"}]}, {"num": "4", "name": "Interiors", "optional": false, "stylesMaterials": [{"label": "Ceiling Materials", "options": ["Gypsum Board", "Plaster", "Wallpaper", "Suspended ceiling panels", "Ceiling Tile", "Wood", "Compressed board", "Painted-over wallpaper", "Unfinished", "VOB (Vinyl-over-board)"]}, {"label": "Wall Material", "options": ["Gypsum Board", "Plaster", "Paneling", "Wallpaper", "Wood", "Unfinshed", "Compressed board", "Painted-over wall paper", "Tile", "VOB (Vinyl-over-board)"]}, {"label": "Floor Covering(s)", "options": ["(Tongue and Groove)", "Brick", "Carpet", "Engineered T&G", "Hardwood T&G", "Laminated T&G", "Linoleum", "Epoxy/Resin", "Finished Concrete", "LVP", "LVT", "Old 9\" square tile (possible asbestos)", "Peel and Stick LVP", "Rock", "Self adhesive tile", "Stone", "Tile", "Unfinished", "Vinyl Sheet", "Wood"]}, {"label": "Interior Doors", "options": ["Hollow core", "Solid", "Masonite", "Raised panel", "Wood", "Metal"]}, {"label": "Window Types", "options": ["Both", "AGED", "Thermal/Insulated", "Double-hung", "Single-hung", "Tilt feature", "Single pane", "Storm windows", "Casement", "Jalousie", "Sliders", "Awning"]}, {"label": "Cabinetry", "options": ["Wood", "Tile", "Marble", "Veneer", "Laminate", "Melamine", "Plastic", "Metal"]}, {"label": "Countertop", "options": ["Laminate", "Wood", "Tile", "Composite", "Cultured marble", "Metal", "Corian", "Granite", "Marble", "Slate", "Stone", "Cast iron", "Vinyl", "Quartz", "Epoxy/Resin"]}, {"label": "Refrigerator Opening Width", "options": ["30 inches", "32 inches", "32 1/2 inches", "33 inches", "33 1/2 inches", "34 inches", "34 1/2 inches", "35 inches", "35 1/2 inches", "36 inches", "36 1/2 inches", "37 inches", "37 1/2 inches", "38 inches", "38 1/2 inches", "39 inches", "39 1/2 inches", "40 inches", "40 1/2 inches", "41 inches", "PLUS"]}, {"label": "Refrigerator Opening Height", "options": ["60 inches", "60 1/4 inches", "60 1/2 inches", "60 3/4 inches", "60 7/8 inches", "61 inches", "61 1/4 inches", "61 1/2 inches", "61 3/4 inches", "61 7/8 inches", "62 inches", "62 1/4 inches", "62 1/2 inches", "62 3/4 inches", "62 7/8 inches", "63 inches", "63 1/4 inches", "63 1/2 inches", "63 3/4 inches", "63 7/8 inches", "64 inches", "64 1/4 inches", "64 1/2 inches", "64 3/4 inches", "64 7/8 inches", "65 inches", "65 1/4 inches", "65 1/2 inches", "65 3/4 inches", "65 7/8 inches", "66 inches", "66 1/4 inches", "66 1/2 inches", "66 3/4 inches", "66 7/8 inches", "67 inches", "67 1/4 inches", "67 1/2 inches", "67 3/4 inches", "67 7/8 inches"]}], "items": [{"code": "4.0", "title": "Ceilings"}, {"code": "4.1", "title": "Walls"}, {"code": "4.2", "title": "Floors"}, {"code": "4.3", "title": "Steps, Stairways, Balconies and Railings"}, {"code": "4.4", "title": "Counters and Cabinets (representative number)"}, {"code": "4.5", "title": "Doors (representative number)"}, {"code": "4.6", "title": "Windows (representative number)"}, {"code": "4.7", "title": "Pests"}]}, {"num": "5", "name": "Structural Components", "optional": false, "stylesMaterials": [{"label": "Foundation", "options": ["Masonry block", "Brick", "Rock", "Poured concrete", "Underpinning", "Skirting"]}, {"label": "Method used to observe Crawlspace", "options": ["From entry", "Crawled", "No crawlspace", "Could not access", "Unsafe conditions", "Pests", "Standing water", "Debris", "Obstructed", "No access", "Walked", "Limited access"]}, {"label": "Floor Structure", "options": ["2 X 6", "2 X 8", "2 X 10", "2 X12", "Wood joists", "Slab", "6\" or better", "8\" or better", "Diameter logs", "Wood beams", "Engineered floor trusses", "Not visible", "Engineered floor joists"]}, {"label": "Wall Structure", "options": ["Wood", "Masonry", "Metal studs", "2 X 4 Wood", "2 X 6 Wood", "Brick"]}, {"label": "Columns or Piers", "options": ["Brick piers", "Concrete piers", "Dry stacked rock or stone", "Jack Posts", "Jacks", "Masonry block", "Not Visible", "Steel lally columns", "Steel screw jacks", "Supporting walls", "Wood piers"]}, {"label": "Ceiling Structure", "options": ["2X4", "2X6", "2X8", "2X10", "4\" or better", "6'\" or better", "Diameter logs", "Not visible"]}, {"label": "Roof Structure", "options": ["Engineered wood trusses", "Stick-built", "2 X 4 Rafters", "2 X 6 Rafters", "2 X 8 Rafters", "2 X 10 Rafters", "2 X 12 Rafters", "Steel trusses", "Lateral bracing", "Common board", "Wood slats", "Plywood", "Sheathing", "Not visible"]}, {"label": "Roof-Type", "options": ["A-frame", "Flat", "Gable", "Gambrel", "Geodesic", "Hip", "Hip and Valley", "Round", "Shed", "Skillion"]}, {"label": "Attic info", "options": ["Attic access", "Scuttle hole", "Pull Down stairs", "Storage", "Light in attic", "No Storage", "Attic hatch", "No Attic"]}, {"label": "Method used to observe attic", "options": ["From entry", "Walked", "Inaccessible"]}], "items": [{"code": "5.0", "title": "Foundations, Basement and Crawlspace (Report signs of abnormal or harmful water penetration into the building or signs of abnormal or harmful condensation on building components.)"}, {"code": "5.1", "title": "Walls (Structural)"}, {"code": "5.2", "title": "Columns or Piers"}, {"code": "5.3", "title": "Floors (Structural)"}, {"code": "5.4", "title": "Ceilings (Structural)"}, {"code": "5.5", "title": "Roof Structure and Attic"}]}, {"num": "6", "name": "Plumbing System", "optional": false, "stylesMaterials": [{"label": "Water Source", "options": ["Well or Spring", "Well", "Public", "Spring", "Unable to determine", "Shared well", "Cistern"]}, {"label": "Water Filters", "options": ["Sediment filter", "Whole house conditioner", "System flush", "None", "(We do not inspect filtration systems)"]}, {"label": "Plumbing Water Supply (into home)", "options": ["Copper", "Pex", "Poly", "CPVC", "Galvanized (old)", "PVC", "Not visible", "Black hose"]}, {"label": "Plumbing Water Distribution (inside home)", "options": ["Copper", "CPVC", "Galvanized", "Not visible", "PEX", "POLY", "PVC", "Stainless Steel"]}, {"label": "Washer Drain Size", "options": ["1 1/2\" Diameter (undersized)", "2\" Diameter", "Not visible", "None", "Undersized"]}, {"label": "Plumbing Waste", "options": ["AGED", "PVC", "Cast iron", "ABS", "Copper", "Galvanized Steel", "Lead", "Not Visible", "Stainless Steel"]}, {"label": "Water Heater Power Source", "options": ["Electric", "Gas (quick recovery)", "Hybrid (electric) Hybrid (electric) Hybrid (electric) Hybrid (electric)", "None (Boiler only)", "Propane (quick recovery)"]}, {"label": "Water Heater Capacity", "options": ["(2) 40 Gallon", "100 Gallon", "150 Gallon", "30 Gallon (small)", "40 Gallon (1-2 people)", "50 Gallon (2-3 people)", "60 Gallon", "65 Gallon", "66 Gallon", "70 Gallon", "75 Gallon", "80 Gallon (plenty)", "Tankless", "Two units", "Unknown"]}, {"label": "Manufacturer", "options": ["A.O. SMITH", "AGED", "AMANA", "AMERICAN", "AMTROL", "APOLLO", "AQUASTAR", "BRADFORD-WHITE", "BURNHAM", "CRAFTMASTER", "CRANE", "DAYTON", "ENVIROTEMP", "ETERNAL", "GE", "GLOW CORE", "HARDWARE", "HEAT-FLO", "HEDGES", "HOTPOINT", "HTP", "JACKSON", "KENMORE", "LENNOX", "LOCHINVAR", "LOWES", "MAYTAG", "MONITOR", "MORFLO", "MYSON", "NAVIEN", "NONE", "NORDYNE", "NOT VISIBLE", "OLD", "PEERLESS", "PENNFIELD", "POLARIS", "RAYPAK", "REDI-HOT"]}, {"label": "Water Heater Location", "options": ["Attic", "Basement", "Closet downstairs", "Concealed", "Concealed hallway panel", "Crawlspace", "Main Floor", "No Water heater", "Under Stairs", "Upper level", "Utility Room", "Washer Dryer Room", "Lower level bathroom", "Closet", "Garage closet"]}], "items": [{"code": "6.0", "title": "Plumbing Drain, Waste and Vent Systems"}, {"code": "6.1", "title": "Plumbing Water Supply, Distribution System and Fixtures"}, {"code": "6.2", "title": "Hot Water Systems, Controls, Chimneys, Flues and Vents"}, {"code": "6.3", "title": "Main Water Shut-off Device (Describe location)"}, {"code": "6.4", "title": "Fuel Storage and Distribution Systems (Interior fuel storage, piping, venting, supports, leaks)"}, {"code": "6.5", "title": "Main Fuel Shut-off (Describe Location)"}, {"code": "6.6", "title": "Sump Pump/Pit"}]}, {"num": "7", "name": "Electrical System", "optional": false, "stylesMaterials": [{"label": "Electrical Service Conductors", "options": ["Overhead service", "Below ground", "Aluminum", "Copper", "220 volts", "110 volt only"]}, {"label": "Panel capacity", "options": ["(inadequate)", "100 AMP", "125 AMP", "150 AMP", "200 AMP", "225 AMP", "60 AMP", "80 AMP", "90 AMP", "(2) 100 AMP service panel", "(2) 150 AMP service panel", "(2) 200 AMP service panel", "Adequate"]}, {"label": "Panel Type", "options": ["Fuses", "Circuit breakers"]}, {"label": "Electric Panel Manufacturer", "options": ["ABB", "BRYANT", "CHALLENGER", "CROUSE-HINDS", "CUTLER HAMMER", "EATON", "FEDERAL PACIFIC", "GENERAL ELECTRIC", "GENERAL SWITCH", "GOULD", "ITE", "LEVITON", "MURRAY", "SIEMENS", "SQUARE D", "SYLVANIA", "THOMAS& BETTS(T&B)", "Unknown", "WALKER", "WESTINGHOUSE"]}, {"label": "Branch wire 15 and 20 AMP", "options": ["Copper", "Aluminum"]}, {"label": "Wiring Methods", "options": ["Romex", "Knob and Tube", "Conduit", "Not Visible"]}], "items": [{"code": "7.0", "title": "Service Entrance Conductors"}, {"code": "7.1", "title": "Service and Grounding Equipment, Main Overcurrent Device, Main and Distribution Panels"}, {"code": "7.2", "title": "Branch Circuit Conductors, Overcurrent Devices and Compatability of their Amperage and Voltage"}, {"code": "7.3", "title": "Connected Devices and Fixtures (Observed from a representative number operation of ceiling fans, lighting fixtures, switches and receptacles located inside the house, garage, and on the dwelling's exterior walls)"}, {"code": "7.4", "title": "Polarity and Grounding of Receptacles within 6 feet of interior plumbing fixtures, all receptacles in garage, carport and exterior walls of inspected structure"}, {"code": "7.5", "title": "Operation of GFCI (Ground Fault Circuit Interrupters)"}, {"code": "7.6", "title": "Location of Main and Distribution Panels"}, {"code": "7.7", "title": "Smoke and Carbon Monoxide Detectors"}]}, {"num": "8", "name": "Heating / Central Air Conditioning", "optional": false, "stylesMaterials": [{"label": "Heat Type", "options": ["Circulating boiler", "Coal furnace converted to gas", "Coal furnace converted to oil", "Direct Vent Wall Furnace", "Electric Base", "Electric heat", "Floor Furnace", "Forced Air", "Geothermal heat pump", "Heat Pump Forced Air (also provides cool air)", "Horizontal Air Handler", "Hydronic", "None", "Oil furnace converted to gas", "Old oil furnace as back up to heat pump", "Radiant Ceiling", "Radiant Floor", "Radiant Hydronic", "Space heater", "Steam boiler", "Vented Room Heater", "Vertical Air Handler", "Gas Heater"]}, {"label": "Energy Source", "options": ["Oil", "Gas", "Propane", "Kerosene", "Solar", "Electric", "Wood", "Coal", "Corn", "Natural gas"]}, {"label": "Number of Heat Systems (excluding wood)", "options": ["One", "Two", "Three", "Four", "Five", "None"]}, {"label": "Heat System Manufacturer", "options": ["AGED", "AIRE-FLO", "AIREASE", "AMANA", "AMERICAN STANDARD", "AMERICANAIRE", "AMERISTAR", "AO SMITH", "APOLLO", "AQUATHERM", "ARCOAIRE", "ARMSTRONG", "BRYANT", "BURNHAM", "CARRIER", "CHAMPION", "CLIMATE MASTER", "COLEMAN", "COMFORTMAKER", "CROWN", "DAIKIN", "DUCANE", "DUNKIRK", "EMPIRE", "ENVIROTEMP", "FIRST COMPANY", "FRIGIDAIRE", "GENERAL ELECTRIC", "GIBSON", "GOODMAN", "GUARDIAN", "HALLMARK", "HB SMITH", "HEATWAVE", "HEIL", "INT. COMFORT", "INTERTHERM", "JANITROL", "JOHNSTONE", "KENMORE"]}, {"label": "Ductwork", "options": ["N/A", "Insulated", "and", "Non-insulated", "Partially insulated", "Possible asbestos tape", "Possible asbestos sleeving"]}, {"label": "Filter Type", "options": ["N/A", "Washable", "Disposable", "Cartridge", "Electronic air cleaner", "(Operable)", "(Inoperable)", "Missing"]}, {"label": "Filter Size", "options": ["(Four filters)", "(Three filters)", "(Two filters)", "10x15", "10x20", "10x24", "10x30", "12x12", "12x16", "12x18", "12x20", "12x24", "12x30", "14x14", "14x20", "14x24", "14x25", "14x30", "15x20", "15x25", "16x16", "16x20", "16x22", "16x24", "16x25", "18x18", "18x20", "18x24", "20x20", "20x24", "20x25", "20x30", "22x22", "22x24", "24x24", "25x23", "25x25", "25x30", "30x30", "8x30"]}, {"label": "Types of Fireplaces", "options": ["None", "Solid Fuel", "Conventional", "Stand-alone", "Vented gas logs", "Non-vented gas logs", "Propane gas logs vented", "Propane gas logs non-vented", "Gas/LP Log starter", "Pellet burning", "Insert", "Sealed off", "Electric"]}, {"label": "Operable Fireplaces", "options": ["None", "One", "Two", "Three", "Four", "Five"]}, {"label": "Number of Woodstoves", "options": ["None", "One", "Two", "Three", "Four"]}, {"label": "Cooling Equipment Type", "options": ["None", "Heat Pump Forced Air (also provides warm air)", "Air conditioner unit", "Window AC", "Swamp Cooler", "Ductless Mini-Split"]}, {"label": "Number of AC Only Units", "options": ["One", "Two", "Three", "Four", "Five", "None"]}, {"label": "Central Air Manufacturer", "options": ["AGED", "AIREASE", "AMANA", "AMERICAN", "ARCOAIRE", "ARMSTRONG", "BRYANT", "CARRIER", "CHAMPION", "CLIMATE MASTER", "COLEMAN", "COMFORT MAKER", "CONCORD", "COPELAND", "DAIKIIN", "DAIKIN", "DAYTON", "DUCANE", "ENVIROMASTER", "FRIEDRICH AIR", "FRIGIDAIRE", "GENERAL ELECTRIC", "GIBSON", "GOETTL", "GOODMAN", "GUARDIAN", "HEIL", "INT. COMFORT", "INTERTHERM", "JANITROL", "KENMORE", "LENNOX", "LUXAIRE", "MITSUBISHI", "N/A", "NONE", "NORDYNE", "PAYNE", "RHEEM", "RUDD"]}], "items": [{"code": "8.0", "title": "Heating Equipment"}, {"code": "8.1", "title": "Normal Operating Controls"}, {"code": "8.2", "title": "Automatic Safety Controls"}, {"code": "8.3", "title": "Distribution Systems (including fans, pumps, ducts and piping, with supports, insulation, air filters, registers, radiators, fan coil units and convectors)"}, {"code": "8.4", "title": "Presence of Installed Heat Source in Each Room"}, {"code": "8.5", "title": "Chimneys, Flues and Vents (for fireplaces or heat systems)"}, {"code": "8.6", "title": "Solid Fuel Heating Devices (Fireplaces, Woodstove)"}, {"code": "8.7", "title": "Gas/LP Firelogs and Fireplaces"}, {"code": "8.8", "title": "Cooling and Air Handler Equipment"}, {"code": "8.9", "title": "Normal Operating Controls"}]}, {"num": "9", "name": "Insulation and Ventilation", "optional": false, "stylesMaterials": [{"label": "Attic Insulation", "options": ["Blown", "Batt", "Roll", "Fiberglass", "Rock wool", "Cellulose", "Polyurethane foam", "Vermiculite", "Perlite", "Mineral", "Unknown", "None", "Approximate", "Below", "R-19", "R-19 or better", "R-30 or better", "R-45", "Spray Foam"]}, {"label": "Ventilation", "options": ["Gable vents", "Ridge vents", "Soffit Vents", "Turbines", "Passive", "None found", "Thermostatically controlled fan"]}, {"label": "Dryer Power Source", "options": ["None", "220 Electric", "Gas Connection", "Propane Connection", "Both (your choice)", "110 volt only (Stackable)"]}, {"label": "Dryer Vent", "options": ["Both", "Flexible Vinyl", "Flexible Metal", "PVC Rigid", "Unknown", "None", "Metal"]}, {"label": "Floor System Insulation", "options": ["NONE", "Faced", "Unfaced", "Batts", "Reflective system (foil faced)", "Loose fill (netted)", "Fiberglass", "Foam", "R-19", "R-25", "Below R-19", "Below R-25", "Above R-19", "Above R-25", "Spray Foam", "Not Visible"]}], "items": [{"code": "9.0", "title": "Insulation in Attic"}, {"code": "9.1", "title": "Insulation in Exterior Walls"}, {"code": "9.2", "title": "Insulation Under Floor System"}, {"code": "9.3", "title": "Vapor Retarders (in Crawlspace or basement)"}, {"code": "9.4", "title": "Ventilation of Attic and Foundation Areas"}, {"code": "9.5", "title": "Venting Systems (Kitchens, Baths and Laundry)"}, {"code": "9.6", "title": "Ventilation Fans and Thermostatic Controls in Attic"}, {"code": "9.7", "title": "Radon Mitigation Systems"}]}, {"num": "10", "name": "Built-In Kitchen Appliances", "optional": false, "stylesMaterials": [{"label": "Dishwasher Brand", "options": ["\"IKEA\"", "ADMIRAL", "AGED", "AMANA", "ASKO", "BOSCH", "BRAND NOT VISIBLE", "DCS", "FRIGIDAIRE", "GAGGENAU", "GENERAL ELECTRIC", "GIBSON", "GOOD", "HOLIDAY", "HOTPOINT", "JENN AIR", "KENMORE", "KITCHEN AIDE", "LG", "MAGIC CHEF", "MAYTAG", "MIELE", "NONE", "RCA", "ROPER", "SAMSUNG", "SEARS", "TAPPAN", "THERMADOR", "VIKING", "WESTINGHOUSE", "WHIRLPOOL", "DACOR", "MIDEA"]}, {"label": "Disposer Brand", "options": ["AGED", "AMERICAN STANDARD", "BADGER", "DISPOSALL", "EMERSON", "FRANKE", "FRIGIDAIRE", "GENERAL ELECTRIC", "GRIND-ALL", "HOTPOINT", "HYDROMAID", "IN SINK ERATOR", "JENN AIR", "KENMORE", "KITCHEN AIDE", "MAYTAG", "MOEN", "NONE", "ROPER", "SEARS", "SINKMASTER", "TAPPAN", "UNKNOWN", "VIKING", "WASTE KING", "WESTINGHOUSE", "WHIRLAWAY", "WHIRLPOOL", "WHITE ROCK"]}, {"label": "Range/Oven", "options": ["ADMIRAL", "AMANA", "AMERICAN", "BOSCH", "BROWN", "CALDERA", "CALORIC", "CREDA", "CROSLEY", "DACOR", "DCS", "DYNAMIC", "DYNASTY", "FRIGIDAIRE", "GAGGENAU", "GALAXY", "GENERAL ELECTRIC", "GIBSON", "GOOD", "HOLIDAY", "HOTPOINT", "JENN AIR", "KENMORE", "KENYON", "KITCHEN AIDE", "LG", "MAGIC CHEF", "MAYTAG", "NONE", "NXR", "RINNAI", "ROPER", "SAMSUNG", "SEARS", "TAPPAN", "THERMADOR", "UNKNOWN", "VIKING", "WESTINGHOUSE", "WHIRLPOOL"]}, {"label": "Exhaust/Range hood", "options": ["ADMIRAL", "AIRCARE", "AMANA", "BROAN", "BROWN", "CALDERA", "CUSTOM MADE", "DAYCOR", "DOWNDRAFT", "DYNAMIC", "ECF", "EXHAUSTO", "FANTECH", "FASCO", "FIVESTAR", "FRIGIDAIRE", "GAGGENAU", "GARLAND", "GENERAL ELECTRIC", "GOLDSTAR", "HEARTLAND", "HOTPOINT", "IMPERIAL", "JENN AIR", "KENMORE", "KITCHEN AIDE", "KITCHEN-AIRE", "MAGIC CHEF", "MIAMI CAREY", "NAUTILUS", "NONE", "NUTONE", "NUVENT", "NXR", "RANGAIRE", "RE-CIRCULATE", "SEARS", "TAPPAN", "THERMADOR", "UNKNOWN BRAND"]}, {"label": "Built in Microwave", "options": ["AGED", "AMANA", "BOSCH", "DACOR", "FRIGIDAIRE", "GENERAL ELECTRIC", "GOLDSTAR", "HOTPOINT", "JENN AIR", "KENMORE", "KITCHEN AIDE", "LG", "LITTON-AIRE", "MAGIC CHEF", "MAYTAG", "MCA", "MVP", "NONE", "PANASONIC", "RCA", "ROPER", "SAMSUNG", "SEARS", "SHARP", "TAPPAN", "THERMADOR", "VIKING", "WHIRLPOOL", "WOLF"]}, {"label": "Refrigerator Brand", "options": ["\"IKEA\"", "ACER", "ADMIRAL", "AGED", "AMANA", "BOSCH", "CERVITOR", "DACOR", "ELECTROLUX", "FRIGIDAIRE", "GENERAL ELECTRIC", "GIBSON", "GOOD", "HEARTLAND", "HOLIDAY", "HOTPOINT", "INSIGNIA", "JENN AIR", "KELVINATOR", "KENMORE", "KITCHEN AIDE", "LG", "MAGIC CHEF", "MARVEL", "MAYTAG", "NONE", "NOT INSPECTED", "ROPER", "SAMSUNG", "SCOTSMAN", "SEARS", "SUB ZERO", "TAPPAN", "THERMADOR", "VIKING", "WESTINGHOUSE", "WHIRLPOOL"]}], "items": [{"code": "10.0", "title": "Dishwasher"}, {"code": "10.1", "title": "Ranges/Ovens/Cooktops"}, {"code": "10.2", "title": "Range Hood (s)"}, {"code": "10.3", "title": "Food Waste Disposer"}, {"code": "10.4", "title": "Microwave Cooking Equipment"}, {"code": "10.5", "title": "Refrigerator"}, {"code": "10.6", "title": "Trash Compactor"}]}, {"num": "11", "name": "Home Warranty Information", "optional": true, "stylesMaterials": [], "items": [{"code": "11.0", "title": "This home is eligible for a one year Home Warranty offer!"}]}, {"num": "12", "name": "Lawn Sprinklers", "optional": true, "stylesMaterials": [], "items": [{"code": "12.0", "title": "Sprinkler Operation"}, {"code": "12.1", "title": "Controllers"}, {"code": "12.2", "title": "Rotary Heads"}, {"code": "12.3", "title": "Visible Connections or Clamps"}, {"code": "12.4", "title": "Drains"}, {"code": "12.5", "title": "Sensors"}]}, {"num": "13", "name": "Swimming Pools, Equipment and Safety", "optional": true, "stylesMaterials": [{"label": "Style", "options": ["Above ground", "In ground", "Heated", "Un-heated"]}, {"label": "Shape", "options": ["Round", "Freeform", "Square", "Rectangle", "Kidney", "Oval", "Grecian"]}, {"label": "Wall Material", "options": ["Plastic Liner", "Galvanized", "Stainless steel", "Aluminum", "Concrete", "Tile", "Gunite (concrete)", "Fiberglass"]}], "items": [{"code": "13.0", "title": "Operational Condition of Pool"}, {"code": "13.1", "title": "Pool Liner Condition"}, {"code": "13.2", "title": "Surface Walls and Floor of Pool"}, {"code": "13.3", "title": "Permanent Accessories Condition"}, {"code": "13.4", "title": "Pumps for Circulation of Water"}, {"code": "13.5", "title": "Pumps for Vacuum or Cleaning"}, {"code": "13.6", "title": "Pool Heaters"}, {"code": "13.7", "title": "Verify the Electrucal outlet (s) and any Lighting for Pools is on a Ground Fault Circuit (GFCI)"}, {"code": "13.8", "title": "Overflow Skimmers and Drains"}, {"code": "13.9", "title": "Chemicals for Pool (Capable of being stored with a lock)"}, {"code": "13.10", "title": "Does Pool have any rescue equipment?"}, {"code": "13.11", "title": "Do Steps and ladders exist on both sides of the pool?"}, {"code": "13.12", "title": "Is the Pool depth marked on outside area of Pool?"}, {"code": "13.13", "title": "Is there a depth of at least eight feet to allow for safe diving?"}, {"code": "13.14", "title": "Are there any obstructions (walls, shrubs, etc.) that would prevent full view of pool from home?"}, {"code": "13.15", "title": "Is the pool fenced?"}, {"code": "13.16", "title": "Does the fence have a self closing latch and a lock on door?"}, {"code": "13.17", "title": "Can someone climb the fence by the use of personal items or structures against fence?"}, {"code": "13.18", "title": "Does the door latch height and location attempt to make difficult for young children to reach?"}, {"code": "13.19", "title": "Are Electric Lights Secure?"}, {"code": "13.20", "title": "Water Level should be within inches from Rim to allow an easier climb out."}, {"code": "13.21", "title": "Pool Design at waters edge should not include protrusions that could injure swimmer"}, {"code": "13.22", "title": "Does the surface around pool encourage drainage away from pool?"}]}, {"num": "14", "name": "Additional Apartment/Cottage", "optional": true, "stylesMaterials": [{"label": "Roof Covering", "options": ["3-Tab fiberglass", "Metal", "Architectural", "Cedar", "Pine", "Wood shakes", "Ceramic/Clay", "Concrete", "Tile", "Simulated", "Slate", "Roll/Selvage", "Rubber membrane", "Built-up", "Modified bitumen", "Tar and gravel", "Asphalt/Fiberglass", "Asbestos", "Dimensional"]}, {"label": "Siding Style", "options": ["Beaded", "Bevel", "Channel rustic", "Drop", "Lap", "Log", "Shiplap", "Tongue and Groove", "V-groove", "German", "T-111", "RB&B (Reverse board and batten)", "Rock and Mortar", "Brick", "Cement stucco", "Batten", "Wood shakes", "Block and mortar", "Pebble dash", "Pebble", "Shakes"]}, {"label": "Plumbing Supply", "options": ["Copper", "Pex", "Poly", "CPVC", "Galvanized (old)", "PVC", "Not visible", "Black hose"]}, {"label": "Plumbing Distribution", "options": ["Galvanized", "Copper", "PEX", "PVC", "POLY", "Not visible", "CPVC"]}, {"label": "Water Heater Power Source", "options": ["Electric", "Gas (quick recovery)", "Propane (quick recovery)", "None (Boiler only)"]}, {"label": "Heat Type", "options": ["None", "Heat Pump (Forced Air)", "Steam boiler", "Circulating boiler", "Hydronic", "Forced Air", "Radiant Floor", "Radiant Ceiling", "Electric Base", "Oil furnace converted to gas", "Electric heat", "Space heater"]}], "items": [{"code": "14.0", "title": "Roof Coverings"}, {"code": "14.1", "title": "Wall Cladding Flashing and Trim"}, {"code": "14.2", "title": "Windows (representative number)"}, {"code": "14.3", "title": "Structural (Foundation and Framing)"}, {"code": "14.4", "title": "Doors (Exterior)"}, {"code": "14.5", "title": "Doors (representative number)"}, {"code": "14.6", "title": "Plumbing Water Supply, Distribution System and Fixtures"}, {"code": "14.7", "title": "Plumbing Drain, Waste and Vent Systems"}, {"code": "14.8", "title": "Hot Water Systems, Controls, Chimneys, Flues and Vents"}, {"code": "14.9", "title": "Electrical Connected Devices and Fixtures"}, {"code": "14.10", "title": "Heating Equipment"}, {"code": "14.11", "title": "Cooling and Air Handler Equipment"}]}, {"num": "15", "name": "Out Building", "optional": true, "stylesMaterials": [], "items": [{"code": "15.0", "title": "Foundations (If all crawlspace areas are not inspected, provide an explanation. An opinion on performance is necessary)"}, {"code": "15.1", "title": "Grading and Drainage"}, {"code": "15.2", "title": "Roof Covering (If the roof is inaccessible, report the method used to inspect)"}, {"code": "15.3", "title": "Roof Structure and Attic (If the attic is inaccessible, report the method used to inspect)"}, {"code": "15.4", "title": "Walls (interior and Exterior)"}, {"code": "15.5", "title": "Ceiling and Floors"}, {"code": "15.6", "title": "Doors (Interior and Exterior)"}, {"code": "15.7", "title": "Windows"}, {"code": "15.8", "title": "Fireplace/Chimney"}, {"code": "15.9", "title": "Porches Decks and Carports (Attached)"}, {"code": "15.10", "title": "Service Entrance and Panels"}, {"code": "15.11", "title": "Branch Circuits, Connected Devices and Fixtures (Report as in need of repair the lack of ground fault circuit protection where required.)"}, {"code": "15.12", "title": "Smoke Detectors"}, {"code": "15.13", "title": "Heating Equipment"}, {"code": "15.14", "title": "Cooling Equipment"}, {"code": "15.15", "title": "Ducts and Vents"}, {"code": "15.16", "title": "Water Supply System and Fixtures"}, {"code": "15.17", "title": "Drains, Wastes and Vents"}, {"code": "15.18", "title": "Water Heating Equipment"}, {"code": "15.19", "title": "Dishwasher"}, {"code": "15.20", "title": "Food Waste Disposer"}, {"code": "15.21", "title": "Range Hood"}, {"code": "15.22", "title": "Ranges/Ovens/Cooktops"}, {"code": "15.23", "title": "Microwave Cooking Equipment"}, {"code": "15.24", "title": "Trash Compactor"}, {"code": "15.25", "title": "Bathroom Exhaust Fans / heaters"}, {"code": "15.26", "title": "Garage Door Operators"}, {"code": "15.27", "title": "Dryer Vents"}]}, {"num": "16", "name": "Outdoor Cooking Equipment", "optional": true, "stylesMaterials": [{"label": "Fuel Source", "options": ["Natural gas", "Propane", "Charcoal"]}], "items": [{"code": "16.0", "title": "Cooking Equipment"}]}, {"num": "17", "name": "Water Wells", "optional": true, "stylesMaterials": [{"label": "Pump Type", "options": ["Above ground", "In-line", "Below ground", "Not accessible", "Gravity fed spring"]}, {"label": "Accessories", "options": ["Air bladder tank", "Booster pump"]}], "items": [{"code": "17.0", "title": "Well Pump and Equipment"}, {"code": "17.1", "title": "Filters and Conditioners"}]}, {"num": "18", "name": "Septic System", "optional": true, "stylesMaterials": [{"label": "Septic Tank", "options": ["Not Inspected (Below ground)", "Above ground access lid", "Below ground"]}], "items": [{"code": "18.0", "title": "Septic Field"}, {"code": "18.1", "title": "Booster Pump and Alarm"}, {"code": "18.2", "title": "Visible Inspection of Inside Tank"}]}, {"num": "19", "name": "Additional Photos", "optional": true, "stylesMaterials": [], "items": [{"code": "19.0", "title": "Photos"}]}, {"num": "20", "name": "Defects (lists/photos)", "optional": true, "stylesMaterials": [], "items": [{"code": "20.0", "title": "A"}, {"code": "20.1", "title": "B"}, {"code": "20.2", "title": "C"}, {"code": "20.3", "title": "D"}, {"code": "20.4", "title": "E"}, {"code": "20.5", "title": "F"}, {"code": "20.6", "title": "G"}, {"code": "20.7", "title": "H"}]}];
+    const DEFAULT_AI_INSTRUCTIONS = "Write a formal, technically accurate, educational home inspection narrative in 3 sentences (up to 4 sentences only if the defect is complex):\n1. Observation: State objectively what was observed and where.\n2. Implication / Consequence: Explain why it matters or what could happen if left uncorrected.\n3. Recommendation: End with a clear recommendation starting with \"Recommend that a...\" or \"Recommend that you...\".\n\nHard rules:\n- Output plain prose only: NO bolding, NO italics, NO bullet points, NO headings, NO emojis, and NO em dashes (use commas or periods).\n- NEVER use the word \"immediate\" or sensational phrases like \"major hazard\" or \"significant defect\".\n- NEVER mention, reference, or allude to any photograph, picture, or image in the narrative text.\n- Consider the property location, age, Styles & Materials, and prior narratives for this home so findings stay consistent.";
+
+    const sb = window.supabase.createClient(DHI_SUPABASE_URL, DHI_SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+
+    const state = {
+      user: null,
+      inspections: [],
+      activeId: null,
+      draft: null, // { inspectionId, address, propertyInfo, sections: [{ num, name, stylesMaterials: [{label, value, options}], items: [{ id, code, title, status, isSummary, roughNotes, narrative, photos: [{ id, label, dataUrl, storagePath }] }] }], updatedAt, dirty }
+      activeSecIdx: 0,
+      showPropInfo: true,
+      showSM: true,
+      globalInstructions: DEFAULT_AI_INSTRUCTIONS,
+      commentLibrary: [],
+      libTargetItem: null,
+      uploading: false,
+      aiBusyItemId: null
+    };
+
+    function esc(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    let toastTimer = null;
+    function toast(msg) {
+      const el = document.getElementById('toastBox');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.add('hidden'), 3600);
+    }
+
+    // =========================================================================
+    // INDEXEDDB LOCAL STORAGE + 2-MINUTE ROLLING BACKUPS
+    // =========================================================================
+    function openLocalDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('DhiFieldDB_v1', 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('drafts')) db.createObjectStore('drafts', { keyPath: 'inspectionId' });
+          if (!db.objectStoreNames.contains('backups')) db.createObjectStore('backups', { keyPath: 'backupId' });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function idbPut(store, obj) {
+      const db = await openLocalDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).put(obj);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function idbGet(store, key) {
+      const db = await openLocalDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readonly');
+        const req = tx.objectStore(store).get(key);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function idbGetAll(store) {
+      const db = await openLocalDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readonly');
+        const req = tx.objectStore(store).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function idbDelete(store, key) {
+      const db = await openLocalDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).delete(key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function saveDraftLocally(silent) {
+      if (!state.draft) return;
+      state.draft.updatedAt = new Date().toISOString();
+      state.draft.dirty = true;
+      await idbPut('drafts', state.draft);
+      const badge = document.getElementById('hdrBackupBadge');
+      if (badge) badge.textContent = 'Saved Locally ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (!silent) toast('Saved locally on device.');
+    }
+
+    async function createBackupSnapshot(isAuto) {
+      if (!state.draft) return;
+      const now = new Date();
+      const snap = {
+        backupId: state.draft.inspectionId + '::' + now.getTime(),
+        inspectionId: state.draft.inspectionId,
+        address: state.draft.address || 'Inspection',
+        savedAt: now.toISOString(),
+        draft: JSON.parse(JSON.stringify(state.draft))
+      };
+      await idbPut('backups', snap);
+      // Prune to keep latest 20 snapshots per inspection
+      const all = (await idbGetAll('backups'))
+        .filter(b => b.inspectionId === state.draft.inspectionId)
+        .sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+      for (const old of all.slice(20)) {
+        await idbDelete('backups', old.backupId);
+      }
+      const badge = document.getElementById('hdrBackupBadge');
+      if (badge) badge.textContent = 'Backup ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (!isAuto) toast('Backup snapshot saved on phone.');
+    }
+
+    // Automatic 2-minute backup timer
+    setInterval(() => {
+      if (state.draft) {
+        createBackupSnapshot(true).catch(() => {});
+      }
+    }, 120000);
+
+    // Save on page hide / app backgrounding
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden' && state.draft) {
+        saveDraftLocally(true).catch(() => {});
+      }
+    });
+
+    // =========================================================================
+    // AUTH & INITIAL DATA LOAD
+    // =========================================================================
+    async function initApp() {
+      const { data } = await sb.auth.getSession();
+      if (data && data.session && data.session.user) {
+        await onSignedIn(data.session.user);
+      } else {
+        render();
+      }
+      sb.auth.onAuthStateChange((ev, session) => {
+        if (ev === 'SIGNED_OUT') {
+          state.user = null;
+          state.activeId = null;
+          state.draft = null;
+          document.getElementById('hdrSignOutBtn')?.classList.add('hidden');
+          render();
+        } else if (session && session.user && !state.user) {
+          onSignedIn(session.user);
+        }
+      });
+    }
+
+    async function onSignedIn(user) {
+      if ((user.email || '').toLowerCase() !== 'matt@davis-inspections.com') {
+        toast('Inspector account (Matt@Davis-Inspections.com) required.');
+        await sb.auth.signOut();
+        return;
+      }
+      state.user = user;
+      document.getElementById('hdrSignOutBtn')?.classList.remove('hidden');
+      try {
+        const [iRes, setRes, libRes] = await Promise.all([
+          sb.from('inspections').select('*').order('created_at', { ascending: false }),
+          sb.from('app_settings').select('*').eq('key', 'ai_narrative_instructions').maybeSingle(),
+          sb.from('comment_library').select('*').order('section_name', { ascending: true })
+        ]);
+        if (Array.isArray(iRes.data)) state.inspections = iRes.data;
+        if (setRes.data && setRes.data.value) state.globalInstructions = setRes.data.value;
+        if (Array.isArray(libRes.data)) state.commentLibrary = libRes.data;
+      } catch (e) {
+        console.warn('Offline or load warning:', e);
+      }
+      render();
+    }
+
+    async function fieldSignIn() {
+      const email = (document.getElementById('loginEmail')?.value || '').trim();
+      const password = document.getElementById('loginPassword')?.value || '';
+      if (!email || !password) { toast('Enter inspector email and password.'); return; }
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) { toast(error.message); return; }
+      if (data && data.user) await onSignedIn(data.user);
+    }
+
+    async function fieldSignOut() {
+      await sb.auth.signOut();
+    }
+
+    // =========================================================================
+    // DRAFT CREATION / LOADING FROM TEMPLATE OR SUPABASE OR INDEXEDDB
+    // =========================================================================
+    function buildBlankDraftFromTemplate(insp) {
+      const coreSections = DHI_TEMPLATE.filter(s => !s.optional).map(s => ({
+        num: s.num,
+        name: s.name,
+        stylesMaterials: s.stylesMaterials.map(sm => ({ label: sm.label, value: '', options: sm.options })),
+        items: s.items.map((it, idx) => ({
+          id: 'item-' + s.num + '-' + idx + '-' + Math.random().toString(36).slice(2, 7),
+          code: it.code,
+          title: it.title,
+          status: 'IN',
+          isSummary: false,
+          roughNotes: '',
+          narrative: '',
+          photos: []
+        }))
+      }));
+      const pInfo = (insp.property_info && Object.keys(insp.property_info).length)
+        ? insp.property_info
+        : { address: insp.address || '', yearBuilt: '', sqft: '', weather: '', occupancy: '', utilities: 'All On', coverPhoto: '' };
+      return {
+        inspectionId: insp.id,
+        address: insp.address || '',
+        propertyInfo: pInfo,
+        sections: coreSections,
+        updatedAt: new Date().toISOString(),
+        dirty: false
+      };
+    }
+
+    async function openInspectionDraft(inspId) {
+      const insp = state.inspections.find(i => i.id === inspId);
+      if (!insp) return;
+      const localDraft = await idbGet('drafts', inspId);
+      const cloudDraft = (insp.draft_data && Array.isArray(insp.draft_data.sections) && insp.draft_data.sections.length) ? insp.draft_data : null;
+
+      let chosen = null;
+      if (localDraft && cloudDraft) {
+        chosen = (localDraft.updatedAt >= (cloudDraft.updatedAt || '')) ? localDraft : cloudDraft;
+      } else {
+        chosen = localDraft || cloudDraft || buildBlankDraftFromTemplate(insp);
+      }
+
+      // Sign any storagePath photos that do not have a local dataUrl yet
+      const toSign = [];
+      (chosen.sections || []).forEach(sec => (sec.items || []).forEach(it => (it.photos || []).forEach(p => {
+        if (p.storagePath && !p.dataUrl) toSign.push(p.storagePath);
+      })));
+      if (toSign.length) {
+        try {
+          const { data: signed } = await sb.storage.from('reports').createSignedUrls(toSign, 3600);
+          const sMap = new Map((signed || []).map(x => [x.path, x.signedUrl]));
+          (chosen.sections || []).forEach(sec => (sec.items || []).forEach(it => (it.photos || []).forEach(p => {
+            if (p.storagePath && !p.dataUrl && sMap.has(p.storagePath)) p.signedUrl = sMap.get(p.storagePath);
+          })));
+        } catch (e) {}
+      }
+
+      state.activeId = inspId;
+      state.draft = chosen;
+      state.activeSecIdx = 0;
+      document.getElementById('hdrTitle').textContent = insp.address || 'Inspection';
+      await saveDraftLocally(true);
+      render();
+    }
+
+    function closeActiveDraft() {
+      state.activeId = null;
+      state.draft = null;
+      document.getElementById('hdrTitle').textContent = 'Field & Report Editor';
+      render();
+    }
+
+    // =========================================================================
+    // SECTION / ITEM / PHOTO MUTATIONS (ALL LOCAL-FIRST)
+    // =========================================================================
+    function updatePropInfo(field, val) {
+      if (!state.draft) return;
+      state.draft.propertyInfo = state.draft.propertyInfo || {};
+      state.draft.propertyInfo[field] = val;
+      saveDraftLocally(true);
+    }
+
+    function toggleSMOption(secIdx, smIdx, optVal) {
+      const sm = state.draft.sections[secIdx].stylesMaterials[smIdx];
+      const parts = (sm.value || '').split(',').map(x => x.trim()).filter(Boolean);
+      const pos = parts.indexOf(optVal);
+      if (pos >= 0) parts.splice(pos, 1);
+      else parts.push(optVal);
+      sm.value = parts.join(', ');
+      saveDraftLocally(true);
+      render();
+    }
+
+    function setSMText(secIdx, smIdx, val) {
+      state.draft.sections[secIdx].stylesMaterials[smIdx].value = val;
+      saveDraftLocally(true);
+    }
+
+    function setItemStatus(secIdx, itemIdx, status) {
+      const it = state.draft.sections[secIdx].items[itemIdx];
+      it.status = status;
+      if (status === 'RR') it.isSummary = true;
+      saveDraftLocally(true);
+      render();
+    }
+
+    function toggleItemSummary(secIdx, itemIdx) {
+      const it = state.draft.sections[secIdx].items[itemIdx];
+      it.isSummary = !it.isSummary;
+      saveDraftLocally(true);
+      render();
+    }
+
+    function setItemField(secIdx, itemIdx, field, val) {
+      state.draft.sections[secIdx].items[itemIdx][field] = val;
+      saveDraftLocally(true);
+    }
+
+    function duplicateItem(secIdx, itemIdx) {
+      const sec = state.draft.sections[secIdx];
+      const src = sec.items[itemIdx];
+      const copy = {
+        id: 'item-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        code: src.code,
+        title: src.title + ' (Itemized)',
+        status: src.status,
+        isSummary: src.isSummary,
+        roughNotes: '',
+        narrative: '',
+        photos: []
+      };
+      sec.items.splice(itemIdx + 1, 0, copy);
+      saveDraftLocally(true);
+      render();
+      toast('Itemized duplicate added.');
+    }
+
+    function deleteItem(secIdx, itemIdx) {
+      const sec = state.draft.sections[secIdx];
+      if (!confirm('Remove "' + sec.items[itemIdx].title + '" from this section?')) return;
+      sec.items.splice(itemIdx, 1);
+      saveDraftLocally(true);
+      render();
+    }
+
+    function addOptionalSection(secName) {
+      if (!secName) return;
+      const tpl = DHI_TEMPLATE.find(s => s.name === secName);
+      if (!tpl) return;
+      const nextNum = String(state.draft.sections.length + 1);
+      state.draft.sections.push({
+        num: nextNum,
+        name: tpl.name,
+        stylesMaterials: tpl.stylesMaterials.map(sm => ({ label: sm.label, value: '', options: sm.options })),
+        items: tpl.items.map((it, idx) => ({
+          id: 'item-' + nextNum + '-' + idx + '-' + Math.random().toString(36).slice(2, 6),
+          code: nextNum + '.' + idx,
+          title: it.title,
+          status: 'IN',
+          isSummary: false,
+          roughNotes: '',
+          narrative: '',
+          photos: []
+        }))
+      });
+      state.activeSecIdx = state.draft.sections.length - 1;
+      saveDraftLocally(true);
+      render();
+      toast('Added section: ' + tpl.name);
+    }
+
+    // Compress image on Pixel 10 Pro / Desktop to crisp ~1280px JPEG before saving to IndexedDB
+    function compressImageFile(file, maxDim = 1280, quality = 0.82) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            let w = img.naturalWidth, h = img.naturalHeight;
+            if (w > maxDim || h > maxDim) {
+              if (w >= h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+              else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+            }
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(c.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = reject;
+          img.src = reader.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function addPhotosToItem(secIdx, itemIdx, useCamera) {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*';
+      inp.multiple = !useCamera;
+      if (useCamera) inp.setAttribute('capture', 'environment');
+      inp.onchange = async () => {
+        const files = Array.from(inp.files || []);
+        if (!files.length) return;
+        const it = state.draft.sections[secIdx].items[itemIdx];
+        for (const f of files) {
+          const dataUrl = await compressImageFile(f);
+          it.photos.push({
+            id: 'ph-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+            label: it.code + ' ' + it.title,
+            dataUrl,
+            storagePath: ''
+          });
+        }
+        await saveDraftLocally(true);
+        render();
+        toast(`Added ${files.length} photo(s) locally.`);
+      };
+      inp.click();
+    }
+
+    function removePhoto(secIdx, itemIdx, photoIdx) {
+      state.draft.sections[secIdx].items[itemIdx].photos.splice(photoIdx, 1);
+      saveDraftLocally(true);
+      render();
+    }
+
+    function movePhoto(secIdx, itemIdx, photoIdx, delta) {
+      const arr = state.draft.sections[secIdx].items[itemIdx].photos;
+      const target = photoIdx + delta;
+      if (target < 0 || target >= arr.length) return;
+      const tmp = arr[photoIdx];
+      arr[photoIdx] = arr[target];
+      arr[target] = tmp;
+      saveDraftLocally(true);
+      render();
+    }
+
+    // =========================================================================
+    // MULTIMODAL PER-HOME GEMINI NARRATIVE ENGINE
+    // =========================================================================
+    async function urlToBase64(url) {
+      if (url.startsWith('data:')) {
+        const m = url.match(/^data:([^;]+);base64,(.*)$/);
+        return m ? { mimeType: m[1], base64: m[2] } : null;
+      }
+      const res = await fetch(url);
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const r = new FileReader();
+        r.onload = () => {
+          const m = String(r.result).match(/^data:([^;]+);base64,(.*)$/);
+          resolve(m ? { mimeType: m[1], base64: m[2] } : null);
+        };
+        r.readAsDataURL(blob);
+      });
+    }
+
+    async function generateAINarrative(secIdx, itemIdx) {
+      const sec = state.draft.sections[secIdx];
+      const it = sec.items[itemIdx];
+      if (!it.roughNotes.trim() && !(it.photos && it.photos.length)) {
+        toast('Add rough field notes or at least one photo first.');
+        return;
+      }
+      state.aiBusyItemId = it.id;
+      render();
+      try {
+        // Collect all filled Styles & Materials across the whole home
+        const allSM = [];
+        state.draft.sections.forEach(s => {
+          (s.stylesMaterials || []).forEach(sm => {
+            if (sm.value && sm.value.trim()) allSM.push({ section: s.name, label: sm.label, value: sm.value.trim() });
+          });
+        });
+        // Collect all prior narratives written for this home
+        const prevNarratives = [];
+        state.draft.sections.forEach(s => {
+          (s.items || []).forEach(other => {
+            if (other.id !== it.id && other.narrative && other.narrative.trim()) {
+              prevNarratives.push({ code: other.code, title: other.title, narrative: other.narrative.trim() });
+            }
+          });
+        });
+        // Attach up to 4 item photos visually for Gemini
+        const images = [];
+        for (const p of (it.photos || []).slice(0, 4)) {
+          const src = p.dataUrl || p.signedUrl;
+          if (!src) continue;
+          try {
+            const enc = await urlToBase64(src);
+            if (enc) images.push(enc);
+          } catch (e) {}
+        }
+
+        const { data, error } = await sb.functions.invoke('generate-narrative', {
+          body: {
+            globalInstructions: state.globalInstructions,
+            propertyInfo: state.draft.propertyInfo,
+            stylesMaterials: allSM,
+            previousNarratives: prevNarratives,
+            sectionName: sec.name,
+            itemTitle: it.title,
+            status: it.status,
+            roughNotes: it.roughNotes,
+            images
+          }
+        });
+        if (error) throw new Error(error.message);
+        if (data && data.error) throw new Error(data.error);
+        if (data && data.narrative) {
+          it.narrative = data.narrative;
+          await saveDraftLocally(true);
+          toast('Narrative generated!');
+        }
+      } catch (err) {
+        toast('AI error: ' + (err.message || err));
+      } finally {
+        state.aiBusyItemId = null;
+        render();
+      }
+    }
+
+    // =========================================================================
+    // COMMENT LIBRARY (SEARCH, INSERT, DELETE, SAVE NEW)
+    // =========================================================================
+    function openLibraryModal(secIdx, itemIdx) {
+      state.libTargetItem = { secIdx, itemIdx };
+      const sec = state.draft.sections[secIdx];
+      document.getElementById('libModalTitle').textContent = 'Library for ' + sec.name + ' / ' + sec.items[itemIdx].title;
+      document.getElementById('libSearchInput').value = '';
+      document.getElementById('libraryModal').classList.remove('hidden');
+      renderLibraryResults();
+    }
+
+    function closeLibraryModal() {
+      document.getElementById('libraryModal').classList.add('hidden');
+      state.libTargetItem = null;
+    }
+
+    function renderLibraryResults() {
+      const cont = document.getElementById('libResultsContainer');
+      if (!cont || !state.libTargetItem) return;
+      const q = (document.getElementById('libSearchInput')?.value || '').trim().toLowerCase();
+      const onlySec = !!document.getElementById('libFilterSectionChk')?.checked;
+      const activeSecName = state.draft.sections[state.libTargetItem.secIdx].name.toLowerCase();
+
+      const filtered = (state.commentLibrary || []).filter(c => {
+        if (onlySec && (c.section_name || '').toLowerCase() !== activeSecName) return false;
+        if (!q) return true;
+        return ((c.title || '') + ' ' + (c.body || '') + ' ' + (c.section_name || '') + ' ' + (c.item_title || '')).toLowerCase().includes(q);
+      }).slice(0, 80);
+
+      cont.innerHTML = filtered.map(c => `
+        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="text-xs font-extrabold text-slate-900">${esc(c.title)}</div>
+              <div class="text-[10px] font-semibold text-slate-500">${esc(c.section_name)}${c.item_title ? ' • ' + esc(c.item_title) : ''}</div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" onclick="insertLibraryComment('${c.id}')" class="px-2.5 py-1 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-[11px] font-bold">Insert</button>
+              <button type="button" onclick="deleteLibraryComment('${c.id}')" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] font-bold">Delete</button>
+            </div>
+          </div>
+          <p class="text-xs text-slate-700 leading-relaxed">${esc(c.body)}</p>
+        </div>
+      `).join('') || '<div class="text-xs text-slate-400 text-center py-6">No matching comments found. Uncheck "This section" to search all 755+ saved comments.</div>';
+    }
+
+    function insertLibraryComment(commentId) {
+      if (!state.libTargetItem) return;
+      const c = state.commentLibrary.find(x => String(x.id) === String(commentId));
+      if (!c) return;
+      const it = state.draft.sections[state.libTargetItem.secIdx].items[state.libTargetItem.itemIdx];
+      it.narrative = it.narrative ? (it.narrative + '\n\n' + c.body) : c.body;
+      saveDraftLocally(true);
+      closeLibraryModal();
+      render();
+      toast('Inserted saved comment.');
+    }
+
+    async function deleteLibraryComment(commentId) {
+      state.commentLibrary = state.commentLibrary.filter(x => String(x.id) !== String(commentId));
+      renderLibraryResults();
+      const { error } = await sb.from('comment_library').delete().eq('id', commentId);
+      if (error) toast('Delete failed: ' + error.message);
+      else toast('Removed comment from library.');
+    }
+
+    async function saveNarrativeToLibrary(secIdx, itemIdx) {
+      const sec = state.draft.sections[secIdx];
+      const it = sec.items[itemIdx];
+      const body = (it.narrative || '').trim();
+      if (!body) { toast('Write or generate a narrative first.'); return; }
+      const title = prompt('Short label for this saved comment:', it.title + ' - ' + body.slice(0, 36));
+      if (!title) return;
+      const { data, error } = await sb.from('comment_library').insert({
+        section_name: sec.name,
+        item_title: it.title,
+        title: title.trim(),
+        body
+      }).select().single();
+      if (error) { toast('Save failed: ' + error.message); return; }
+      if (data) state.commentLibrary.unshift(data);
+      toast('Saved narrative to your Comment Library!');
+    }
+
+    // =========================================================================
+    // DESKTOP PHOTO EDITOR (ARROWS & CIRCLES BAKED INTO IMAGE)
+    // =========================================================================
+    let photoEditCtx = null;
+    function openPhotoEditor(secIdx, itemIdx, photoIdx) {
+      const p = state.draft.sections[secIdx].items[itemIdx].photos[photoIdx];
+      if (!p) return;
+      const src = p.dataUrl || p.signedUrl;
+      if (!src) return;
+      document.getElementById('photoCaptionInput').value = p.label || '';
+      document.getElementById('photoEditorModal').classList.remove('hidden');
+      const canvas = document.getElementById('photoEditorCanvas');
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const maxW = 900;
+        const scale = img.naturalWidth > maxW ? (maxW / img.naturalWidth) : 1;
+        canvas.width = Math.round(img.naturalWidth * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        photoEditCtx = { secIdx, itemIdx, photoIdx, img, tool: 'arrow', shapes: [], dragStart: null, dragCurr: null };
+        setPhotoTool('arrow');
+        redrawPhotoEditor();
+      };
+      img.src = src;
+    }
+
+    function closePhotoEditor() {
+      document.getElementById('photoEditorModal').classList.add('hidden');
+      photoEditCtx = null;
+    }
+
+    function setPhotoTool(t) {
+      if (photoEditCtx) photoEditCtx.tool = t;
+      document.getElementById('toolArrowBtn').className = 'px-3 py-1.5 rounded-lg font-bold ' + (t === 'arrow' ? 'bg-davis-navy text-white' : 'bg-slate-100 text-slate-700');
+      document.getElementById('toolCircleBtn').className = 'px-3 py-1.5 rounded-lg font-bold ' + (t === 'circle' ? 'bg-davis-navy text-white' : 'bg-slate-100 text-slate-700');
+    }
+
+    function undoPhotoAnnotation() {
+      if (!photoEditCtx || !photoEditCtx.shapes.length) return;
+      photoEditCtx.shapes.pop();
+      redrawPhotoEditor();
+    }
+
+    function clearPhotoAnnotations() {
+      if (!photoEditCtx) return;
+      photoEditCtx.shapes = [];
+      redrawPhotoEditor();
+    }
+
+    function drawShape(ctx, sh) {
+      ctx.strokeStyle = sh.color;
+      ctx.fillStyle = sh.color;
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      if (sh.tool === 'circle') {
+        const rx = (sh.x2 - sh.x1) / 2;
+        const ry = (sh.y2 - sh.y1) / 2;
+        ctx.beginPath();
+        ctx.ellipse(sh.x1 + rx, sh.y1 + ry, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        const angle = Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1);
+        const headLen = 20;
+        ctx.beginPath();
+        ctx.moveTo(sh.x1, sh.y1);
+        ctx.lineTo(sh.x2, sh.y2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(sh.x2, sh.y2);
+        ctx.lineTo(sh.x2 - headLen * Math.cos(angle - Math.PI / 6), sh.y2 - headLen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(sh.x2 - headLen * Math.cos(angle + Math.PI / 6), sh.y2 - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    function redrawPhotoEditor() {
+      if (!photoEditCtx) return;
+      const canvas = document.getElementById('photoEditorCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(photoEditCtx.img, 0, 0, canvas.width, canvas.height);
+      photoEditCtx.shapes.forEach(s => drawShape(ctx, s));
+      if (photoEditCtx.dragStart && photoEditCtx.dragCurr) {
+        drawShape(ctx, {
+          tool: photoEditCtx.tool,
+          color: document.getElementById('photoColorSelect')?.value || '#ef4444',
+          x1: photoEditCtx.dragStart.x, y1: photoEditCtx.dragStart.y,
+          x2: photoEditCtx.dragCurr.x, y2: photoEditCtx.dragCurr.y
+        });
+      }
+    }
+
+    (function bindPhotoEditorCanvas() {
+      const canvas = document.getElementById('photoEditorCanvas');
+      const pos = (e) => {
+        const r = canvas.getBoundingClientRect();
+        return { x: (e.clientX - r.left) * (canvas.width / r.width), y: (e.clientY - r.top) * (canvas.height / r.height) };
+      };
+      canvas.onmousedown = (e) => {
+        if (!photoEditCtx) return;
+        photoEditCtx.dragStart = pos(e);
+        photoEditCtx.dragCurr = photoEditCtx.dragStart;
+      };
+      canvas.onmousemove = (e) => {
+        if (!photoEditCtx || !photoEditCtx.dragStart) return;
+        photoEditCtx.dragCurr = pos(e);
+        redrawPhotoEditor();
+      };
+      window.addEventListener('mouseup', () => {
+        if (!photoEditCtx || !photoEditCtx.dragStart || !photoEditCtx.dragCurr) return;
+        photoEditCtx.shapes.push({
+          tool: photoEditCtx.tool,
+          color: document.getElementById('photoColorSelect')?.value || '#ef4444',
+          x1: photoEditCtx.dragStart.x, y1: photoEditCtx.dragStart.y,
+          x2: photoEditCtx.dragCurr.x, y2: photoEditCtx.dragCurr.y
+        });
+        photoEditCtx.dragStart = null;
+        photoEditCtx.dragCurr = null;
+        redrawPhotoEditor();
+      });
+    })();
+
+    async function saveEditedPhoto() {
+      if (!photoEditCtx) return;
+      const canvas = document.getElementById('photoEditorCanvas');
+      const newDataUrl = canvas.toDataURL('image/jpeg', 0.86);
+      const p = state.draft.sections[photoEditCtx.secIdx].items[photoEditCtx.itemIdx].photos[photoEditCtx.photoIdx];
+      p.dataUrl = newDataUrl;
+      p.storagePath = ''; // Force re-upload of annotated photo
+      p.label = (document.getElementById('photoCaptionInput')?.value || '').trim() || p.label;
+      await saveDraftLocally(true);
+      closePhotoEditor();
+      render();
+      toast('Saved annotated photo locally.');
+    }
+
+    // =========================================================================
+    // UPLOAD DRAFT TO SUPABASE & 1-CLICK PUBLISH TO CUSTOMER PORTAL
+    // =========================================================================
+    function dataUrlToBlob(dataUrl) {
+      const [hdr, b64] = dataUrl.split(',');
+      const mime = (hdr.match(/data:([^;]+)/) || ['', 'image/jpeg'])[1];
+      const bin = atob(b64);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      return new Blob([arr], { type: mime });
+    }
+
+    async function uploadDraftToSupabase(publishToPortal) {
+      if (!state.draft || state.uploading) return;
+      state.uploading = true;
+      render();
+      try {
+        const inspId = state.draft.inspectionId;
+        // 1. Upload any photos that have a local dataUrl without an up-to-date storagePath
+        const pendingPhotos = [];
+        state.draft.sections.forEach(sec => sec.items.forEach(it => (it.photos || []).forEach(p => {
+          if (p.dataUrl && !p.storagePath) pendingPhotos.push(p);
+        })));
+
+        if (pendingPhotos.length) {
+          toast(`Uploading ${pendingPhotos.length} photos...`);
+          const BATCH = 5;
+          for (let i = 0; i < pendingPhotos.length; i += BATCH) {
+            await Promise.all(pendingPhotos.slice(i, i + BATCH).map(async (p) => {
+              const blob = dataUrlToBlob(p.dataUrl);
+              const path = `${inspId}/photos/${p.id}.jpg`;
+              const { error } = await sb.storage.from('reports').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+              if (error) throw error;
+              p.storagePath = path;
+            }));
+          }
+        }
+
+        // 2. Build lightweight cloud draft_data (strip bulky base64 dataUrls now that storagePath is saved)
+        const cloudDraft = {
+          inspectionId: inspId,
+          address: state.draft.address,
+          propertyInfo: state.draft.propertyInfo,
+          updatedAt: new Date().toISOString(),
+          sections: state.draft.sections.map(sec => ({
+            num: sec.num,
+            name: sec.name,
+            stylesMaterials: sec.stylesMaterials.map(sm => ({ label: sm.label, value: sm.value, options: sm.options })),
+            items: sec.items.map(it => ({
+              id: it.id, code: it.code, title: it.title, status: it.status, isSummary: !!it.isSummary,
+              roughNotes: it.roughNotes || '', narrative: it.narrative || '',
+              photos: (it.photos || []).map(p => ({ id: p.id, label: p.label, storagePath: p.storagePath || '' }))
+            }))
+          }))
+        };
+
+        const reportSections = state.draft.sections.map(sec => ({
+          num: sec.num,
+          name: sec.name,
+          stylesMaterials: (sec.stylesMaterials || []).filter(sm => sm.value && sm.value.trim()).map(sm => ({ label: sm.label, value: sm.value.trim() }))
+        }));
+
+        const updPayload = {
+          property_info: state.draft.propertyInfo || {},
+          draft_data: cloudDraft
+        };
+        if (publishToPortal) updPayload.report_sections = reportSections;
+
+        const { error: updErr } = await sb.from('inspections').update(updPayload).eq('id', inspId);
+        if (updErr) throw updErr;
+
+        if (publishToPortal) {
+          toast('Publishing findings to Customer Portal...');
+          await sb.from('inspection_findings').delete().eq('inspection_id', inspId);
+          const rows = [];
+          const statusLabels = { IN: 'Inspected', NI: 'Not Inspected', NP: 'Not Present', RR: 'Inspected, Repair or Replace' };
+          state.draft.sections.forEach(sec => {
+            sec.items.forEach(it => {
+              const photoArr = (it.photos || []).filter(p => p.storagePath).map(p => ({ label: p.label || it.title, path: p.storagePath }));
+              rows.push({
+                inspection_id: inspId,
+                item_code: it.code,
+                section_num: sec.num,
+                category: sec.name,
+                severity: statusLabels[it.status] || it.status || 'Inspected',
+                is_summary: !!it.isSummary,
+                title: it.title,
+                narrative: (it.narrative || it.roughNotes || statusLabels[it.status] || 'Inspected').trim(),
+                trade: 'qualified licensed contractor',
+                repair_action: 'evaluate and repair per inspection report',
+                photo_path: photoArr[0] ? photoArr[0].path : '',
+                photo_paths: photoArr
+              });
+            });
+          });
+          for (let i = 0; i < rows.length; i += 100) {
+            const { error: insErr } = await sb.from('inspection_findings').insert(rows.slice(i, i + 100));
+            if (insErr) throw insErr;
+          }
+        }
+
+        state.draft.dirty = false;
+        await idbPut('drafts', state.draft);
+        toast(publishToPortal ? 'Published live to Customer & Agent Portal!' : 'Draft & photos uploaded to Supabase!');
+      } catch (err) {
+        toast('Upload failed: ' + (err.message || err));
+      } finally {
+        state.uploading = false;
+        render();
+      }
+    }
+
+    // =========================================================================
+    // MODALS: GLOBAL AI RULES & 2-MINUTE BACKUPS
+    // =========================================================================
+    function openInstructionsModal() {
+      document.getElementById('globalInstructionsInput').value = state.globalInstructions;
+      document.getElementById('instructionsModal').classList.remove('hidden');
+    }
+    function closeInstructionsModal() { document.getElementById('instructionsModal').classList.add('hidden'); }
+    async function saveGlobalInstructions() {
+      const val = (document.getElementById('globalInstructionsInput')?.value || '').trim();
+      if (!val) return;
+      state.globalInstructions = val;
+      const { error } = await sb.from('app_settings').upsert({ key: 'ai_narrative_instructions', value: val, updated_at: new Date().toISOString() });
+      if (error) { toast('Save failed: ' + error.message); return; }
+      closeInstructionsModal();
+      toast('Global AI instructions saved to Supabase.');
+    }
+
+    async function openBackupsModal() {
+      document.getElementById('backupsModal').classList.remove('hidden');
+      const all = (await idbGetAll('backups'))
+        .filter(b => !state.draft || b.inspectionId === state.draft.inspectionId)
+        .sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+      const cont = document.getElementById('backupsListContainer');
+      cont.innerHTML = all.map(b => `
+        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-2 text-xs">
+          <div>
+            <div class="font-bold text-slate-900">${esc(b.address)}</div>
+            <div class="text-[11px] text-slate-500">${new Date(b.savedAt).toLocaleString()}</div>
+          </div>
+          <button type="button" onclick="restoreBackupSnapshot('${b.backupId}')" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white font-bold">Restore</button>
+        </div>
+      `).join('') || '<div class="text-xs text-slate-400 text-center py-6">No local backup snapshots yet. They save automatically every 2 minutes.</div>';
+    }
+    function closeBackupsModal() { document.getElementById('backupsModal').classList.add('hidden'); }
+    async function createManualBackupSnapshot() { await createBackupSnapshot(false); openBackupsModal(); }
+    async function restoreBackupSnapshot(backupId) {
+      const snap = await idbGet('backups', backupId);
+      if (!snap || !snap.draft) return;
+      if (!confirm('Restore this backup snapshot? Current unsaved edits will be replaced.')) return;
+      state.activeId = snap.draft.inspectionId;
+      state.draft = snap.draft;
+      await saveDraftLocally(true);
+      closeBackupsModal();
+      render();
+      toast('Backup restored!');
+    }
+    function exportActiveDraftJson() {
+      if (!state.draft) { toast('Open an inspection first.'); return; }
+      const blob = new Blob([JSON.stringify(state.draft, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'dhi-backup-' + (state.draft.address || 'inspection').replace(/[^a-z0-9]+/gi, '_') + '.json';
+      a.click();
+    }
+
+    // =========================================================================
+    // MAIN RENDER
+    // =========================================================================
+    function render() {
+      const root = document.getElementById('appRoot');
+      if (!state.user) {
+        root.innerHTML = `
+          <div class="max-w-md mx-auto mt-10 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Inspector Field App</span>
+              <h1 class="text-xl font-extrabold text-slate-900">Sign In to DHI Field</h1>
+              <p class="text-xs text-slate-500 mt-1">Sign in with your Davis Home Inspections admin account.</p>
+            </div>
+            <div class="space-y-3">
+              <input id="loginEmail" type="email" value="Matt@Davis-Inspections.com" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm" />
+              <input id="loginPassword" type="password" placeholder="Password" onkeydown="if(event.key==='Enter') fieldSignIn()" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm" />
+              <button type="button" onclick="fieldSignIn()" class="w-full py-2.5 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-sm font-bold">Sign In</button>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (!state.draft) {
+        const cards = (state.inspections || []).map(i => `
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div class="font-extrabold text-slate-900 text-sm">${esc(i.address)}</div>
+              <div class="text-xs text-slate-500">${esc(i.client_name)} • ${esc(i.inspection_date || '')}</div>
+            </div>
+            <button type="button" onclick="openInspectionDraft('${i.id}')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Open in Field / Editor &rarr;</button>
+          </div>
+        `).join('');
+        root.innerHTML = `
+          <div class="space-y-4">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h1 class="text-lg font-extrabold text-slate-900">Select an Inspection</h1>
+                <p class="text-xs text-slate-500">Work offline on your Pixel 10 Pro (auto-backed up every 2 minutes), then upload when done and polish photos/narratives at home.</p>
+              </div>
+              <span class="px-3 py-1 rounded-xl bg-sky-50 border border-sky-200 text-xs font-bold text-davis-navy">${state.commentLibrary.length} Saved Comments Loaded</span>
+            </div>
+            <div class="space-y-2.5">${cards || '<div class="text-xs text-slate-400 text-center py-8">No scheduled inspections found yet. Create one in the Admin Portal first.</div>'}</div>
+          </div>
+        `;
+        return;
+      }
+
+      const sec = state.draft.sections[state.activeSecIdx] || state.draft.sections[0];
+      const pi = state.draft.propertyInfo || {};
+      const usedNames = new Set(state.draft.sections.map(s => s.name));
+      const optionalLeft = DHI_TEMPLATE.filter(s => !usedNames.has(s.name));
+
+      const secTabs = state.draft.sections.map((s, idx) => {
+        const rrCount = s.items.filter(it => it.status === 'RR' || it.isSummary).length;
+        return `
+          <button type="button" onclick="state.activeSecIdx=${idx}; render();" class="px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${idx === state.activeSecIdx ? 'bg-davis-navy text-white shadow' : 'bg-white border border-slate-200 text-slate-700 hover:border-davis-navy'}">
+            <span>${s.num}. ${esc(s.name)}</span>
+            ${rrCount ? `<span class="px-1.5 py-0.5 rounded-full text-[10px] ${idx === state.activeSecIdx ? 'bg-amber-400 text-slate-900' : 'bg-amber-100 text-amber-800'}">${rrCount}</span>` : ''}
+          </button>
+        `;
+      }).join('');
+
+      const smCards = (sec.stylesMaterials || []).map((sm, smIdx) => {
+        const selected = new Set((sm.value || '').split(',').map(x => x.trim()).filter(Boolean));
+        const chips = (sm.options || []).slice(0, 14).map(opt => `
+          <button type="button" onclick="toggleSMOption(${state.activeSecIdx}, ${smIdx}, '${esc(opt).replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${selected.has(opt) ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>
+        `).join('');
+        return `
+          <div class="p-3 rounded-xl border border-slate-200 bg-white space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <label class="text-xs font-extrabold text-slate-800">${esc(sm.label)}</label>
+              <input type="text" value="${esc(sm.value || '')}" oninput="setSMText(${state.activeSecIdx}, ${smIdx}, this.value)" placeholder="Custom or selected..." class="w-44 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
+            </div>
+            ${chips ? `<div class="flex flex-wrap gap-1">${chips}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+
+      const itemCards = (sec.items || []).map((it, itemIdx) => {
+        const ratings = ['IN', 'NI', 'NP', 'RR'].map(r => {
+          const active = it.status === r;
+          const cls = active
+            ? (r === 'RR' ? 'bg-rose-600 text-white border-rose-600' : 'bg-davis-navy text-white border-davis-navy')
+            : 'bg-white text-slate-700 border-slate-300 hover:border-davis-navy';
+          return `<button type="button" onclick="setItemStatus(${state.activeSecIdx}, ${itemIdx}, '${r}')" class="px-2.5 py-1.5 rounded-lg border text-xs font-extrabold transition ${cls}">${r}</button>`;
+        }).join('');
+
+        const photosHTML = (it.photos || []).map((p, pIdx) => `
+          <div class="relative group w-24 shrink-0 space-y-1">
+            <img src="${p.dataUrl || p.signedUrl || ''}" onclick="openPhotoEditor(${state.activeSecIdx}, ${itemIdx}, ${pIdx})" class="w-24 h-24 object-cover rounded-xl border border-slate-300 cursor-pointer bg-slate-100" title="Click to annotate / edit caption" />
+            <div class="flex items-center justify-between gap-0.5 text-[10px]">
+              <button type="button" onclick="movePhoto(${state.activeSecIdx}, ${itemIdx}, ${pIdx}, -1)" class="px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 font-bold">&larr;</button>
+              <button type="button" onclick="openPhotoEditor(${state.activeSecIdx}, ${itemIdx}, ${pIdx})" class="px-1.5 py-0.5 rounded bg-sky-100 text-davis-navy font-bold">Edit</button>
+              <button type="button" onclick="removePhoto(${state.activeSecIdx}, ${itemIdx}, ${pIdx})" class="px-1 py-0.5 rounded bg-rose-100 text-rose-700 font-bold">&times;</button>
+            </div>
+          </div>
+        `).join('');
+
+        const isBusy = state.aiBusyItemId === it.id;
+        return `
+          <div class="bg-white rounded-2xl border ${it.isSummary ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'} shadow-sm p-4 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span class="text-[11px] font-mono font-bold text-slate-400 mr-1.5">${esc(it.code)}</span>
+                <span class="text-sm font-extrabold text-slate-900">${esc(it.title)}</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                ${ratings}
+                <button type="button" onclick="toggleItemSummary(${state.activeSecIdx}, ${itemIdx})" class="px-2.5 py-1.5 rounded-lg border text-xs font-bold transition ${it.isSummary ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-slate-600 border-slate-200'}">Summary</button>
+                <button type="button" onclick="duplicateItem(${state.activeSecIdx}, ${itemIdx})" title="Itemize / duplicate this item" class="px-2 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:border-davis-navy text-xs font-bold text-slate-600">+ Itemize</button>
+                <button type="button" onclick="deleteItem(${state.activeSecIdx}, ${itemIdx})" title="Remove item" class="px-2 py-1.5 rounded-lg text-slate-400 hover:text-rose-600 text-xs font-bold">&times;</button>
+              </div>
+            </div>
+
+            <!-- Photos row -->
+            <div class="flex items-start gap-2 overflow-x-auto pb-1">
+              <button type="button" onclick="addPhotosToItem(${state.activeSecIdx}, ${itemIdx}, true)" class="w-24 h-24 shrink-0 rounded-xl border-2 border-dashed border-sky-300 bg-sky-50/60 hover:bg-sky-100 flex flex-col items-center justify-center text-davis-navy text-[11px] font-bold gap-1">
+                <span>+ Camera</span>
+              </button>
+              <button type="button" onclick="addPhotosToItem(${state.activeSecIdx}, ${itemIdx}, false)" class="w-24 h-24 shrink-0 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 flex flex-col items-center justify-center text-slate-600 text-[11px] font-bold gap-1">
+                <span>+ Gallery</span>
+              </button>
+              ${photosHTML}
+            </div>
+
+            <!-- Field Notes & AI Narrative -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Field Notes (for AI)</label>
+                  <button type="button" onclick="generateAINarrative(${state.activeSecIdx}, ${itemIdx})" ${isBusy ? 'disabled' : ''} class="px-3 py-1 rounded-lg bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-[11px] font-bold transition">${isBusy ? 'Rewriting...' : 'Rewrite with AI'}</button>
+                </div>
+                <textarea rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'roughNotes', this.value)" placeholder="Quick field notes (e.g., east gutter downspout discharging onto driveway)..." class="w-full p-2.5 rounded-xl border border-slate-300 text-xs leading-relaxed">${esc(it.roughNotes || '')}</textarea>
+              </div>
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between gap-1">
+                  <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Finished Report Narrative</label>
+                  <div class="flex gap-1.5">
+                    <button type="button" onclick="openLibraryModal(${state.activeSecIdx}, ${itemIdx})" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-[11px] font-bold">Library</button>
+                    <button type="button" onclick="saveNarrativeToLibrary(${state.activeSecIdx}, ${itemIdx})" class="px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold">+ Save to Library</button>
+                  </div>
+                </div>
+                <textarea rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'narrative', this.value)" placeholder="Final 3-sentence narrative (edit freely or click Rewrite with AI / Library)..." class="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50/50 text-xs leading-relaxed">${esc(it.narrative || '')}</textarea>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      root.innerHTML = `
+        <div class="space-y-4">
+          <!-- Top Action Bar -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-2.5">
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="closeActiveDraft()" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">&larr; All Inspections</button>
+              <span class="text-xs font-bold text-slate-500">${state.draft.dirty ? 'Unsynced Local Changes' : 'Synced'}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="saveDraftLocally(false)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-xs font-bold text-slate-700">Save Local</button>
+              <button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-bold">${state.uploading ? 'Uploading...' : 'Upload Draft to Cloud'}</button>
+              <button type="button" onclick="uploadDraftToSupabase(true)" ${state.uploading ? 'disabled' : ''} class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-extrabold shadow-sm">Publish to Customer Portal</button>
+            </div>
+          </div>
+
+          <!-- Property Info Card (Feeds AI Context) -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <button type="button" onclick="state.showPropInfo=!state.showPropInfo; render();" class="w-full px-4 py-3 flex items-center justify-between text-xs font-extrabold text-slate-800 bg-slate-50 border-b border-slate-200">
+              <span>Property Info (Feeds AI Context: Age, Location, Conditions)</span>
+              <span>${state.showPropInfo ? 'Hide' : 'Show'}</span>
+            </button>
+            ${state.showPropInfo ? `
+              <div class="p-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                <div class="col-span-2 sm:col-span-2">
+                  <label class="block font-bold text-slate-600 mb-1">Property Address / City</label>
+                  <input type="text" value="${esc(pi.address || state.draft.address)}" oninput="updatePropInfo('address', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-600 mb-1">Year Built</label>
+                  <input type="text" value="${esc(pi.yearBuilt || '')}" oninput="updatePropInfo('yearBuilt', this.value)" placeholder="e.g., 1984" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-600 mb-1">Approx. Sq Ft</label>
+                  <input type="text" value="${esc(pi.sqft || '')}" oninput="updatePropInfo('sqft', this.value)" placeholder="e.g., 2,400" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-600 mb-1">Weather / Temp</label>
+                  <input type="text" value="${esc(pi.weather || '')}" oninput="updatePropInfo('weather', this.value)" placeholder="Clear, 48F" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-600 mb-1">Occupancy</label>
+                  <select onchange="updatePropInfo('occupancy', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
+                    <option value="">Select...</option>
+                    <option value="Vacant" ${pi.occupancy === 'Vacant' ? 'selected' : ''}>Vacant</option>
+                    <option value="Occupied" ${pi.occupancy === 'Occupied' ? 'selected' : ''}>Occupied</option>
+                    <option value="Staged" ${pi.occupancy === 'Staged' ? 'selected' : ''}>Staged</option>
+                  </select>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Section Tabs + Add Optional Section -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            ${secTabs}
+            ${optionalLeft.length ? `
+              <select onchange="if(this.value) addOptionalSection(this.value);" class="px-3 py-2 rounded-xl border border-dashed border-slate-400 bg-slate-50 text-xs font-bold text-slate-700 shrink-0">
+                <option value="">+ Add Section...</option>
+                ${optionalLeft.map(s => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('')}
+              </select>
+            ` : ''}
+          </div>
+
+          <!-- Styles & Materials -->
+          ${(sec.stylesMaterials && sec.stylesMaterials.length) ? `
+            <div class="bg-slate-100/80 rounded-2xl border border-slate-200 overflow-hidden">
+              <button type="button" onclick="state.showSM=!state.showSM; render();" class="w-full px-4 py-2.5 flex items-center justify-between text-xs font-extrabold text-slate-800">
+                <span>${sec.num}. ${esc(sec.name)} — Styles &amp; Materials (${sec.stylesMaterials.length})</span>
+                <span>${state.showSM ? 'Hide' : 'Show'}</span>
+              </button>
+              ${state.showSM ? `<div class="p-3 pt-0 grid grid-cols-1 md:grid-cols-2 gap-2.5">${smCards}</div>` : ''}
+            </div>
+          ` : ''}
+
+          <!-- Items List -->
+          <div class="space-y-3">${itemCards}</div>
+        </div>
+      `;
+    }
+
+    initApp();
+  </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "Davis Home Inspections Field & Report App",
+  "short_name": "DHI Field",
+  "start_url": "./inspect.html",
+  "display": "standalone",
+  "background_color": "#002E50",
+  "theme_color": "#004677",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./dhi_favicon_badge.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
