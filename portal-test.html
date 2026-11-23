@@ -3162,6 +3162,9 @@ function submitInspectionQuoteRequest(payload) {
                   <button type="button" onclick="dhiSendAgentMagicLink()" class="text-xs font-semibold text-sky-700 hover:underline">Email me a sign-in link instead</button>
                   <button type="button" onclick="dhiAgentPasswordSignIn()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition">Sign In</button>
                 </div>
+                <div class="pt-1 border-t border-slate-100 text-center">
+                  <button type="button" onclick="document.getElementById('dhiGoogleLinkTipModal')?.classList.remove('hidden')" class="text-[11px] font-semibold text-slate-500 hover:text-davis-navy underline">Using a non-Gmail work email? How to link Google Sign-In</button>
+                </div>
               </div>
             </div>
           </div>
@@ -3690,6 +3693,331 @@ function submitInspectionQuoteRequest(payload) {
       inp.click();
     }
 
+
+
+    const DHI_ZIP_LOOKUP = {
+      '80901': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80902': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80903': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80904': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80905': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80906': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80907': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80908': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80909': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80910': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80911': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80913': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80914': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80915': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80916': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80917': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80918': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80919': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80920': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80921': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80922': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80923': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80924': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80925': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80926': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80927': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80928': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80929': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80930': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80938': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80939': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80951': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80817': { city: 'Fountain', state: 'CO', county: 'El Paso' },
+      '80132': { city: 'Monument', state: 'CO', county: 'El Paso' },
+      '80133': { city: 'Palmer Lake', state: 'CO', county: 'El Paso' },
+      '80831': { city: 'Peyton', state: 'CO', county: 'El Paso' },
+      '80829': { city: 'Manitou Springs', state: 'CO', county: 'El Paso' },
+      '80819': { city: 'Green Mountain Falls', state: 'CO', county: 'El Paso' },
+      '80809': { city: 'Cascade', state: 'CO', county: 'El Paso' },
+      '80808': { city: 'Calhan', state: 'CO', county: 'El Paso' },
+      '80832': { city: 'Ramah', state: 'CO', county: 'El Paso' },
+      '80833': { city: 'Rush', state: 'CO', county: 'El Paso' },
+      '80864': { city: 'Yoder', state: 'CO', county: 'El Paso' },
+      '80863': { city: 'Woodland Park', state: 'CO', county: 'Teller' },
+      '80866': { city: 'Woodland Park', state: 'CO', county: 'Teller' },
+      '80814': { city: 'Divide', state: 'CO', county: 'Teller' },
+      '80816': { city: 'Florissant', state: 'CO', county: 'Teller' },
+      '80813': { city: 'Cripple Creek', state: 'CO', county: 'Teller' },
+      '80860': { city: 'Victor', state: 'CO', county: 'Teller' },
+      '80104': { city: 'Castle Rock', state: 'CO', county: 'Douglas' },
+      '80108': { city: 'Castle Rock', state: 'CO', county: 'Douglas' },
+      '80109': { city: 'Castle Rock', state: 'CO', county: 'Douglas' },
+      '80118': { city: 'Larkspur', state: 'CO', county: 'Douglas' },
+      '80134': { city: 'Parker', state: 'CO', county: 'Douglas' },
+      '80138': { city: 'Parker', state: 'CO', county: 'Douglas' },
+      '81001': { city: 'Pueblo', state: 'CO', county: 'Pueblo' },
+      '81003': { city: 'Pueblo', state: 'CO', county: 'Pueblo' },
+      '81004': { city: 'Pueblo', state: 'CO', county: 'Pueblo' },
+      '81005': { city: 'Pueblo', state: 'CO', county: 'Pueblo' },
+      '81006': { city: 'Pueblo', state: 'CO', county: 'Pueblo' },
+      '81007': { city: 'Pueblo West', state: 'CO', county: 'Pueblo' },
+      '81008': { city: 'Pueblo', state: 'CO', county: 'Pueblo' },
+      '81023': { city: 'Beulah', state: 'CO', county: 'Pueblo' },
+      '81069': { city: 'Rye', state: 'CO', county: 'Pueblo' },
+      '81212': { city: 'Canon City', state: 'CO', county: 'Fremont' },
+      '81226': { city: 'Florence', state: 'CO', county: 'Fremont' },
+      '81240': { city: 'Penrose', state: 'CO', county: 'Fremont' },
+      '80107': { city: 'Elizabeth', state: 'CO', county: 'Elbert' },
+      '80117': { city: 'Kiowa', state: 'CO', county: 'Elbert' },
+      '80106': { city: 'Elbert', state: 'CO', county: 'Elbert' },
+      '80835': { city: 'Simla', state: 'CO', county: 'Elbert' },
+      '80440': { city: 'Fairplay', state: 'CO', county: 'Park' },
+      '80827': { city: 'Lake George', state: 'CO', county: 'Park' },
+      '80421': { city: 'Bailey', state: 'CO', county: 'Park' }
+    };
+
+    function dhiReadStoredAddrHistory() {
+      try {
+        const raw = localStorage.getItem('dhi_addr_history_v1');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            cities: Array.isArray(parsed.cities) ? parsed.cities : [],
+            states: Array.isArray(parsed.states) ? parsed.states : [],
+            counties: Array.isArray(parsed.counties) ? parsed.counties : [],
+            zips: Array.isArray(parsed.zips) ? parsed.zips : []
+          };
+        }
+      } catch (_e) {}
+      return { cities: [], states: [], counties: [], zips: [] };
+    }
+
+    function dhiRememberAddrHistory(vals) {
+      if (!vals) return;
+      const h = dhiReadStoredAddrHistory();
+      const addUnique = (arr, v) => {
+        const s = String(v || '').trim();
+        if (!s) return;
+        if (!arr.some(x => x.toLowerCase() === s.toLowerCase())) arr.unshift(s);
+        if (arr.length > 80) arr.length = 80;
+      };
+      addUnique(h.cities, vals.city);
+      addUnique(h.states, vals.state ? String(vals.state).trim().toUpperCase() : '');
+      addUnique(h.counties, vals.county);
+      addUnique(h.zips, vals.zip);
+      try { localStorage.setItem('dhi_addr_history_v1', JSON.stringify(h)); } catch (_e) {}
+    }
+
+    function dhiGetAddrDropdownOptions(inspectionsList) {
+      const h = dhiReadStoredAddrHistory();
+      const citySet = new Map();
+      const stateSet = new Map();
+      const countySet = new Map();
+      const zipSet = new Map();
+      const put = (m, v) => {
+        const s = String(v || '').trim();
+        if (s && !m.has(s.toLowerCase())) m.set(s.toLowerCase(), s);
+      };
+      // 1. User's saved history first
+      h.cities.forEach(v => put(citySet, v));
+      h.states.forEach(v => put(stateSet, v));
+      h.counties.forEach(v => put(countySet, v));
+      h.zips.forEach(v => put(zipSet, v));
+      // 2. Harvest from loaded inspections
+      (inspectionsList || []).forEach(ins => {
+        const p = (ins && (ins.propertyInfo || ins.property_info)) || {};
+        put(citySet, p.city);
+        put(stateSet, p.state);
+        put(countySet, p.county);
+        put(zipSet, p.zip);
+        if (ins && ins.address && (!p.city || !p.zip)) {
+          const parts = String(ins.address).split(',').map(x => x.trim());
+          if (parts.length >= 2) {
+            const zm = parts[parts.length - 1].match(/^([A-Za-z]{2})\s+(\d{5})/);
+            if (zm) {
+              put(stateSet, zm[1].toUpperCase());
+              put(zipSet, zm[2]);
+              if (parts.length >= 3) put(citySet, parts[1]);
+            } else {
+              const m2 = parts[1].match(/^(.+?)\s+([A-Za-z]{2})\s+(\d{5})/);
+              if (m2) { put(citySet, m2[1]); put(stateSet, m2[2].toUpperCase()); put(zipSet, m2[3]); }
+            }
+          }
+        }
+      });
+      // 3. Pre-seeded local defaults
+      ['Colorado Springs', 'Fountain', 'Monument', 'Woodland Park', 'Peyton', 'Falcon', 'Manitou Springs', 'Palmer Lake', 'Black Forest', 'Divide', 'Castle Rock', 'Pueblo', 'Pueblo West', 'Canon City'].forEach(v => put(citySet, v));
+      ['CO'].forEach(v => put(stateSet, v));
+      ['El Paso', 'Teller', 'Douglas', 'Pueblo', 'Fremont', 'Park', 'Elbert'].forEach(v => put(countySet, v));
+      Object.keys(DHI_ZIP_LOOKUP).forEach(z => put(zipSet, z));
+      return {
+        cities: Array.from(citySet.values()),
+        states: Array.from(stateSet.values()),
+        counties: Array.from(countySet.values()),
+        zips: Array.from(zipSet.values())
+      };
+    }
+
+    function dhiParseAddrParts(fullAddr) {
+      const s = String(fullAddr || '').trim();
+      if (!s) return { street: '', city: '', state: 'CO', zip: '', county: '' };
+      const parts = s.split(',').map(x => x.trim()).filter(Boolean);
+      let street = parts[0] || s, city = '', state = 'CO', zip = '', county = '';
+      if (parts.length >= 3) {
+        city = parts[1];
+        const stZip = parts[2].split(/\s+/);
+        state = (stZip[0] || 'CO').toUpperCase();
+        zip = (stZip[1] || '').replace(/[^0-9]/g, '').slice(0, 5);
+      } else if (parts.length === 2) {
+        const m = parts[1].match(/^(.+?)\s+([A-Za-z]{2})\s+(\d{5})/);
+        if (m) { city = m[1].trim(); state = m[2].toUpperCase(); zip = m[3]; }
+        else {
+          const mZip = parts[1].match(/^(.+?)\s+(\d{5})$/);
+          if (mZip) { city = mZip[1].trim(); zip = mZip[2]; }
+          else city = parts[1];
+        }
+      }
+      if (zip && DHI_ZIP_LOOKUP[zip]) {
+        const zInfo = DHI_ZIP_LOOKUP[zip];
+        if (!city) city = zInfo.city;
+        if (!state) state = zInfo.state;
+        county = zInfo.county;
+      }
+      return { street, city, state, zip, county };
+    }
+
+    function dhiBuildPermitLink(opts) {
+      const o = opts || {};
+      const rawAddr = String(o.address || '').trim();
+      const rawStreet = String(o.street || '').trim();
+      const rawCity = String(o.city || '').trim();
+      const rawCounty = String(o.county || '').trim();
+
+      let street = rawStreet;
+      let city = rawCity;
+      if (!street && rawAddr) {
+        const parts = rawAddr.split(',').map(x => x.trim()).filter(Boolean);
+        street = parts[0] || rawAddr;
+        if (!city && parts.length >= 2) {
+          city = parts[1].replace(/\s+[A-Za-z]{2}\s+\d{5}(-\d{4})?$/, '').trim();
+        }
+      }
+
+      const normCounty = rawCounty.toLowerCase().replace(/\s+county$/i, '').trim();
+      const normCity = city.toLowerCase().trim();
+
+      const cityToCounty = {
+        'divide': 'teller', 'florissant': 'teller', 'cripple creek': 'teller', 'victor': 'teller',
+        'castle rock': 'douglas', 'larkspur': 'douglas', 'parker': 'douglas', 'lone tree': 'douglas',
+        'highlands ranch': 'douglas', 'sedalia': 'douglas', 'franktown': 'douglas', 'castle pines': 'douglas',
+        'pueblo': 'pueblo', 'pueblo west': 'pueblo', 'beulah': 'pueblo', 'rye': 'pueblo',
+        'boone': 'pueblo', 'avondale': 'pueblo', 'colorado city': 'pueblo',
+        'canon city': 'fremont', 'cañon city': 'fremont', 'florence': 'fremont', 'penrose': 'fremont',
+        'williamsburg': 'fremont', 'rockvale': 'fremont', 'coal creek': 'fremont', 'cotopaxi': 'fremont',
+        'fairplay': 'park', 'bailey': 'park', 'alma': 'park', 'hartsel': 'park',
+        'lake george': 'park', 'guffey': 'park', 'jefferson': 'park', 'como': 'park',
+        'elizabeth': 'elbert', 'kiowa': 'elbert', 'simla': 'elbert', 'elbert': 'elbert',
+        'matheson': 'elbert', 'agate': 'elbert'
+      };
+
+      let effectiveCounty = normCounty;
+      if (!effectiveCounty && normCity && cityToCounty[normCity]) {
+        effectiveCounty = cityToCounty[normCity];
+      }
+
+      // PPRBD serves El Paso County (except Ramah/Calhan) plus Woodland Park in Teller County.
+      const isWoodlandPark = normCity === 'woodland park';
+      const isPprbd = isWoodlandPark || !effectiveCounty || effectiveCounty === 'el paso';
+
+      if (!isPprbd) {
+        const countyPortals = {
+          'teller': { label: 'Teller County Permits', url: 'https://www.tellercounty.gov/Building-Permit-Contractor-Search' },
+          'douglas': { label: 'Douglas County Permits', url: 'https://apps.douglas.co.us/building/services/Default.aspx?PossePresentation=SimplePermitSearch' },
+          'pueblo': { label: 'Pueblo County Permits', url: 'https://pueblopermits.com/building/records/' },
+          'fremont': { label: 'Fremont County Permits', url: 'https://fremontcountyco.gov/building/building-permit-record-search' },
+          'park': { label: 'Park County Permits', url: 'https://www.parkcountyco.gov/75/Building' },
+          'elbert': { label: 'Elbert County Records', url: 'https://services.elbertcounty-co.gov/assessor/web/' }
+        };
+        if (countyPortals[effectiveCounty]) return countyPortals[effectiveCounty];
+        const titleCounty = rawCounty.replace(/\s+county$/i, '').trim() || effectiveCounty;
+        return {
+          label: titleCounty + ' County Permits',
+          url: 'https://www.google.com/search?q=' + encodeURIComponent(titleCounty + ' County Colorado building permit search')
+        };
+      }
+
+      // Strip unit / apt / suite / lot info before parsing for PPRBD
+      const cleanedStreet = street
+        .replace(/,.*$/, '')
+        .replace(/\b(?:apt|apartment|unit|ste|suite|lot|bldg|building|#)\s*[a-z0-9-]+\b/gi, '')
+        .replace(/#\s*[a-z0-9-]+/gi, '')
+        .replace(/[.,]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const m = cleanedStreet.match(/^(\d+)\s+(.+)$/);
+      if (!m) {
+        return {
+          label: 'PPRBD Permits',
+          url: 'https://account.pprbd.org/publicaccess/AddressSearch.aspx'
+        };
+      }
+
+      const houseNum = m[1];
+      const tokens = m[2].toUpperCase().split(/\s+/).filter(Boolean);
+
+      const dirMap = { 'N': 'N', 'NORTH': 'N', 'S': 'S', 'SOUTH': 'S', 'E': 'E', 'EAST': 'E', 'W': 'W', 'WEST': 'W' };
+      let stDir = '';
+      if (tokens.length > 1 && dirMap[tokens[0]]) {
+        stDir = dirMap[tokens[0]];
+        tokens.shift();
+      }
+
+      const typeMap = {
+        'ALY': 'ALY', 'ALLEY': 'ALY',
+        'AVE': 'AVE', 'AVENUE': 'AVE', 'AV': 'AVE',
+        'BLVD': 'BLVD', 'BOULEVARD': 'BLVD',
+        'CIR': 'CIR', 'CIRCLE': 'CIR',
+        'CT': 'CT', 'COURT': 'CT',
+        'CV': 'CV', 'COVE': 'CV',
+        'DR': 'DR', 'DRIVE': 'DR',
+        'EXPY': 'EXPY', 'EXPRESSWAY': 'EXPY',
+        'GRV': 'GRV', 'GROVE': 'GRV',
+        'HTS': 'HTS', 'HEIGHTS': 'HTS',
+        'HWY': 'HWY', 'HIGHWAY': 'HWY',
+        'LN': 'LN', 'LANE': 'LN',
+        'LOOP': 'LOOP', 'LP': 'LOOP',
+        'PATH': 'PATH',
+        'PKWY': 'PKWY', 'PARKWAY': 'PKWY',
+        'PL': 'PL', 'PLACE': 'PL',
+        'PT': 'PT', 'POINT': 'PT',
+        'RD': 'RD', 'ROAD': 'RD',
+        'SQ': 'SQ', 'SQUARE': 'SQ',
+        'ST': 'ST', 'STREET': 'ST',
+        'TER': 'TER', 'TERRACE': 'TER', 'TERR': 'TER',
+        'TRL': 'TRL', 'TRAIL': 'TRL',
+        'VW': 'VW', 'VIEW': 'VW',
+        'WAY': 'WAY', 'WY': 'WAY'
+      };
+
+      let stType = '';
+      if (tokens.length > 1 && typeMap[tokens[tokens.length - 1]]) {
+        stType = typeMap[tokens.pop()];
+      }
+      const stName = tokens.join(' ').trim();
+      if (!stName) {
+        return {
+          label: 'PPRBD Permits',
+          url: 'https://account.pprbd.org/publicaccess/AddressSearch.aspx'
+        };
+      }
+
+      const url = 'https://account.pprbd.org/publicaccess/PermitSearchResults.aspx'
+        + '?StLo=' + encodeURIComponent(houseNum)
+        + '&StHi=' + encodeURIComponent(houseNum)
+        + '&StDir=' + encodeURIComponent(stDir)
+        + '&StName=' + encodeURIComponent(stName)
+        + '&StType=' + encodeURIComponent(stType)
+        + '&SearchType=Permits';
+      return { label: 'PPRBD Permits', url };
+    }
+
     function renderAdminHTML() {
       const realInspections = protoState.inspections.filter(i => !i.isDemo);
       const scheduledInspections = realInspections.filter(i => !i.reportNotified);
@@ -3712,12 +4040,27 @@ function submitInspectionQuoteRequest(payload) {
       const renderInspTableRows = (list) => list.map(insp => {
         const total = insp ? protoTotal(insp) : 0;
         const docBadges = (insp.extraDocs || []).map(d => `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">${d.title}</span>`).join('');
+        const pInfo = insp.propertyInfo || {};
+        const permitInfo = dhiBuildPermitLink({
+          address: insp.address,
+          street: pInfo.street || '',
+          city: pInfo.city || '',
+          county: pInfo.county || ''
+        });
         return `
           <tr class="border-t border-slate-100">
             <td class="py-3.5 pr-3 align-top">
-              <div class="font-bold text-slate-900 text-sm">${insp.address}</div>
-              <div class="text-xs text-slate-500">${insp.date}</div>
-              <div class="flex flex-wrap gap-1 mt-1.5">${docBadges}</div>
+              <div class="flex items-start gap-3">
+                ${insp.coverPhotoUrl ? `<img src="${insp.coverPhotoUrl}" alt="${escapeHtml(insp.address)}" class="w-24 h-16 rounded-xl object-cover border border-slate-200 bg-slate-100 shrink-0" />` : ''}
+                <div class="min-w-0">
+                  <div class="font-bold text-slate-900 text-sm">${insp.address}</div>
+                  <div class="text-xs text-slate-500">${insp.date}</div>
+                  <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                    <a href="${permitInfo.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-[11px] font-bold transition">${escapeHtml(permitInfo.label)} &nearr;</a>
+                    ${docBadges}
+                  </div>
+                </div>
+              </div>
             </td>
             <td class="py-3.5 px-2 text-xs text-slate-700 align-top">
               <div class="font-semibold">${insp.clientName}</div>
@@ -3985,7 +4328,20 @@ function submitInspectionQuoteRequest(payload) {
           </div>
         `;
       } else {
-        const pre = protoState.newInspDraft || { address: '', dateOnly: '', timeOnly: '', clientName: '', clientEmail: '', clientPhone: '', agentEmail: '', agentName: '' };
+        const pre = protoState.newInspDraft || { street: '', city: '', state: 'CO', zip: '', county: '', mls: '', address: '', dateOnly: '', timeOnly: '', clientName: '', clientEmail: '', clientPhone: '', agentEmail: '', agentName: '' };
+        if (!pre.street && pre.address) {
+          const parsedPre = dhiParseAddrParts(pre.address);
+          pre.street = parsedPre.street;
+          pre.city = pre.city || parsedPre.city;
+          pre.state = pre.state || parsedPre.state || 'CO';
+          pre.zip = pre.zip || parsedPre.zip;
+          pre.county = pre.county || parsedPre.county;
+        }
+        const addrOpts = dhiGetAddrDropdownOptions(protoState.inspections || []);
+        const cityListOpts = addrOpts.cities.map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+        const stateListOpts = addrOpts.states.map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+        const countyListOpts = addrOpts.counties.map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+        const zipListOpts = addrOpts.zips.map(v => `<option value="${escapeHtml(v)}">${DHI_ZIP_LOOKUP[v] ? escapeHtml(DHI_ZIP_LOOKUP[v].city + ' (' + DHI_ZIP_LOOKUP[v].county + ')') : ''}</option>`).join('');
         const lineItems = protoState.draftLineItems || [];
         const calcTotal = lineItems.reduce((sum, li) => sum + ((Number(li.qty) || 0) * (Number(li.unitPrice) || 0)), 0);
 
@@ -4062,8 +4418,34 @@ function submitInspectionQuoteRequest(payload) {
               <!-- Left Column: Property, Schedule, Buyer & Agent -->
               <div class="xl:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                 <div class="sm:col-span-2">
-                  <label class="block font-bold text-slate-700 mb-1">Property Address *</label>
-                  <input id="protoNewAddr" type="text" value="${escapeHtml(pre.address || '')}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  <label class="block font-bold text-slate-700 mb-1">Street Address *</label>
+                  <input id="protoNewStreet" type="text" value="${escapeHtml(pre.street || '')}" placeholder="1234 Maple Ridge Dr" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">ZIP (auto-fills City &amp; County)</label>
+                  <input id="protoNewZip" type="text" list="dhiAdminZipList" value="${escapeHtml(pre.zip || '')}" oninput="protoOnNewZipInput(this.value)" placeholder="80908" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  <datalist id="dhiAdminZipList">${zipListOpts}</datalist>
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">City</label>
+                  <input id="protoNewCity" type="text" list="dhiAdminCityList" value="${escapeHtml(pre.city || '')}" placeholder="Colorado Springs" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  <datalist id="dhiAdminCityList">${cityListOpts}</datalist>
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">County</label>
+                  <input id="protoNewCounty" type="text" list="dhiAdminCountyList" value="${escapeHtml(pre.county || '')}" placeholder="El Paso" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  <datalist id="dhiAdminCountyList">${countyListOpts}</datalist>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block font-bold text-slate-700 mb-1">State</label>
+                    <input id="protoNewState" type="text" list="dhiAdminStateList" value="${escapeHtml(pre.state || 'CO')}" placeholder="CO" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                    <datalist id="dhiAdminStateList">${stateListOpts}</datalist>
+                  </div>
+                  <div>
+                    <label class="block font-bold text-slate-700 mb-1">MLS #</label>
+                    <input id="protoNewMls" type="text" value="${escapeHtml(pre.mls || '')}" placeholder="Optional" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  </div>
                 </div>
                 <div>
                   <label class="block font-bold text-slate-700 mb-1">Inspection Date *</label>
@@ -4169,11 +4551,40 @@ function submitInspectionQuoteRequest(payload) {
       `;
     }
 
+    function protoComposeAdminAddress(street, city, state, zip) {
+      const s = String(street || '').trim();
+      const c = String(city || '').trim();
+      const st = String(state || '').trim().toUpperCase();
+      const z = String(zip || '').trim();
+      const tail = [st, z].filter(Boolean).join(' ');
+      return [s, c, tail].filter(Boolean).join(', ');
+    }
+
+    function protoOnNewZipInput(val) {
+      const z = String(val || '').replace(/[^0-9]/g, '').slice(0, 5);
+      if (z.length === 5 && DHI_ZIP_LOOKUP[z]) {
+        const info = DHI_ZIP_LOOKUP[z];
+        const cityEl = document.getElementById('protoNewCity');
+        const stateEl = document.getElementById('protoNewState');
+        const countyEl = document.getElementById('protoNewCounty');
+        if (cityEl && !cityEl.value.trim()) cityEl.value = info.city;
+        if (stateEl && (!stateEl.value.trim() || stateEl.value.trim().toUpperCase() === 'CO')) stateEl.value = info.state;
+        if (countyEl && !countyEl.value.trim()) countyEl.value = info.county;
+      }
+    }
+
     function protoSaveNewInspDraftInputs() {
-      const addrEl = document.getElementById('protoNewAddr');
-      if (!addrEl) return;
+      const streetEl = document.getElementById('protoNewStreet');
+      if (!streetEl) return;
+      const street = streetEl.value || '';
+      const city = document.getElementById('protoNewCity')?.value || '';
+      const state = document.getElementById('protoNewState')?.value || 'CO';
+      const zip = document.getElementById('protoNewZip')?.value || '';
+      const county = document.getElementById('protoNewCounty')?.value || '';
+      const mls = document.getElementById('protoNewMls')?.value || '';
       protoState.newInspDraft = {
-        address: addrEl.value || '',
+        street, city, state, zip, county, mls,
+        address: protoComposeAdminAddress(street, city, state, zip),
         dateOnly: document.getElementById('protoNewDateOnly')?.value || '',
         timeOnly: document.getElementById('protoNewTimeOnly')?.value || '',
         clientName: document.getElementById('protoNewClient')?.value || '',
@@ -4371,7 +4782,15 @@ function submitInspectionQuoteRequest(payload) {
     }
 
     async function protoCreateInspection() {
-      const addr = (document.getElementById('protoNewAddr')?.value || '').trim();
+      const street = (document.getElementById('protoNewStreet')?.value || '').trim();
+      const city = (document.getElementById('protoNewCity')?.value || '').trim();
+      const stateVal = (document.getElementById('protoNewState')?.value || 'CO').trim().toUpperCase();
+      const zip = (document.getElementById('protoNewZip')?.value || '').trim();
+      const county = (document.getElementById('protoNewCounty')?.value || '').trim();
+      const mls = (document.getElementById('protoNewMls')?.value || '').trim();
+      const addr = protoComposeAdminAddress(street, city, stateVal, zip);
+      const propInfoObj = { address: addr, street, city, state: stateVal, zip, county, mls };
+      dhiRememberAddrHistory({ city, state: stateVal, county, zip });
       const dateOnly = (document.getElementById('protoNewDateOnly')?.value || '').trim();
       const timeOnly = (document.getElementById('protoNewTimeOnly')?.value || '').trim();
       const dateStr = protoFormatDisplayDateTime(dateOnly, timeOnly);
@@ -4450,7 +4869,8 @@ function submitInspectionQuoteRequest(payload) {
           agent_email: agentEmail ? agentEmail.toLowerCase() : null,
           services,
           total_cents: totalCents,
-          agreement_required: !document.getElementById('protoNewStandalone')?.checked
+          agreement_required: !document.getElementById('protoNewStandalone')?.checked,
+          property_info: propInfoObj
         }).select().single();
         if (insErr) {
           protoToastMsg('Error saving inspection to Supabase: ' + insErr.message);
@@ -4470,6 +4890,7 @@ function submitInspectionQuoteRequest(payload) {
         agentName: agentSplit.name,
         agentEmail: agentEmail ? agentEmail.toLowerCase() : '',
         services,
+        propertyInfo: propInfoObj,
         gcalUrl,
         agreementRequired: !document.getElementById('protoNewStandalone')?.checked,
         agreementSigned: false,
@@ -4863,12 +5284,15 @@ function submitInspectionQuoteRequest(payload) {
         return `
           <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col gap-3">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div class="space-y-1">
+              <div class="flex items-center gap-3.5">
+                ${insp.coverPhotoUrl ? `<img src="${insp.coverPhotoUrl}" alt="${escapeHtml(insp.address)}" class="w-20 h-16 rounded-xl object-cover border border-slate-200 shrink-0" />` : ''}
+                <div class="space-y-1">
                 <div class="flex flex-wrap items-center gap-2">
                   <h3 class="text-base font-extrabold text-slate-900">${escapeHtml(insp.address)}</h3>
                   <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${insp.paid ? 'Report Unlocked' : 'Awaiting Client Payment'}</span>
                 </div>
-                <p class="text-xs text-slate-600">Buyer: <strong>${escapeHtml(insp.clientName)}</strong> • ${escapeHtml(insp.date)}</p>
+                <p class="text-xs text-slate-600">Customer: <strong>${escapeHtml(insp.clientName)}</strong> • ${escapeHtml(insp.date)}</p>
+                </div>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Open Report &amp; Objection Builder →</button>
@@ -4960,9 +5384,12 @@ function submitInspectionQuoteRequest(payload) {
         <div class="space-y-6">
           <div class="bg-davis-navy text-white rounded-2xl p-5 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div class="text-[11px] font-bold uppercase tracking-wider text-sky-300">Signed In via Magic Link • ${insp.clientEmail}</div>
-                <h2 class="text-xl font-extrabold">Your Inspections (${list.length})</h2>
+              <div class="flex items-center gap-3.5">
+                ${insp.coverPhotoUrl ? `<img src="${insp.coverPhotoUrl}" alt="${escapeHtml(insp.address)}" class="w-20 h-16 rounded-xl object-cover border border-white/30 shrink-0 shadow" />` : ''}
+                <div>
+                  <div class="text-[11px] font-bold uppercase tracking-wider text-sky-300">Signed In via Magic Link • ${insp.clientEmail}</div>
+                  <h2 class="text-xl font-extrabold">Your Inspections (${list.length})</h2>
+                </div>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 ${canViewReport ? `<button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-extrabold shadow transition">Open Reports &amp; Co-View →</button>` : `<span class="px-3 py-1.5 rounded-xl bg-white/10 text-xs font-bold">Complete steps below to unlock reports</span>`}
@@ -5363,7 +5790,7 @@ function submitInspectionQuoteRequest(payload) {
                   ? `<button type="button" onclick="protoExitDemoToSamples()" class="text-xs font-bold text-slate-600 hover:text-davis-navy">← Back to Sample Reports</button><span class="text-slate-300">|</span><button type="button" onclick="protoLaunchSampleDemo()" class="text-xs font-bold text-sky-700 hover:underline">Switch View (Buyer / Agent)</button>`
                   : `<button type="button" onclick="protoState.viewingReport=false; renderProtoPortal();" class="text-xs font-bold text-sky-700 hover:underline">← Back to Dashboard</button><span class="text-slate-300">|</span><button type="button" onclick="dhiSignOut()" class="text-xs font-semibold text-slate-500 hover:text-rose-600">Sign Out</button>`}
               </div>
-              <h2 class="text-lg font-extrabold text-slate-900">${insp.address}</h2>
+              <div class="flex items-center gap-3">${insp.coverPhotoUrl ? `<img src="${insp.coverPhotoUrl}" alt="${escapeHtml(insp.address)}" class="w-16 h-12 rounded-lg object-cover border border-slate-200 shrink-0" />` : ''}<h2 class="text-lg font-extrabold text-slate-900">${insp.address}</h2></div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               ${protoState.activeDocTab === 'main' ? `<button type="button" onclick="document.getElementById('objectionListPanel')?.scrollIntoView({behavior:'smooth', block:'start'})" class="px-3 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Jump to Objection List &darr;</button>` : ''}
@@ -6366,6 +6793,9 @@ function submitInspectionQuoteRequest(payload) {
         reportReady: !!r.report_notified,
         services: Array.isArray(r.services) ? r.services : [],
         reportSections: Array.isArray(r.report_sections) ? r.report_sections : [],
+        propertyInfo: (r.property_info && typeof r.property_info === 'object') ? r.property_info : {},
+        coverPhotoPath: (r.property_info && r.property_info.coverPhotoPath) || '',
+        coverPhotoUrl: '',
         extraDocs: []
       };
     }
@@ -6557,6 +6987,15 @@ function submitInspectionQuoteRequest(payload) {
             row.extraDocs = docsByInsp[row.id] || [];
             return row;
           });
+
+          const coverPaths = (protoState.inspections || []).map(x => x.coverPhotoPath).filter(Boolean);
+          if (coverPaths.length) {
+            try {
+              const { data: cSigned } = await dhiSupabase.storage.from('reports').createSignedUrls(coverPaths, 3600);
+              const cMap = new Map((cSigned || []).map(s => [s.path, s.signedUrl]));
+              protoState.inspections.forEach(x => { if (x.coverPhotoPath && cMap.has(x.coverPhotoPath)) x.coverPhotoUrl = cMap.get(x.coverPhotoPath); });
+            } catch (e) {}
+          }
           protoState.activeInspectionId = protoState.inspections.length ? protoState.inspections[0].id : null;
         }
       } catch (err) {
@@ -6840,6 +7279,26 @@ function submitInspectionQuoteRequest(payload) {
       <div id="dhiCatalogListContainer" class="space-y-1.5 overflow-y-auto pr-1 flex-1"></div>
       <div class="flex justify-end pt-2 border-t border-slate-100">
         <button type="button" onclick="protoCloseCatalogModal()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold">Done</button>
+      </div>
+    </div>
+  </div>
+  <div id="dhiGoogleLinkTipModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Agent Sign-In Tip</span>
+          <h3 class="text-lg font-extrabold text-slate-900">Link Your Work Email to Google</h3>
+        </div>
+        <button type="button" onclick="document.getElementById('dhiGoogleLinkTipModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed">If your brokerage email is not a Gmail address, you can still use 1-click Google Sign-In to view all of your clients' inspections:</p>
+      <ol class="list-decimal list-inside space-y-2 text-xs text-slate-700 leading-relaxed">
+        <li>Enter your <strong>work email address</strong> on the Agent Sign-In card and click <strong>Email me a sign-in link instead</strong> (or sign in with your password).</li>
+        <li>Once signed in to your Agent Portal, click the <strong>Link My Google Account</strong> button in the top right header and choose your personal Gmail account.</li>
+        <li>From then on, just click <strong>Continue with Google</strong> on the login page to stay signed in with 1 click.</li>
+      </ol>
+      <div class="flex justify-end pt-2 border-t border-slate-100">
+        <button type="button" onclick="document.getElementById('dhiGoogleLinkTipModal').classList.add('hidden')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Got It</button>
       </div>
     </div>
   </div>

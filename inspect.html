@@ -126,19 +126,45 @@
         </div>
         <button type="button" onclick="closePhotoEditor()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
       </div>
-      <div class="flex flex-wrap items-center gap-2 text-xs">
-        <button type="button" id="toolArrowBtn" onclick="setPhotoTool('arrow')" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white font-bold">Draw arrow</button>
-        <button type="button" id="toolCircleBtn" onclick="setPhotoTool('circle')" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">Draw circle</button>
-        <select id="photoColorSelect" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold">
+      <div class="flex flex-wrap items-center gap-1.5 text-xs">
+        <button type="button" id="toolSelectBtn" onclick="setPhotoTool('select')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">Select / Move</button>
+        <button type="button" id="toolArrowBtn" onclick="setPhotoTool('arrow')" class="px-2.5 py-1.5 rounded-lg bg-davis-navy text-white font-bold">Arrow</button>
+        <button type="button" id="toolLineBtn" onclick="setPhotoTool('line')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">Line</button>
+        <button type="button" id="toolCircleBtn" onclick="setPhotoTool('circle')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">Circle</button>
+        <button type="button" id="toolSquareBtn" onclick="setPhotoTool('square')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">Square</button>
+        <button type="button" id="toolTextBtn" onclick="setPhotoTool('text')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">Text</button>
+        <select id="photoColorSelect" onchange="onPhotoColorChange(this.value)" class="px-2 py-1.5 rounded-lg border border-slate-300 text-xs font-bold">
           <option value="#ef4444">Red</option>
+          <option value="#facc15">Yellow</option>
           <option value="#f59e0b">Amber Gold</option>
+          <option value="#22c55e">Green</option>
           <option value="#0ea5e9">Sky Blue</option>
+          <option value="#ffffff">White</option>
         </select>
-        <button type="button" onclick="undoPhotoAnnotation()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 font-bold">Undo</button>
-        <button type="button" onclick="clearPhotoAnnotations()" class="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 font-bold">Reset photo</button>
+        <div class="inline-flex rounded-lg border border-slate-300 overflow-hidden bg-white">
+          <button type="button" id="strokeThinBtn" onclick="setPhotoStrokeWeight(5)" class="px-2 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-100">Thin</button>
+          <button type="button" id="strokeMedBtn" onclick="setPhotoStrokeWeight(9)" class="px-2 py-1 text-[11px] font-bold bg-davis-navy text-white">Med</button>
+          <button type="button" id="strokeThickBtn" onclick="setPhotoStrokeWeight(14)" class="px-2 py-1 text-[11px] font-bold text-slate-700 hover:bg-slate-100">Thick</button>
+        </div>
+        <button type="button" id="deleteSelectedShapeBtn" onclick="deleteSelectedPhotoShape()" class="hidden px-2.5 py-1.5 rounded-lg border border-rose-300 bg-rose-50 text-rose-700 font-bold">Delete selected</button>
+        <button type="button" onclick="undoPhotoAnnotation()" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 font-bold">Undo</button>
+        <button type="button" onclick="clearPhotoAnnotations()" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 font-bold">Reset</button>
+      </div>
+      <div id="photoToolHint" class="text-[11px] text-slate-500">Drag to draw. Tap any shape to select, drag to move, or pull handles to resize. Line: tap two spots (or drag). Double-tap text to edit.</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs">
+        <label class="flex items-center gap-2 font-bold text-slate-700">
+          <span class="w-20">Brightness</span>
+          <input id="photoBrightness" type="range" min="50" max="150" value="100" oninput="updatePhotoFilters()" class="flex-grow" />
+          <span id="photoBrightVal" class="w-10 text-right font-mono">100%</span>
+        </label>
+        <label class="flex items-center gap-2 font-bold text-slate-700">
+          <span class="w-20">Contrast</span>
+          <input id="photoContrast" type="range" min="50" max="150" value="100" oninput="updatePhotoFilters()" class="flex-grow" />
+          <span id="photoContrastVal" class="w-10 text-right font-mono">100%</span>
+        </label>
       </div>
       <div class="flex-1 overflow-auto flex items-center justify-center bg-slate-900 rounded-xl p-2 min-h-[260px]">
-        <canvas id="photoEditorCanvas" class="max-w-full max-h-[54vh] cursor-crosshair rounded-lg"></canvas>
+        <canvas id="photoEditorCanvas" class="max-w-full max-h-[50vh] cursor-crosshair touch-none rounded-lg"></canvas>
       </div>
       <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
         <input id="photoCaptionInput" type="text" placeholder="Photo caption..." class="flex-grow px-3 py-2 rounded-lg border border-slate-300 text-xs" />
@@ -160,11 +186,33 @@
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
 
+    const DHI_BUILDING_TYPES = [
+      'Single Family (1 story)', 'Single Family (2 story)', 'Condominium', 'Townhome',
+      'Duplex Residential', 'Triplex Residential', 'Multi-family', 'Single Family',
+      'Split-level', 'Patio Home'
+    ];
+    const DHI_ATTENDANCE_OPTIONS = [
+      'Customer', 'Seller', "Buyer's Agent", "Seller's Agent",
+      'Customer Representative', 'Tenant', 'Builder / Contractor',
+      'Vacant (Inspector Only)'
+    ];
+    const DHI_ALLOWED_OPTIONAL_SECTIONS = [
+      'Additional Apartment/Cottage',
+      'Out Building',
+      'Outdoor Cooking Equipment',
+      'Additional Photos',
+      'Defects (lists/photos)'
+    ];
+
     const state = {
       user: null,
       inspections: [],
       activeId: null,
-      draft: null, // { inspectionId, address, propertyInfo, sections: [{ num, name, stylesMaterials: [{label, value, options}], items: [{ id, code, title, status, isSummary, roughNotes, narrative, photos: [{ id, label, dataUrl, storagePath }] }] }], updatedAt, dirty }
+      draft: null,
+      showContactsCard: false,
+      showPhotoTray: false,
+      photoTray: [], // [{ id, name, dataUrl, used }]
+      dragPhotoTrayId: null, // { inspectionId, address, propertyInfo, sections: [{ num, name, stylesMaterials: [{label, value, options}], items: [{ id, code, title, status, isSummary, roughNotes, narrative, photos: [{ id, label, dataUrl, storagePath }] }] }], updatedAt, dirty }
       activeSecIdx: 0,
       showPropInfo: true,
       showSM: true,
@@ -343,7 +391,22 @@
           sb.from('comment_library').select('*').order('section_name', { ascending: true }),
           sb.from('inspection_templates').select('*').order('name', { ascending: true })
         ]);
-        if (Array.isArray(iRes.data)) state.inspections = iRes.data;
+        if (Array.isArray(iRes.data)) {
+          state.inspections = iRes.data;
+          try {
+            const cPaths = state.inspections.map(x => x.property_info && x.property_info.coverPhotoPath).filter(Boolean);
+            if (cPaths.length) {
+              const { data: signedCovers } = await sb.storage.from('inspection-reports').createSignedUrls(cPaths, 60 * 60 * 6);
+              if (Array.isArray(signedCovers)) {
+                const cMap = new Map(signedCovers.filter(s => s && s.path && s.signedUrl).map(s => [s.path, s.signedUrl]));
+                state.inspections.forEach(x => {
+                  const cp = x.property_info && x.property_info.coverPhotoPath;
+                  if (cp && cMap.has(cp)) x._coverPhotoSignedUrl = cMap.get(cp);
+                });
+              }
+            }
+          } catch (_e) {}
+        }
         if (Array.isArray(setRes.data)) {
           setRes.data.forEach(row => {
             if (row.key === 'ai_narrative_instructions' && row.value) state.globalInstructions = row.value;
@@ -384,6 +447,330 @@
         || { id: 'local-default', name: 'Residential - By System', sections: DHI_TEMPLATE };
     }
 
+
+
+    const DHI_ZIP_LOOKUP = {
+      '80901': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80902': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80903': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80904': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80905': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80906': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80907': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80908': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80909': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80910': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80911': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80913': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80914': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80915': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80916': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80917': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80918': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80919': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80920': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80921': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80922': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80923': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80924': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80925': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80926': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80927': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80928': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80929': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80930': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80938': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80939': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80951': { city: 'Colorado Springs', state: 'CO', county: 'El Paso' },
+      '80817': { city: 'Fountain', state: 'CO', county: 'El Paso' },
+      '80132': { city: 'Monument', state: 'CO', county: 'El Paso' },
+      '80133': { city: 'Palmer Lake', state: 'CO', county: 'El Paso' },
+      '80831': { city: 'Peyton', state: 'CO', county: 'El Paso' },
+      '80829': { city: 'Manitou Springs', state: 'CO', county: 'El Paso' },
+      '80819': { city: 'Green Mountain Falls', state: 'CO', county: 'El Paso' },
+      '80809': { city: 'Cascade', state: 'CO', county: 'El Paso' },
+      '80808': { city: 'Calhan', state: 'CO', county: 'El Paso' },
+      '80832': { city: 'Ramah', state: 'CO', county: 'El Paso' },
+      '80833': { city: 'Rush', state: 'CO', county: 'El Paso' },
+      '80864': { city: 'Yoder', state: 'CO', county: 'El Paso' },
+      '80863': { city: 'Woodland Park', state: 'CO', county: 'Teller' },
+      '80866': { city: 'Woodland Park', state: 'CO', county: 'Teller' },
+      '80814': { city: 'Divide', state: 'CO', county: 'Teller' },
+      '80816': { city: 'Florissant', state: 'CO', county: 'Teller' },
+      '80813': { city: 'Cripple Creek', state: 'CO', county: 'Teller' },
+      '80860': { city: 'Victor', state: 'CO', county: 'Teller' },
+      '80104': { city: 'Castle Rock', state: 'CO', county: 'Douglas' },
+      '80108': { city: 'Castle Rock', state: 'CO', county: 'Douglas' },
+      '80109': { city: 'Castle Rock', state: 'CO', county: 'Douglas' },
+      '80118': { city: 'Larkspur', state: 'CO', county: 'Douglas' },
+      '80134': { city: 'Parker', state: 'CO', county: 'Douglas' },
+      '80138': { city: 'Parker', state: 'CO', county: 'Douglas' },
+      '81001': { city: 'Pueblo', state: 'CO', county: 'Pueblo' },
+      '81003': { city: 'Pueblo', state: 'CO', county: 'Pueblo' },
+      '81004': { city: 'Pueblo', state: 'CO', county: 'Pueblo' },
+      '81005': { city: 'Pueblo', state: 'CO', county: 'Pueblo' },
+      '81006': { city: 'Pueblo', state: 'CO', county: 'Pueblo' },
+      '81007': { city: 'Pueblo West', state: 'CO', county: 'Pueblo' },
+      '81008': { city: 'Pueblo', state: 'CO', county: 'Pueblo' },
+      '81023': { city: 'Beulah', state: 'CO', county: 'Pueblo' },
+      '81069': { city: 'Rye', state: 'CO', county: 'Pueblo' },
+      '81212': { city: 'Canon City', state: 'CO', county: 'Fremont' },
+      '81226': { city: 'Florence', state: 'CO', county: 'Fremont' },
+      '81240': { city: 'Penrose', state: 'CO', county: 'Fremont' },
+      '80107': { city: 'Elizabeth', state: 'CO', county: 'Elbert' },
+      '80117': { city: 'Kiowa', state: 'CO', county: 'Elbert' },
+      '80106': { city: 'Elbert', state: 'CO', county: 'Elbert' },
+      '80835': { city: 'Simla', state: 'CO', county: 'Elbert' },
+      '80440': { city: 'Fairplay', state: 'CO', county: 'Park' },
+      '80827': { city: 'Lake George', state: 'CO', county: 'Park' },
+      '80421': { city: 'Bailey', state: 'CO', county: 'Park' }
+    };
+
+    function dhiReadStoredAddrHistory() {
+      try {
+        const raw = localStorage.getItem('dhi_addr_history_v1');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            cities: Array.isArray(parsed.cities) ? parsed.cities : [],
+            states: Array.isArray(parsed.states) ? parsed.states : [],
+            counties: Array.isArray(parsed.counties) ? parsed.counties : [],
+            zips: Array.isArray(parsed.zips) ? parsed.zips : []
+          };
+        }
+      } catch (_e) {}
+      return { cities: [], states: [], counties: [], zips: [] };
+    }
+
+    function dhiRememberAddrHistory(vals) {
+      if (!vals) return;
+      const h = dhiReadStoredAddrHistory();
+      const addUnique = (arr, v) => {
+        const s = String(v || '').trim();
+        if (!s) return;
+        if (!arr.some(x => x.toLowerCase() === s.toLowerCase())) arr.unshift(s);
+        if (arr.length > 80) arr.length = 80;
+      };
+      addUnique(h.cities, vals.city);
+      addUnique(h.states, vals.state ? String(vals.state).trim().toUpperCase() : '');
+      addUnique(h.counties, vals.county);
+      addUnique(h.zips, vals.zip);
+      try { localStorage.setItem('dhi_addr_history_v1', JSON.stringify(h)); } catch (_e) {}
+    }
+
+    function dhiGetAddrDropdownOptions(inspectionsList) {
+      const h = dhiReadStoredAddrHistory();
+      const citySet = new Map();
+      const stateSet = new Map();
+      const countySet = new Map();
+      const zipSet = new Map();
+      const put = (m, v) => {
+        const s = String(v || '').trim();
+        if (s && !m.has(s.toLowerCase())) m.set(s.toLowerCase(), s);
+      };
+      // 1. User's saved history first
+      h.cities.forEach(v => put(citySet, v));
+      h.states.forEach(v => put(stateSet, v));
+      h.counties.forEach(v => put(countySet, v));
+      h.zips.forEach(v => put(zipSet, v));
+      // 2. Harvest from loaded inspections
+      (inspectionsList || []).forEach(ins => {
+        const p = (ins && (ins.propertyInfo || ins.property_info)) || {};
+        put(citySet, p.city);
+        put(stateSet, p.state);
+        put(countySet, p.county);
+        put(zipSet, p.zip);
+        if (ins && ins.address && (!p.city || !p.zip)) {
+          const parts = String(ins.address).split(',').map(x => x.trim());
+          if (parts.length >= 2) {
+            const zm = parts[parts.length - 1].match(/^([A-Za-z]{2})\s+(\d{5})/);
+            if (zm) {
+              put(stateSet, zm[1].toUpperCase());
+              put(zipSet, zm[2]);
+              if (parts.length >= 3) put(citySet, parts[1]);
+            } else {
+              const m2 = parts[1].match(/^(.+?)\s+([A-Za-z]{2})\s+(\d{5})/);
+              if (m2) { put(citySet, m2[1]); put(stateSet, m2[2].toUpperCase()); put(zipSet, m2[3]); }
+            }
+          }
+        }
+      });
+      // 3. Pre-seeded local defaults
+      ['Colorado Springs', 'Fountain', 'Monument', 'Woodland Park', 'Peyton', 'Falcon', 'Manitou Springs', 'Palmer Lake', 'Black Forest', 'Divide', 'Castle Rock', 'Pueblo', 'Pueblo West', 'Canon City'].forEach(v => put(citySet, v));
+      ['CO'].forEach(v => put(stateSet, v));
+      ['El Paso', 'Teller', 'Douglas', 'Pueblo', 'Fremont', 'Park', 'Elbert'].forEach(v => put(countySet, v));
+      Object.keys(DHI_ZIP_LOOKUP).forEach(z => put(zipSet, z));
+      return {
+        cities: Array.from(citySet.values()),
+        states: Array.from(stateSet.values()),
+        counties: Array.from(countySet.values()),
+        zips: Array.from(zipSet.values())
+      };
+    }
+
+    function dhiParseAddrParts(fullAddr) {
+      const s = String(fullAddr || '').trim();
+      if (!s) return { street: '', city: '', state: 'CO', zip: '', county: '' };
+      const parts = s.split(',').map(x => x.trim()).filter(Boolean);
+      let street = parts[0] || s, city = '', state = 'CO', zip = '', county = '';
+      if (parts.length >= 3) {
+        city = parts[1];
+        const stZip = parts[2].split(/\s+/);
+        state = (stZip[0] || 'CO').toUpperCase();
+        zip = (stZip[1] || '').replace(/[^0-9]/g, '').slice(0, 5);
+      } else if (parts.length === 2) {
+        const m = parts[1].match(/^(.+?)\s+([A-Za-z]{2})\s+(\d{5})/);
+        if (m) { city = m[1].trim(); state = m[2].toUpperCase(); zip = m[3]; }
+        else {
+          const mZip = parts[1].match(/^(.+?)\s+(\d{5})$/);
+          if (mZip) { city = mZip[1].trim(); zip = mZip[2]; }
+          else city = parts[1];
+        }
+      }
+      if (zip && DHI_ZIP_LOOKUP[zip]) {
+        const zInfo = DHI_ZIP_LOOKUP[zip];
+        if (!city) city = zInfo.city;
+        if (!state) state = zInfo.state;
+        county = zInfo.county;
+      }
+      return { street, city, state, zip, county };
+    }
+
+    function dhiBuildPermitLink(opts) {
+      const o = opts || {};
+      const rawAddr = String(o.address || '').trim();
+      const rawStreet = String(o.street || '').trim();
+      const rawCity = String(o.city || '').trim();
+      const rawCounty = String(o.county || '').trim();
+
+      let street = rawStreet;
+      let city = rawCity;
+      if (!street && rawAddr) {
+        const parts = rawAddr.split(',').map(x => x.trim()).filter(Boolean);
+        street = parts[0] || rawAddr;
+        if (!city && parts.length >= 2) {
+          city = parts[1].replace(/\s+[A-Za-z]{2}\s+\d{5}(-\d{4})?$/, '').trim();
+        }
+      }
+
+      const normCounty = rawCounty.toLowerCase().replace(/\s+county$/i, '').trim();
+      const normCity = city.toLowerCase().trim();
+
+      const cityToCounty = {
+        'divide': 'teller', 'florissant': 'teller', 'cripple creek': 'teller', 'victor': 'teller',
+        'castle rock': 'douglas', 'larkspur': 'douglas', 'parker': 'douglas', 'lone tree': 'douglas',
+        'highlands ranch': 'douglas', 'sedalia': 'douglas', 'franktown': 'douglas', 'castle pines': 'douglas',
+        'pueblo': 'pueblo', 'pueblo west': 'pueblo', 'beulah': 'pueblo', 'rye': 'pueblo',
+        'boone': 'pueblo', 'avondale': 'pueblo', 'colorado city': 'pueblo',
+        'canon city': 'fremont', 'cañon city': 'fremont', 'florence': 'fremont', 'penrose': 'fremont',
+        'williamsburg': 'fremont', 'rockvale': 'fremont', 'coal creek': 'fremont', 'cotopaxi': 'fremont',
+        'fairplay': 'park', 'bailey': 'park', 'alma': 'park', 'hartsel': 'park',
+        'lake george': 'park', 'guffey': 'park', 'jefferson': 'park', 'como': 'park',
+        'elizabeth': 'elbert', 'kiowa': 'elbert', 'simla': 'elbert', 'elbert': 'elbert',
+        'matheson': 'elbert', 'agate': 'elbert'
+      };
+
+      let effectiveCounty = normCounty;
+      if (!effectiveCounty && normCity && cityToCounty[normCity]) {
+        effectiveCounty = cityToCounty[normCity];
+      }
+
+      // PPRBD serves El Paso County (except Ramah/Calhan) plus Woodland Park in Teller County.
+      const isWoodlandPark = normCity === 'woodland park';
+      const isPprbd = isWoodlandPark || !effectiveCounty || effectiveCounty === 'el paso';
+
+      if (!isPprbd) {
+        const countyPortals = {
+          'teller': { label: 'Teller County Permits', url: 'https://www.tellercounty.gov/Building-Permit-Contractor-Search' },
+          'douglas': { label: 'Douglas County Permits', url: 'https://apps.douglas.co.us/building/services/Default.aspx?PossePresentation=SimplePermitSearch' },
+          'pueblo': { label: 'Pueblo County Permits', url: 'https://pueblopermits.com/building/records/' },
+          'fremont': { label: 'Fremont County Permits', url: 'https://fremontcountyco.gov/building/building-permit-record-search' },
+          'park': { label: 'Park County Permits', url: 'https://www.parkcountyco.gov/75/Building' },
+          'elbert': { label: 'Elbert County Records', url: 'https://services.elbertcounty-co.gov/assessor/web/' }
+        };
+        if (countyPortals[effectiveCounty]) return countyPortals[effectiveCounty];
+        const titleCounty = rawCounty.replace(/\s+county$/i, '').trim() || effectiveCounty;
+        return {
+          label: titleCounty + ' County Permits',
+          url: 'https://www.google.com/search?q=' + encodeURIComponent(titleCounty + ' County Colorado building permit search')
+        };
+      }
+
+      const cleanedStreet = street
+        .replace(/,.*$/, '')
+        .replace(/\b(?:apt|apartment|unit|ste|suite|lot|bldg|building|#)\s*[a-z0-9-]+\b/gi, '')
+        .replace(/#\s*[a-z0-9-]+/gi, '')
+        .replace(/[.,]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const m = cleanedStreet.match(/^(\d+)\s+(.+)$/);
+      if (!m) {
+        return {
+          label: 'PPRBD Permits',
+          url: 'https://account.pprbd.org/publicaccess/AddressSearch.aspx'
+        };
+      }
+
+      const houseNum = m[1];
+      const tokens = m[2].toUpperCase().split(/\s+/).filter(Boolean);
+
+      const dirMap = { 'N': 'N', 'NORTH': 'N', 'S': 'S', 'SOUTH': 'S', 'E': 'E', 'EAST': 'E', 'W': 'W', 'WEST': 'W' };
+      let stDir = '';
+      if (tokens.length > 1 && dirMap[tokens[0]]) {
+        stDir = dirMap[tokens[0]];
+        tokens.shift();
+      }
+
+      const typeMap = {
+        'ALY': 'ALY', 'ALLEY': 'ALY',
+        'AVE': 'AVE', 'AVENUE': 'AVE', 'AV': 'AVE',
+        'BLVD': 'BLVD', 'BOULEVARD': 'BLVD',
+        'CIR': 'CIR', 'CIRCLE': 'CIR',
+        'CT': 'CT', 'COURT': 'CT',
+        'CV': 'CV', 'COVE': 'CV',
+        'DR': 'DR', 'DRIVE': 'DR',
+        'EXPY': 'EXPY', 'EXPRESSWAY': 'EXPY',
+        'GRV': 'GRV', 'GROVE': 'GRV',
+        'HTS': 'HTS', 'HEIGHTS': 'HTS',
+        'HWY': 'HWY', 'HIGHWAY': 'HWY',
+        'LN': 'LN', 'LANE': 'LN',
+        'LOOP': 'LOOP', 'LP': 'LOOP',
+        'PATH': 'PATH',
+        'PKWY': 'PKWY', 'PARKWAY': 'PKWY',
+        'PL': 'PL', 'PLACE': 'PL',
+        'PT': 'PT', 'POINT': 'PT',
+        'RD': 'RD', 'ROAD': 'RD',
+        'SQ': 'SQ', 'SQUARE': 'SQ',
+        'ST': 'ST', 'STREET': 'ST',
+        'TER': 'TER', 'TERRACE': 'TER', 'TERR': 'TER',
+        'TRL': 'TRL', 'TRAIL': 'TRL',
+        'VW': 'VW', 'VIEW': 'VW',
+        'WAY': 'WAY', 'WY': 'WAY'
+      };
+
+      let stType = '';
+      if (tokens.length > 1 && typeMap[tokens[tokens.length - 1]]) {
+        stType = typeMap[tokens.pop()];
+      }
+      const stName = tokens.join(' ').trim();
+      if (!stName) {
+        return {
+          label: 'PPRBD Permits',
+          url: 'https://account.pprbd.org/publicaccess/AddressSearch.aspx'
+        };
+      }
+
+      const url = 'https://account.pprbd.org/publicaccess/PermitSearchResults.aspx'
+        + '?StLo=' + encodeURIComponent(houseNum)
+        + '&StHi=' + encodeURIComponent(houseNum)
+        + '&StDir=' + encodeURIComponent(stDir)
+        + '&StName=' + encodeURIComponent(stName)
+        + '&StType=' + encodeURIComponent(stType)
+        + '&SearchType=Permits';
+      return { label: 'PPRBD Permits', url };
+    }
+
     function buildBlankDraftFromTemplate(insp) {
       const tpl = getActiveTemplate();
       const tplSecs = Array.isArray(tpl.sections) && tpl.sections.length ? tpl.sections : DHI_TEMPLATE;
@@ -403,15 +790,43 @@
           photos: []
         }))
       }));
-      const pInfo = (insp.property_info && Object.keys(insp.property_info).length)
-        ? insp.property_info
-        : { address: insp.address || '', yearBuilt: '', sqft: '', weather: '', occupancy: '', utilities: 'All On', coverPhoto: '' };
+      const parsedAddr = parseAddressString(insp.address || '');
+      const basePInfo = (insp.property_info && Object.keys(insp.property_info).length) ? insp.property_info : {};
+      const pInfo = {
+        street: basePInfo.street || parsedAddr.street,
+        city: basePInfo.city || parsedAddr.city,
+        state: basePInfo.state || parsedAddr.state || 'CO',
+        zip: basePInfo.zip || parsedAddr.zip,
+        county: basePInfo.county || '',
+        mls: basePInfo.mls || '',
+        address: basePInfo.address || insp.address || '',
+        yearBuilt: basePInfo.yearBuilt || '',
+        sqft: basePInfo.sqft || '',
+        buildingType: basePInfo.buildingType || '',
+        inAttendance: basePInfo.inAttendance || '',
+        weather: basePInfo.weather || '',
+        coverPhoto: basePInfo.coverPhoto || '',
+        coverPhotoPath: basePInfo.coverPhotoPath || ''
+      };
+      const cSplit = splitNameParts(insp.client_name, insp.client_first_name, insp.client_last_name);
+      const aSplit = splitNameParts(insp.agent_name, insp.agent_first_name, insp.agent_last_name);
+      const contacts = {
+        clientFirstName: cSplit.first,
+        clientLastName: cSplit.last,
+        clientEmail: insp.client_email || '',
+        clientPhone: basePInfo.clientPhone || '',
+        agentFirstName: aSplit.first,
+        agentLastName: aSplit.last,
+        agentEmail: insp.agent_email || '',
+        agentBrokerage: basePInfo.agentBrokerage || ''
+      };
       return {
         inspectionId: insp.id,
         templateId: tpl.id,
         templateName: tpl.name,
         address: insp.address || '',
         propertyInfo: pInfo,
+        contacts,
         sections: coreSections,
         updatedAt: new Date().toISOString(),
         dirty: false
@@ -431,8 +846,12 @@
         chosen = localDraft || cloudDraft || buildBlankDraftFromTemplate(insp);
       }
 
-      // Sign any storagePath photos that do not have a local dataUrl yet
+      ensureDraftMetadata(chosen, insp);
+      // Sign any storagePath photos (including cover photo) that do not have a local dataUrl yet
       const toSign = [];
+      if (chosen.propertyInfo && chosen.propertyInfo.coverPhotoPath && !chosen.propertyInfo.coverPhoto) {
+        toSign.push(chosen.propertyInfo.coverPhotoPath);
+      }
       (chosen.sections || []).forEach(sec => (sec.items || []).forEach(it => (it.photos || []).forEach(p => {
         if (p.storagePath && !p.dataUrl) toSign.push(p.storagePath);
       })));
@@ -440,6 +859,9 @@
         try {
           const { data: signed } = await sb.storage.from('reports').createSignedUrls(toSign, 3600);
           const sMap = new Map((signed || []).map(x => [x.path, x.signedUrl]));
+          if (chosen.propertyInfo && chosen.propertyInfo.coverPhotoPath && sMap.has(chosen.propertyInfo.coverPhotoPath)) {
+            chosen.propertyInfo.coverPhotoSignedUrl = sMap.get(chosen.propertyInfo.coverPhotoPath);
+          }
           (chosen.sections || []).forEach(sec => (sec.items || []).forEach(it => (it.photos || []).forEach(p => {
             if (p.storagePath && !p.dataUrl && sMap.has(p.storagePath)) p.signedUrl = sMap.get(p.storagePath);
           })));
@@ -464,11 +886,226 @@
     // =========================================================================
     // SECTION / ITEM / PHOTO MUTATIONS (ALL LOCAL-FIRST)
     // =========================================================================
+    function splitNameParts(full, first, last) {
+      let f = (first || '').trim(), l = (last || '').trim();
+      if (!f && !l && full) {
+        const parts = String(full).trim().split(/\s+/);
+        f = parts[0] || '';
+        l = parts.slice(1).join(' ');
+      }
+      return { first: f, last: l, full: (f + ' ' + l).trim() || (full || '').trim() };
+    }
+
+    function parseAddressString(raw) {
+      const s = (raw || '').trim();
+      if (!s) return { street: '', city: '', state: 'CO', zip: '' };
+      const parts = s.split(',').map(x => x.trim());
+      if (parts.length >= 3) {
+        const stZip = parts[2].split(/\s+/);
+        return { street: parts[0], city: parts[1], state: stZip[0] || 'CO', zip: stZip[1] || '' };
+      }
+      if (parts.length === 2) {
+        const m = parts[1].match(/^(.*?)\s+([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)$/);
+        if (m) return { street: parts[0], city: m[1].trim(), state: m[2].toUpperCase(), zip: m[3] };
+        return { street: parts[0], city: parts[1], state: 'CO', zip: '' };
+      }
+      return { street: s, city: '', state: 'CO', zip: '' };
+    }
+
+    function formatFullAddress(pi) {
+      if (!pi) return '';
+      const line1 = (pi.street || '').trim();
+      const city = (pi.city || '').trim();
+      const stZip = [(pi.state || '').trim(), (pi.zip || '').trim()].filter(Boolean).join(' ');
+      const joined = [line1, city, stZip].filter(Boolean).join(', ');
+      return joined || (pi.address || '').trim();
+    }
+
+    function ensureDraftMetadata(draft, insp) {
+      draft.propertyInfo = draft.propertyInfo || {};
+      if (!draft.propertyInfo.street && (draft.propertyInfo.address || draft.address)) {
+        const pa = parseAddressString(draft.propertyInfo.address || draft.address);
+        draft.propertyInfo.street = pa.street;
+        draft.propertyInfo.city = draft.propertyInfo.city || pa.city;
+        draft.propertyInfo.state = draft.propertyInfo.state || pa.state || 'CO';
+        draft.propertyInfo.zip = draft.propertyInfo.zip || pa.zip;
+      }
+      if (!draft.contacts) {
+        const cSplit = splitNameParts(insp?.client_name, insp?.client_first_name, insp?.client_last_name);
+        const aSplit = splitNameParts(insp?.agent_name, insp?.agent_first_name, insp?.agent_last_name);
+        draft.contacts = {
+          clientFirstName: cSplit.first, clientLastName: cSplit.last,
+          clientEmail: insp?.client_email || '', clientPhone: draft.propertyInfo.clientPhone || '',
+          agentFirstName: aSplit.first, agentLastName: aSplit.last,
+          agentEmail: insp?.agent_email || '', agentBrokerage: draft.propertyInfo.agentBrokerage || ''
+        };
+      }
+    }
+
+    function updateContactField(field, val) {
+      if (!state.draft) return;
+      state.draft.contacts = state.draft.contacts || {};
+      state.draft.contacts[field] = val;
+      saveDraftLocally(true);
+    }
+
+    function togglePropChip(field, chipVal) {
+      if (!state.draft) return;
+      state.draft.propertyInfo = state.draft.propertyInfo || {};
+      let parts = (state.draft.propertyInfo[field] || '').split(',').map(x => x.trim()).filter(Boolean);
+      if (field === 'inAttendance') {
+        const isVacant = chipVal.toLowerCase().startsWith('vacant');
+        const hasExact = parts.some(p => p.toLowerCase() === chipVal.toLowerCase());
+        if (isVacant) {
+          parts = hasExact ? [] : [chipVal];
+        } else {
+          parts = parts.filter(p => !p.toLowerCase().startsWith('vacant'));
+          const idx = parts.findIndex(p => p.toLowerCase() === chipVal.toLowerCase());
+          if (idx >= 0) parts.splice(idx, 1);
+          else parts.push(chipVal);
+        }
+      } else {
+        const pos = parts.indexOf(chipVal);
+        if (pos >= 0) parts.splice(pos, 1);
+        else parts.push(chipVal);
+      }
+      state.draft.propertyInfo[field] = parts.join(', ');
+      saveDraftLocally(true);
+      render();
+    }
+
+    function uploadCoverPhoto(useCamera) {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*';
+      if (useCamera) inp.setAttribute('capture', 'environment');
+      inp.onchange = async () => {
+        const file = inp.files && inp.files[0];
+        if (!file) return;
+        const dataUrl = await compressImageFile(file, 1400, 0.85);
+        state.draft.propertyInfo = state.draft.propertyInfo || {};
+        state.draft.propertyInfo.coverPhoto = dataUrl;
+        state.draft.propertyInfo.coverPhotoPath = '';
+        await saveDraftLocally(true);
+        render();
+        toast('Cover photo added locally.');
+      };
+      inp.click();
+    }
+
+    function removeCoverPhoto() {
+      if (!state.draft || !state.draft.propertyInfo) return;
+      state.draft.propertyInfo.coverPhoto = '';
+      state.draft.propertyInfo.coverPhotoPath = '';
+      state.draft.propertyInfo.coverPhotoSignedUrl = '';
+      saveDraftLocally(true);
+      render();
+    }
+
+    function openPhotoFolderPicker(isFolder) {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*';
+      inp.multiple = true;
+      if (isFolder) inp.setAttribute('webkitdirectory', '');
+      inp.onchange = async () => {
+        const files = Array.from(inp.files || []).filter(f => f.type.startsWith('image/') || /\.(jpe?g|png|webp|heic)$/i.test(f.name));
+        if (!files.length) { toast('No image files found.'); return; }
+        toast(`Loading ${files.length} photo(s) into sidebar tray...`);
+        for (const f of files) {
+          try {
+            const dataUrl = await compressImageFile(f, 1280, 0.82);
+            state.photoTray.push({
+              id: 'tray-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+              name: f.name,
+              dataUrl,
+              used: false
+            });
+          } catch (e) {}
+        }
+        state.showPhotoTray = true;
+        render();
+        toast(`Loaded ${files.length} photo(s) into Photo Tray. Drag any photo onto an item.`);
+      };
+      inp.click();
+    }
+
+    function handleTrayDragStart(e, trayId) {
+      state.dragPhotoTrayId = trayId;
+      try { e.dataTransfer.setData('text/plain', trayId); } catch (_) {}
+    }
+
+    async function handleItemPhotoDrop(e, secIdx, itemIdx) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('ring-2', 'ring-sky-500', 'bg-sky-50/40');
+      const trayId = (e.dataTransfer && e.dataTransfer.getData('text/plain')) || state.dragPhotoTrayId;
+      if (!trayId) return;
+      const trayItem = (state.photoTray || []).find(x => x.id === trayId);
+      if (!trayItem) return;
+      const it = state.draft.sections[secIdx].items[itemIdx];
+      it.photos.push({
+        id: 'ph-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        label: it.code + ' ' + it.title,
+        dataUrl: trayItem.dataUrl,
+        storagePath: ''
+      });
+      trayItem.used = true;
+      state.dragPhotoTrayId = null;
+      await saveDraftLocally(true);
+      render();
+      // Open the photo editor immediately for the dropped image
+      openPhotoEditor(secIdx, itemIdx, it.photos.length - 1);
+    }
+
     function updatePropInfo(field, val) {
       if (!state.draft) return;
       state.draft.propertyInfo = state.draft.propertyInfo || {};
       state.draft.propertyInfo[field] = val;
+      if (field === 'zip') {
+        const z = String(val || '').replace(/[^0-9]/g, '').slice(0, 5);
+        if (z.length === 5 && DHI_ZIP_LOOKUP[z]) {
+          const info = DHI_ZIP_LOOKUP[z];
+          if (!state.draft.propertyInfo.city) {
+            state.draft.propertyInfo.city = info.city;
+            const el = document.getElementById('piCityInput'); if (el) el.value = info.city;
+          }
+          if (!state.draft.propertyInfo.state || state.draft.propertyInfo.state.toUpperCase() === 'CO') {
+            state.draft.propertyInfo.state = info.state;
+            const el = document.getElementById('piStateInput'); if (el) el.value = info.state;
+          }
+          if (!state.draft.propertyInfo.county) {
+            state.draft.propertyInfo.county = info.county;
+            const el = document.getElementById('piCountyInput'); if (el) el.value = info.county;
+          }
+        }
+      }
+      if (['street', 'city', 'state', 'zip', 'county'].includes(field)) {
+        const full = formatFullAddress(state.draft.propertyInfo);
+        if (full) {
+          state.draft.propertyInfo.address = full;
+          state.draft.address = full;
+          const hdr = document.getElementById('hdrTitle');
+          if (hdr) hdr.textContent = full;
+        }
+        const pLinkEl = document.getElementById('dhiTopPermitLink');
+        if (pLinkEl) {
+          const pl = dhiBuildPermitLink({
+            address: state.draft.address,
+            street: state.draft.propertyInfo.street || '',
+            city: state.draft.propertyInfo.city || '',
+            county: state.draft.propertyInfo.county || ''
+          });
+          pLinkEl.href = pl.url;
+          pLinkEl.textContent = pl.label + ' \u2197';
+        }
+      }
       saveDraftLocally(true);
+    }
+
+    function rememberCurrentAddressHistory() {
+      if (!state.draft || !state.draft.propertyInfo) return;
+      const pi = state.draft.propertyInfo;
+      dhiRememberAddrHistory({ city: pi.city, state: pi.state, county: pi.county, zip: pi.zip });
     }
 
     function toggleSMOption(secIdx, smIdx, optVal) {
@@ -1074,26 +1711,88 @@
     }
 
     // =========================================================================
-    // DESKTOP PHOTO EDITOR (ARROWS & CIRCLES BAKED INTO IMAGE)
+    // INTERACTIVE PHOTO EDITOR (DRAW, SELECT, MOVE, RESIZE, LINE, TEXT)
     // =========================================================================
     let photoEditCtx = null;
+
+    function getRememberedPhotoColor() {
+      try { return localStorage.getItem('dhi_photo_editor_color') || '#ef4444'; } catch (_e) { return '#ef4444'; }
+    }
+
+    function onPhotoColorChange(val) {
+      try { localStorage.setItem('dhi_photo_editor_color', val); } catch (_e) {}
+      if (photoEditCtx && photoEditCtx.selectedIdx >= 0 && photoEditCtx.shapes[photoEditCtx.selectedIdx]) {
+        photoEditCtx.shapes[photoEditCtx.selectedIdx].color = val;
+        redrawPhotoEditor();
+      }
+    }
+
+    function setPhotoStrokeWeight(px) {
+      if (photoEditCtx) {
+        photoEditCtx.strokeSize = px;
+        if (photoEditCtx.selectedIdx >= 0 && photoEditCtx.shapes[photoEditCtx.selectedIdx]) {
+          photoEditCtx.shapes[photoEditCtx.selectedIdx].size = px;
+          redrawPhotoEditor();
+        }
+      }
+      const map = { 5: 'strokeThinBtn', 9: 'strokeMedBtn', 14: 'strokeThickBtn' };
+      Object.entries(map).forEach(([k, id]) => {
+        const el = document.getElementById(id);
+        if (el) el.className = 'px-2 py-1 text-[11px] font-bold ' + (Number(k) === px ? 'bg-davis-navy text-white' : 'text-slate-700 hover:bg-slate-100');
+      });
+    }
+
+    function updateDeleteSelectedBtn() {
+      const btn = document.getElementById('deleteSelectedShapeBtn');
+      if (!btn) return;
+      if (photoEditCtx && photoEditCtx.selectedIdx >= 0) btn.classList.remove('hidden');
+      else btn.classList.add('hidden');
+    }
+
     function openPhotoEditor(secIdx, itemIdx, photoIdx) {
       const p = state.draft.sections[secIdx].items[itemIdx].photos[photoIdx];
       if (!p) return;
       const src = p.dataUrl || p.signedUrl;
       if (!src) return;
       document.getElementById('photoCaptionInput').value = p.label || '';
+      const bEl = document.getElementById('photoBrightness');
+      const cEl = document.getElementById('photoContrast');
+      if (bEl) bEl.value = 100;
+      if (cEl) cEl.value = 100;
+      const bv = document.getElementById('photoBrightVal');
+      const cv = document.getElementById('photoContrastVal');
+      if (bv) bv.textContent = '100%';
+      if (cv) cv.textContent = '100%';
+      const colSel = document.getElementById('photoColorSelect');
+      if (colSel) colSel.value = getRememberedPhotoColor();
       document.getElementById('photoEditorModal').classList.remove('hidden');
       const canvas = document.getElementById('photoEditorCanvas');
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload = () => {
-        const maxW = 900;
+        const maxW = 1000;
         const scale = img.naturalWidth > maxW ? (maxW / img.naturalWidth) : 1;
         canvas.width = Math.round(img.naturalWidth * scale);
         canvas.height = Math.round(img.naturalHeight * scale);
-        photoEditCtx = { secIdx, itemIdx, photoIdx, img, tool: 'arrow', shapes: [], dragStart: null, dragCurr: null };
+        photoEditCtx = {
+          secIdx, itemIdx, photoIdx, img,
+          tool: 'arrow',
+          strokeSize: 9,
+          shapes: [],
+          selectedIdx: -1,
+          mode: null, // 'draw' | 'move' | 'resize'
+          activeHandle: null,
+          dragStart: null,
+          dragCurr: null,
+          origShape: null,
+          linePendingStart: null,
+          hoverPos: null,
+          brightness: 100,
+          contrast: 100
+        };
+        setPhotoStrokeWeight(9);
         setPhotoTool('arrow');
+        updateDeleteSelectedBtn();
         redrawPhotoEditor();
       };
       img.src = src;
@@ -1105,48 +1804,231 @@
     }
 
     function setPhotoTool(t) {
-      if (photoEditCtx) photoEditCtx.tool = t;
-      document.getElementById('toolArrowBtn').className = 'px-3 py-1.5 rounded-lg font-bold ' + (t === 'arrow' ? 'bg-davis-navy text-white' : 'bg-slate-100 text-slate-700');
-      document.getElementById('toolCircleBtn').className = 'px-3 py-1.5 rounded-lg font-bold ' + (t === 'circle' ? 'bg-davis-navy text-white' : 'bg-slate-100 text-slate-700');
+      if (photoEditCtx) {
+        photoEditCtx.tool = t;
+        photoEditCtx.linePendingStart = null;
+        if (t !== 'select') {
+          photoEditCtx.selectedIdx = -1;
+          updateDeleteSelectedBtn();
+        }
+        redrawPhotoEditor();
+      }
+      ['select', 'arrow', 'line', 'circle', 'square', 'text'].forEach(k => {
+        const btn = document.getElementById('tool' + k.charAt(0).toUpperCase() + k.slice(1) + 'Btn');
+        if (btn) btn.className = 'px-2.5 py-1.5 rounded-lg font-bold ' + (t === k ? 'bg-davis-navy text-white' : 'bg-slate-100 text-slate-700');
+      });
+      const canvas = document.getElementById('photoEditorCanvas');
+      if (canvas) canvas.style.cursor = t === 'select' ? 'default' : (t === 'text' ? 'text' : 'crosshair');
+    }
+
+    function updatePhotoFilters() {
+      if (!photoEditCtx) return;
+      const b = Number(document.getElementById('photoBrightness')?.value || 100);
+      const c = Number(document.getElementById('photoContrast')?.value || 100);
+      photoEditCtx.brightness = b;
+      photoEditCtx.contrast = c;
+      document.getElementById('photoBrightVal').textContent = b + '%';
+      document.getElementById('photoContrastVal').textContent = c + '%';
+      redrawPhotoEditor();
+    }
+
+    function deleteSelectedPhotoShape() {
+      if (!photoEditCtx || photoEditCtx.selectedIdx < 0) return;
+      photoEditCtx.shapes.splice(photoEditCtx.selectedIdx, 1);
+      photoEditCtx.selectedIdx = -1;
+      updateDeleteSelectedBtn();
+      redrawPhotoEditor();
     }
 
     function undoPhotoAnnotation() {
-      if (!photoEditCtx || !photoEditCtx.shapes.length) return;
+      if (!photoEditCtx) return;
+      if (photoEditCtx.linePendingStart) {
+        photoEditCtx.linePendingStart = null;
+        redrawPhotoEditor();
+        return;
+      }
+      if (!photoEditCtx.shapes.length) return;
       photoEditCtx.shapes.pop();
+      photoEditCtx.selectedIdx = -1;
+      updateDeleteSelectedBtn();
       redrawPhotoEditor();
     }
 
     function clearPhotoAnnotations() {
       if (!photoEditCtx) return;
       photoEditCtx.shapes = [];
+      photoEditCtx.selectedIdx = -1;
+      photoEditCtx.linePendingStart = null;
+      photoEditCtx.brightness = 100;
+      photoEditCtx.contrast = 100;
+      const bEl = document.getElementById('photoBrightness');
+      const cEl = document.getElementById('photoContrast');
+      if (bEl) bEl.value = 100;
+      if (cEl) cEl.value = 100;
+      document.getElementById('photoBrightVal').textContent = '100%';
+      document.getElementById('photoContrastVal').textContent = '100%';
+      updateDeleteSelectedBtn();
       redrawPhotoEditor();
     }
 
+    function measureTextShapeBox(ctx, sh) {
+      const fs = Math.max(16, Math.round(sh.fontSize || 28));
+      ctx.save();
+      ctx.font = `800 ${fs}px Inter, system-ui, sans-serif`;
+      const tw = ctx.measureText(sh.text || '').width;
+      ctx.restore();
+      const padX = Math.round(fs * 0.42);
+      const padY = Math.round(fs * 0.28);
+      return { x: sh.x1, y: sh.y1, w: Math.max(40, tw + padX * 2), h: fs + padY * 2, fs, padX, padY };
+    }
+
+    function getShapeHandles(ctx, sh) {
+      if (sh.tool === 'arrow' || sh.tool === 'line') {
+        return [
+          { id: 'p1', x: sh.x1, y: sh.y1 },
+          { id: 'p2', x: sh.x2, y: sh.y2 }
+        ];
+      }
+      if (sh.tool === 'text') {
+        const b = measureTextShapeBox(ctx, sh);
+        return [{ id: 'se', x: b.x + b.w, y: b.y + b.h }];
+      }
+      const minX = Math.min(sh.x1, sh.x2), maxX = Math.max(sh.x1, sh.x2);
+      const minY = Math.min(sh.y1, sh.y2), maxY = Math.max(sh.y1, sh.y2);
+      return [
+        { id: 'nw', x: minX, y: minY },
+        { id: 'ne', x: maxX, y: minY },
+        { id: 'sw', x: minX, y: maxY },
+        { id: 'se', x: maxX, y: maxY }
+      ];
+    }
+
+    function distPointToSegment(px, py, x1, y1, x2, y2) {
+      const dx = x2 - x1, dy = y2 - y1;
+      const lenSq = dx * dx + dy * dy;
+      if (lenSq < 1e-6) return Math.hypot(px - x1, py - y1);
+      let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+      t = Math.max(0, Math.min(1, t));
+      return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+    }
+
+    function hitTestShape(ctx, sh, pt) {
+      const tol = 18;
+      if (sh.tool === 'arrow' || sh.tool === 'line') {
+        return distPointToSegment(pt.x, pt.y, sh.x1, sh.y1, sh.x2, sh.y2) <= Math.max(tol, (sh.size || 9) * 1.5);
+      }
+      if (sh.tool === 'text') {
+        const b = measureTextShapeBox(ctx, sh);
+        return pt.x >= b.x - 6 && pt.x <= b.x + b.w + 6 && pt.y >= b.y - 6 && pt.y <= b.y + b.h + 6;
+      }
+      const minX = Math.min(sh.x1, sh.x2), maxX = Math.max(sh.x1, sh.x2);
+      const minY = Math.min(sh.y1, sh.y2), maxY = Math.max(sh.y1, sh.y2);
+      return pt.x >= minX - tol && pt.x <= maxX + tol && pt.y >= minY - tol && pt.y <= maxY + tol;
+    }
+
     function drawShape(ctx, sh) {
+      const lw = Number(sh.size || 9);
+      ctx.save();
       ctx.strokeStyle = sh.color;
       ctx.fillStyle = sh.color;
-      ctx.lineWidth = 5;
+      ctx.lineWidth = lw;
       ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       if (sh.tool === 'circle') {
-        const rx = (sh.x2 - sh.x1) / 2;
-        const ry = (sh.y2 - sh.y1) / 2;
+        const cx = (sh.x1 + sh.x2) / 2;
+        const cy = (sh.y1 + sh.y2) / 2;
+        const rx = Math.max(4, Math.abs(sh.x2 - sh.x1) / 2);
+        const ry = Math.max(4, Math.abs(sh.y2 - sh.y1) / 2);
         ctx.beginPath();
-        ctx.ellipse(sh.x1 + rx, sh.y1 + ry, Math.abs(rx), Math.abs(ry), 0, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
         ctx.stroke();
-      } else {
-        const angle = Math.atan2(sh.y2 - sh.y1, sh.x2 - sh.x1);
-        const headLen = 20;
+      } else if (sh.tool === 'square') {
+        const x = Math.min(sh.x1, sh.x2);
+        const y = Math.min(sh.y1, sh.y2);
+        const w = Math.abs(sh.x2 - sh.x1);
+        const h = Math.abs(sh.y2 - sh.y1);
+        ctx.strokeRect(x, y, Math.max(4, w), Math.max(4, h));
+      } else if (sh.tool === 'line') {
         ctx.beginPath();
         ctx.moveTo(sh.x1, sh.y1);
         ctx.lineTo(sh.x2, sh.y2);
         ctx.stroke();
+      } else if (sh.tool === 'text') {
+        const b = measureTextShapeBox(ctx, sh);
+        const r = 8;
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
         ctx.beginPath();
-        ctx.moveTo(sh.x2, sh.y2);
-        ctx.lineTo(sh.x2 - headLen * Math.cos(angle - Math.PI / 6), sh.y2 - headLen * Math.sin(angle - Math.PI / 6));
-        ctx.lineTo(sh.x2 - headLen * Math.cos(angle + Math.PI / 6), sh.y2 - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.moveTo(b.x + r, b.y);
+        ctx.lineTo(b.x + b.w - r, b.y);
+        ctx.quadraticCurveTo(b.x + b.w, b.y, b.x + b.w, b.y + r);
+        ctx.lineTo(b.x + b.w, b.y + b.h - r);
+        ctx.quadraticCurveTo(b.x + b.w, b.y + b.h, b.x + b.w - r, b.y + b.h);
+        ctx.lineTo(b.x + r, b.y + b.h);
+        ctx.quadraticCurveTo(b.x, b.y + b.h, b.x, b.y + b.h - r);
+        ctx.lineTo(b.x, b.y + r);
+        ctx.quadraticCurveTo(b.x, b.y, b.x + r, b.y);
         ctx.closePath();
         ctx.fill();
+        ctx.strokeStyle = sh.color;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.font = `800 ${b.fs}px Inter, system-ui, sans-serif`;
+        ctx.fillStyle = sh.color;
+        ctx.textBaseline = 'top';
+        ctx.fillText(sh.text || '', b.x + b.padX, b.y + b.padY);
+      } else {
+        const dx = sh.x2 - sh.x1;
+        const dy = sh.y2 - sh.y1;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 2) {
+          const angle = Math.atan2(dy, dx);
+          const headLen = Math.max(26, lw * 3.6);
+          const shaftEndX = sh.x2 - (headLen * 0.65) * Math.cos(angle);
+          const shaftEndY = sh.y2 - (headLen * 0.65) * Math.sin(angle);
+          ctx.beginPath();
+          ctx.moveTo(sh.x1, sh.y1);
+          ctx.lineTo(shaftEndX, shaftEndY);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(sh.x2, sh.y2);
+          ctx.lineTo(sh.x2 - headLen * Math.cos(angle - Math.PI / 5.5), sh.y2 - headLen * Math.sin(angle - Math.PI / 5.5));
+          ctx.lineTo(sh.x2 - headLen * Math.cos(angle + Math.PI / 5.5), sh.y2 - headLen * Math.sin(angle + Math.PI / 5.5));
+          ctx.closePath();
+          ctx.fill();
+        }
       }
+      ctx.restore();
+    }
+
+    function drawSelectionOverlay(ctx, sh) {
+      ctx.save();
+      if (sh.tool === 'circle' || sh.tool === 'square') {
+        const minX = Math.min(sh.x1, sh.x2), maxX = Math.max(sh.x1, sh.x2);
+        const minY = Math.min(sh.y1, sh.y2), maxY = Math.max(sh.y1, sh.y2);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(minX - 4, minY - 4, (maxX - minX) + 8, (maxY - minY) + 8);
+        ctx.setLineDash([]);
+      } else if (sh.tool === 'text') {
+        const b = measureTextShapeBox(ctx, sh);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(b.x - 4, b.y - 4, b.w + 8, b.h + 8);
+        ctx.setLineDash([]);
+      }
+      const handles = getShapeHandles(ctx, sh);
+      handles.forEach(h => {
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, 9, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#0284c7';
+        ctx.stroke();
+      });
+      ctx.restore();
     }
 
     function redrawPhotoEditor() {
@@ -1154,50 +2036,289 @@
       const canvas = document.getElementById('photoEditorCanvas');
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.filter = `brightness(${photoEditCtx.brightness || 100}%) contrast(${photoEditCtx.contrast || 100}%)`;
       ctx.drawImage(photoEditCtx.img, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+
       photoEditCtx.shapes.forEach(s => drawShape(ctx, s));
-      if (photoEditCtx.dragStart && photoEditCtx.dragCurr) {
+
+      const activeColor = document.getElementById('photoColorSelect')?.value || getRememberedPhotoColor();
+      const activeSize = photoEditCtx.strokeSize || 9;
+
+      if (photoEditCtx.mode === 'draw' && photoEditCtx.dragStart && photoEditCtx.dragCurr) {
         drawShape(ctx, {
           tool: photoEditCtx.tool,
-          color: document.getElementById('photoColorSelect')?.value || '#ef4444',
+          color: activeColor,
+          size: activeSize,
           x1: photoEditCtx.dragStart.x, y1: photoEditCtx.dragStart.y,
           x2: photoEditCtx.dragCurr.x, y2: photoEditCtx.dragCurr.y
         });
+      }
+
+      if (photoEditCtx.linePendingStart) {
+        const ps = photoEditCtx.linePendingStart;
+        if (photoEditCtx.hoverPos) {
+          drawShape(ctx, {
+            tool: 'line',
+            color: activeColor,
+            size: activeSize,
+            x1: ps.x, y1: ps.y,
+            x2: photoEditCtx.hoverPos.x, y2: photoEditCtx.hoverPos.y
+          });
+        }
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(ps.x, ps.y, 9, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = activeColor;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      if (photoEditCtx.selectedIdx >= 0 && photoEditCtx.shapes[photoEditCtx.selectedIdx]) {
+        drawSelectionOverlay(ctx, photoEditCtx.shapes[photoEditCtx.selectedIdx]);
       }
     }
 
     (function bindPhotoEditorCanvas() {
       const canvas = document.getElementById('photoEditorCanvas');
+      const getCtx = () => canvas.getContext('2d');
       const pos = (e) => {
         const r = canvas.getBoundingClientRect();
-        return { x: (e.clientX - r.left) * (canvas.width / r.width), y: (e.clientY - r.top) * (canvas.height / r.height) };
+        const pt = e.touches && e.touches[0] ? e.touches[0] : (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0] : e);
+        return { x: (pt.clientX - r.left) * (canvas.width / r.width), y: (pt.clientY - r.top) * (canvas.height / r.height) };
       };
-      canvas.onmousedown = (e) => {
+
+      const start = (e) => {
         if (!photoEditCtx) return;
-        photoEditCtx.dragStart = pos(e);
-        photoEditCtx.dragCurr = photoEditCtx.dragStart;
-      };
-      canvas.onmousemove = (e) => {
-        if (!photoEditCtx || !photoEditCtx.dragStart) return;
-        photoEditCtx.dragCurr = pos(e);
+        if (e.touches) e.preventDefault();
+        const pt = pos(e);
+        const ctx = getCtx();
+
+        // 1. Check handles of currently selected shape first (works in ANY tool!)
+        if (photoEditCtx.selectedIdx >= 0 && photoEditCtx.shapes[photoEditCtx.selectedIdx]) {
+          const selShape = photoEditCtx.shapes[photoEditCtx.selectedIdx];
+          const handles = getShapeHandles(ctx, selShape);
+          const hitH = handles.find(h => Math.hypot(pt.x - h.x, pt.y - h.y) <= 18);
+          if (hitH) {
+            photoEditCtx.mode = 'resize';
+            photoEditCtx.activeHandle = hitH.id;
+            photoEditCtx.dragStart = pt;
+            photoEditCtx.origShape = { ...selShape };
+            return;
+          }
+          // If dragging the currently selected shape itself (even in draw mode, unless pending line click)
+          if (!photoEditCtx.linePendingStart && hitTestShape(ctx, selShape, pt)) {
+            photoEditCtx.mode = 'move';
+            photoEditCtx.dragStart = pt;
+            photoEditCtx.origShape = { ...selShape };
+            return;
+          }
+        }
+
+        // 2. Select / Move tool
+        if (photoEditCtx.tool === 'select') {
+          let hitIdx = -1;
+          for (let i = photoEditCtx.shapes.length - 1; i >= 0; i--) {
+            if (hitTestShape(ctx, photoEditCtx.shapes[i], pt)) { hitIdx = i; break; }
+          }
+          photoEditCtx.selectedIdx = hitIdx;
+          updateDeleteSelectedBtn();
+          if (hitIdx >= 0) {
+            photoEditCtx.mode = 'move';
+            photoEditCtx.dragStart = pt;
+            photoEditCtx.origShape = { ...photoEditCtx.shapes[hitIdx] };
+          }
+          redrawPhotoEditor();
+          return;
+        }
+
+        // 3. Text callout tool
+        if (photoEditCtx.tool === 'text') {
+          const txt = prompt('Enter photo label text (e.g., Missing flashing, Active leak):');
+          if (txt && txt.trim()) {
+            const color = document.getElementById('photoColorSelect')?.value || getRememberedPhotoColor();
+            photoEditCtx.shapes.push({
+              tool: 'text',
+              text: txt.trim(),
+              color,
+              fontSize: 28,
+              size: photoEditCtx.strokeSize || 9,
+              x1: pt.x,
+              y1: pt.y
+            });
+            photoEditCtx.selectedIdx = photoEditCtx.shapes.length - 1;
+            updateDeleteSelectedBtn();
+            redrawPhotoEditor();
+          }
+          return;
+        }
+
+        // 4. Straight Line tool (click-click OR drag)
+        if (photoEditCtx.tool === 'line') {
+          if (photoEditCtx.linePendingStart) {
+            const ps = photoEditCtx.linePendingStart;
+            const dist = Math.hypot(pt.x - ps.x, pt.y - ps.y);
+            if (dist >= 4) {
+              const color = document.getElementById('photoColorSelect')?.value || getRememberedPhotoColor();
+              photoEditCtx.shapes.push({
+                tool: 'line',
+                color,
+                size: photoEditCtx.strokeSize || 9,
+                x1: ps.x, y1: ps.y,
+                x2: pt.x, y2: pt.y
+              });
+              photoEditCtx.selectedIdx = photoEditCtx.shapes.length - 1;
+              updateDeleteSelectedBtn();
+            }
+            photoEditCtx.linePendingStart = null;
+            photoEditCtx.hoverPos = null;
+            redrawPhotoEditor();
+            return;
+          }
+          photoEditCtx.selectedIdx = -1;
+          updateDeleteSelectedBtn();
+          photoEditCtx.mode = 'draw';
+          photoEditCtx.dragStart = pt;
+          photoEditCtx.dragCurr = pt;
+          redrawPhotoEditor();
+          return;
+        }
+
+        // 5. Arrow, Circle, Square draw
+        photoEditCtx.selectedIdx = -1;
+        updateDeleteSelectedBtn();
+        photoEditCtx.mode = 'draw';
+        photoEditCtx.dragStart = pt;
+        photoEditCtx.dragCurr = pt;
         redrawPhotoEditor();
       };
-      window.addEventListener('mouseup', () => {
-        if (!photoEditCtx || !photoEditCtx.dragStart || !photoEditCtx.dragCurr) return;
-        photoEditCtx.shapes.push({
-          tool: photoEditCtx.tool,
-          color: document.getElementById('photoColorSelect')?.value || '#ef4444',
-          x1: photoEditCtx.dragStart.x, y1: photoEditCtx.dragStart.y,
-          x2: photoEditCtx.dragCurr.x, y2: photoEditCtx.dragCurr.y
-        });
+
+      const move = (e) => {
+        if (!photoEditCtx) return;
+        const pt = pos(e);
+        if (photoEditCtx.linePendingStart && !photoEditCtx.mode) {
+          photoEditCtx.hoverPos = pt;
+          redrawPhotoEditor();
+          return;
+        }
+        if (!photoEditCtx.mode || !photoEditCtx.dragStart) return;
+        if (e.touches) e.preventDefault();
+
+        if (photoEditCtx.mode === 'draw') {
+          photoEditCtx.dragCurr = pt;
+          redrawPhotoEditor();
+        } else if (photoEditCtx.mode === 'move' && photoEditCtx.selectedIdx >= 0) {
+          const dx = pt.x - photoEditCtx.dragStart.x;
+          const dy = pt.y - photoEditCtx.dragStart.y;
+          const o = photoEditCtx.origShape;
+          const sh = photoEditCtx.shapes[photoEditCtx.selectedIdx];
+          sh.x1 = o.x1 + dx;
+          sh.y1 = o.y1 + dy;
+          if (typeof o.x2 === 'number') sh.x2 = o.x2 + dx;
+          if (typeof o.y2 === 'number') sh.y2 = o.y2 + dy;
+          redrawPhotoEditor();
+        } else if (photoEditCtx.mode === 'resize' && photoEditCtx.selectedIdx >= 0) {
+          const o = photoEditCtx.origShape;
+          const sh = photoEditCtx.shapes[photoEditCtx.selectedIdx];
+          const h = photoEditCtx.activeHandle;
+          if (sh.tool === 'arrow' || sh.tool === 'line') {
+            if (h === 'p1') { sh.x1 = pt.x; sh.y1 = pt.y; }
+            else { sh.x2 = pt.x; sh.y2 = pt.y; }
+          } else if (sh.tool === 'text') {
+            const dy = pt.y - photoEditCtx.dragStart.y;
+            sh.fontSize = Math.max(16, Math.min(84, Math.round((o.fontSize || 28) + dy * 0.6)));
+          } else {
+            let minX = Math.min(o.x1, o.x2), maxX = Math.max(o.x1, o.x2);
+            let minY = Math.min(o.y1, o.y2), maxY = Math.max(o.y1, o.y2);
+            if (h.includes('w')) minX = pt.x;
+            if (h.includes('e')) maxX = pt.x;
+            if (h.includes('n')) minY = pt.y;
+            if (h.includes('s')) maxY = pt.y;
+            sh.x1 = minX; sh.y1 = minY; sh.x2 = maxX; sh.y2 = maxY;
+          }
+          redrawPhotoEditor();
+        }
+      };
+
+      const end = () => {
+        if (!photoEditCtx || !photoEditCtx.mode) return;
+        if (photoEditCtx.mode === 'draw' && photoEditCtx.dragStart && photoEditCtx.dragCurr) {
+          const dist = Math.hypot(photoEditCtx.dragCurr.x - photoEditCtx.dragStart.x, photoEditCtx.dragCurr.y - photoEditCtx.dragStart.y);
+          if (photoEditCtx.tool === 'line' && dist < 12) {
+            // Treat short click as Point A of a 2-click straight line
+            photoEditCtx.linePendingStart = { ...photoEditCtx.dragStart };
+            photoEditCtx.hoverPos = { ...photoEditCtx.dragStart };
+          } else if (dist >= 6) {
+            const color = document.getElementById('photoColorSelect')?.value || getRememberedPhotoColor();
+            photoEditCtx.shapes.push({
+              tool: photoEditCtx.tool,
+              color,
+              size: photoEditCtx.strokeSize || 9,
+              x1: photoEditCtx.dragStart.x, y1: photoEditCtx.dragStart.y,
+              x2: photoEditCtx.dragCurr.x, y2: photoEditCtx.dragCurr.y
+            });
+            photoEditCtx.selectedIdx = photoEditCtx.shapes.length - 1;
+            updateDeleteSelectedBtn();
+          }
+        }
+        photoEditCtx.mode = null;
+        photoEditCtx.activeHandle = null;
         photoEditCtx.dragStart = null;
         photoEditCtx.dragCurr = null;
+        photoEditCtx.origShape = null;
         redrawPhotoEditor();
+      };
+
+      canvas.ondblclick = (e) => {
+        if (!photoEditCtx) return;
+        const pt = pos(e);
+        const ctx = getCtx();
+        for (let i = photoEditCtx.shapes.length - 1; i >= 0; i--) {
+          const sh = photoEditCtx.shapes[i];
+          if (sh.tool === 'text' && hitTestShape(ctx, sh, pt)) {
+            const updated = prompt('Edit photo label text:', sh.text || '');
+            if (updated !== null && updated.trim()) {
+              sh.text = updated.trim();
+              redrawPhotoEditor();
+            }
+            return;
+          }
+        }
+      };
+
+      canvas.onmousedown = start;
+      canvas.onmousemove = move;
+      canvas.ontouchstart = start;
+      canvas.ontouchmove = move;
+      canvas.ontouchend = end;
+      window.addEventListener('mouseup', end);
+      window.addEventListener('keydown', (e) => {
+        if (!photoEditCtx) return;
+        if (document.getElementById('photoEditorModal').classList.contains('hidden')) return;
+        const tag = (document.activeElement && document.activeElement.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+        if ((e.key === 'Delete' || e.key === 'Backspace') && photoEditCtx.selectedIdx >= 0) {
+          e.preventDefault();
+          deleteSelectedPhotoShape();
+        } else if (e.key === 'Escape') {
+          photoEditCtx.linePendingStart = null;
+          photoEditCtx.selectedIdx = -1;
+          updateDeleteSelectedBtn();
+          redrawPhotoEditor();
+        }
       });
     })();
 
     async function saveEditedPhoto() {
       if (!photoEditCtx) return;
+      // Clear selection handles and pending line preview before baking JPEG
+      photoEditCtx.selectedIdx = -1;
+      photoEditCtx.linePendingStart = null;
+      redrawPhotoEditor();
       const canvas = document.getElementById('photoEditorCanvas');
       const newDataUrl = canvas.toDataURL('image/jpeg', 0.86);
       const p = state.draft.sections[photoEditCtx.secIdx].items[photoEditCtx.itemIdx].photos[photoEditCtx.photoIdx];
@@ -1228,6 +2349,16 @@
       render();
       try {
         const inspId = state.draft.inspectionId;
+        // 0. Upload cover photo if present locally without storagePath
+        const piObj = state.draft.propertyInfo || {};
+        if (piObj.coverPhoto && !piObj.coverPhotoPath) {
+          const cBlob = dataUrlToBlob(piObj.coverPhoto);
+          const cPath = `${inspId}/photos/cover-${Date.now()}.jpg`;
+          const { error: cErr } = await sb.storage.from('reports').upload(cPath, cBlob, { contentType: 'image/jpeg', upsert: true });
+          if (cErr) throw cErr;
+          piObj.coverPhotoPath = cPath;
+        }
+
         // 1. Upload any photos that have a local dataUrl without an up-to-date storagePath
         const pendingPhotos = [];
         state.draft.sections.forEach(sec => sec.items.forEach(it => (it.photos || []).forEach(p => {
@@ -1272,10 +2403,31 @@
           stylesMaterials: (sec.stylesMaterials || []).filter(sm => sm.value && sm.value.trim()).map(sm => ({ label: sm.label, value: sm.value.trim() }))
         }));
 
+        const cleanPropInfo = { ...(state.draft.propertyInfo || {}) };
+        delete cleanPropInfo.coverPhoto;
+        delete cleanPropInfo.coverPhotoSignedUrl;
+        const cInfo = state.draft.contacts || {};
+        cleanPropInfo.clientPhone = cInfo.clientPhone || '';
+        cleanPropInfo.agentBrokerage = cInfo.agentBrokerage || '';
+        const fullAddr = formatFullAddress(cleanPropInfo) || state.draft.address;
+        const clientFull = ((cInfo.clientFirstName || '') + ' ' + (cInfo.clientLastName || '')).trim();
+        const agentFull = ((cInfo.agentFirstName || '') + ' ' + (cInfo.agentLastName || '')).trim();
+
         const updPayload = {
-          property_info: state.draft.propertyInfo || {},
+          address: fullAddr,
+          client_first_name: cInfo.clientFirstName || '',
+          client_last_name: cInfo.clientLastName || '',
+          client_name: clientFull || undefined,
+          client_email: cInfo.clientEmail ? cInfo.clientEmail.trim().toLowerCase() : undefined,
+          agent_first_name: cInfo.agentFirstName || '',
+          agent_last_name: cInfo.agentLastName || '',
+          agent_name: agentFull,
+          agent_email: cInfo.agentEmail ? cInfo.agentEmail.trim().toLowerCase() : null,
+          property_info: cleanPropInfo,
           draft_data: cloudDraft
         };
+        if (!updPayload.client_name) delete updPayload.client_name;
+        if (!updPayload.client_email) delete updPayload.client_email;
         if (publishToPortal) updPayload.report_sections = reportSections;
 
         const { error: updErr } = await sb.from('inspections').update(updPayload).eq('id', inspId);
@@ -1439,15 +2591,29 @@
       }
 
       if (!state.draft) {
-        const cards = (state.inspections || []).map(i => `
+        const cards = (state.inspections || []).map(i => {
+          const pInfo = (i.property_info && typeof i.property_info === 'object') ? i.property_info : {};
+          const permitInfo = dhiBuildPermitLink({
+            address: i.address,
+            street: pInfo.street || '',
+            city: pInfo.city || '',
+            county: pInfo.county || ''
+          });
+          return `
           <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div class="font-extrabold text-slate-900 text-sm">${esc(i.address)}</div>
-              <div class="text-xs text-slate-500">${esc(i.client_name)} • ${esc(i.inspection_date || '')}</div>
+            <div class="flex items-center gap-3 min-w-0">
+              ${i._coverPhotoSignedUrl ? `<img src="${i._coverPhotoSignedUrl}" alt="${esc(i.address)}" class="w-20 h-14 rounded-xl object-cover border border-slate-200 bg-slate-100 shrink-0" />` : ''}
+              <div class="min-w-0">
+                <div class="font-extrabold text-slate-900 text-sm">${esc(i.address)}</div>
+                <div class="text-xs text-slate-500">${esc(i.client_name)} &bull; ${esc(i.inspection_date || '')}</div>
+              </div>
             </div>
-            <button type="button" onclick="openInspectionDraft('${i.id}')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Open in editor &rarr;</button>
-          </div>
-        `).join('');
+            <div class="flex flex-wrap items-center gap-2">
+              <a href="${permitInfo.url}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">${esc(permitInfo.label)} &nearr;</a>
+              <button type="button" onclick="openInspectionDraft('${i.id}')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Open in editor &rarr;</button>
+            </div>
+          </div>`;
+        }).join('');
         root.innerHTML = `
           <div class="space-y-4">
             <div class="bg-white rounded-2xl border border-slate-200 p-5 flex flex-wrap items-center justify-between gap-3">
@@ -1472,7 +2638,7 @@
       const sec = state.draft.sections[state.activeSecIdx] || state.draft.sections[0];
       const pi = state.draft.propertyInfo || {};
       const usedNames = new Set(state.draft.sections.map(s => s.name));
-      const optionalLeft = DHI_TEMPLATE.filter(s => !usedNames.has(s.name));
+      const optionalLeft = DHI_TEMPLATE.filter(s => DHI_ALLOWED_OPTIONAL_SECTIONS.includes(s.name) && !usedNames.has(s.name));
 
       const secTabs = state.draft.sections.map((s, idx) => {
         const rrCount = s.items.filter(it => getItemStatuses(it).includes('RR') || it.isSummary).length;
@@ -1539,7 +2705,7 @@
 
         const isBusy = state.aiBusyItemId === it.id;
         return `
-          <div class="bg-white rounded-2xl border ${it.isSummary ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'} shadow-sm p-4 space-y-3">
+          <div ondragover="event.preventDefault(); this.classList.add('ring-2', 'ring-sky-500', 'bg-sky-50/40');" ondragleave="this.classList.remove('ring-2', 'ring-sky-500', 'bg-sky-50/40');" ondrop="handleItemPhotoDrop(event, ${state.activeSecIdx}, ${itemIdx})" class="bg-white rounded-2xl border ${it.isSummary ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'} shadow-sm p-4 space-y-3 transition">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <span class="text-[11px] font-mono font-bold text-slate-400 mr-1.5">${esc(it.code)}</span>
@@ -1598,12 +2764,17 @@
         <div class="space-y-4">
           <!-- Top Action Bar -->
           <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-2.5">
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
               <button type="button" onclick="closeActiveDraft()" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">&larr; All inspections</button>
+              ${(() => {
+                const pl = dhiBuildPermitLink({ address: state.draft.address, street: pi.street || '', city: pi.city || '', county: pi.county || '' });
+                return `<a id="dhiTopPermitLink" href="${pl.url}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl border border-sky-200 bg-sky-50 hover:border-davis-navy text-davis-navy text-xs font-bold transition">${esc(pl.label)} &nearr;</a>`;
+              })()}
               <span class="text-xs font-bold text-slate-500">${state.draft.dirty ? 'Unsynced local changes' : 'Synced'}</span>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <button type="button" onclick="runWholeHomeAITask()" ${state.taskRunning ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold transition">${state.taskRunning ? esc(state.taskProgressText || 'Running AI task...') : `Run AI task (${countPendingAITaskItems()} pending)`}</button>
+              <button type="button" onclick="state.showPhotoTray=!state.showPhotoTray; render();" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.showPhotoTray ? 'bg-sky-600 border-sky-600 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">Photo tray (${state.photoTray.length})</button>
               <button type="button" onclick="toggleEditTemplateMode()" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.editTemplateMode ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">${state.editTemplateMode ? 'Editing template' : 'Edit template'}</button>
               <button type="button" onclick="saveDraftLocally(false)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-xs font-bold text-slate-700">Save locally</button>
               <button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-bold">${state.uploading ? 'Uploading...' : 'Upload draft to cloud'}</button>
@@ -1627,38 +2798,163 @@
             </div>
           ` : ''}
 
-          <!-- Property Info Card (Feeds AI Context) -->
+          <!-- Property Info Card (Full Address, MLS, Cover Photo, Building Type, In Attendance) -->
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
             <button type="button" onclick="state.showPropInfo=!state.showPropInfo; render();" class="w-full px-4 py-3 flex items-center justify-between text-xs font-extrabold text-slate-800 bg-slate-50 border-b border-slate-200">
-              <span>Property info (feeds AI context: age, location, conditions)</span>
+              <span>Property info &amp; cover photo (feeds AI context)</span>
               <span>${state.showPropInfo ? 'Hide' : 'Show'}</span>
             </button>
             ${state.showPropInfo ? `
-              <div class="p-4 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
-                <div class="col-span-2 sm:col-span-2">
-                  <label class="block font-bold text-slate-600 mb-1">Property address / city</label>
-                  <input type="text" value="${esc(pi.address || state.draft.address)}" oninput="updatePropInfo('address', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+              <div class="p-4 space-y-4 text-xs">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                  <!-- Cover Photo -->
+                  <div class="lg:col-span-3 space-y-2">
+                    <label class="block font-bold text-slate-700">Cover photo (front of home)</label>
+                    ${(pi.coverPhoto || pi.coverPhotoSignedUrl) ? `
+                      <div class="relative rounded-xl overflow-hidden border border-slate-300 bg-slate-100">
+                        <img src="${pi.coverPhoto || pi.coverPhotoSignedUrl}" class="w-full h-36 object-cover" />
+                        <button type="button" onclick="removeCoverPhoto()" class="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-lg bg-slate-900/80 text-white text-[10px] font-bold">Remove</button>
+                      </div>
+                    ` : `
+                      <div class="h-36 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center gap-2 p-2">
+                        <div class="flex gap-1.5">
+                          <button type="button" onclick="uploadCoverPhoto(true)" class="px-2.5 py-1.5 rounded-lg bg-davis-navy text-white text-[11px] font-bold">Camera</button>
+                          <button type="button" onclick="uploadCoverPhoto(false)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-[11px] font-bold">Browse</button>
+                        </div>
+                      </div>
+                    `}
+                  </div>
+
+                  <!-- Full Address + MLS + Core Specs -->
+                  <div class="lg:col-span-9 grid grid-cols-2 sm:grid-cols-6 gap-2.5">
+                    <div class="col-span-2 sm:col-span-4">
+                      <label class="block font-bold text-slate-600 mb-1">Address line</label>
+                      <input type="text" value="${esc(pi.street || '')}" oninput="updatePropInfo('street', this.value)" placeholder="1234 Maple Ridge Dr" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    ${(() => {
+                      const ao = dhiGetAddrDropdownOptions(state.inspections || []);
+                      return `
+                        <datalist id="dhiInspCityList">${ao.cities.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
+                        <datalist id="dhiInspStateList">${ao.states.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
+                        <datalist id="dhiInspCountyList">${ao.counties.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
+                        <datalist id="dhiInspZipList">${ao.zips.map(v => `<option value="${esc(v)}">${DHI_ZIP_LOOKUP[v] ? esc(DHI_ZIP_LOOKUP[v].city + ' (' + DHI_ZIP_LOOKUP[v].county + ')') : ''}</option>`).join('')}</datalist>
+                      `;
+                    })()}
+                    <div class="col-span-2 sm:col-span-2">
+                      <label class="block font-bold text-slate-600 mb-1">City</label>
+                      <input id="piCityInput" type="text" list="dhiInspCityList" value="${esc(pi.city || '')}" oninput="updatePropInfo('city', this.value)" onblur="rememberCurrentAddressHistory()" placeholder="Colorado Springs" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-1 sm:col-span-1">
+                      <label class="block font-bold text-slate-600 mb-1">State</label>
+                      <input id="piStateInput" type="text" list="dhiInspStateList" value="${esc(pi.state || 'CO')}" oninput="updatePropInfo('state', this.value)" onblur="rememberCurrentAddressHistory()" placeholder="CO" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-1 sm:col-span-1">
+                      <label class="block font-bold text-slate-600 mb-1">ZIP</label>
+                      <input id="piZipInput" type="text" list="dhiInspZipList" value="${esc(pi.zip || '')}" oninput="updatePropInfo('zip', this.value)" onblur="rememberCurrentAddressHistory()" placeholder="80918" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-1 sm:col-span-2">
+                      <label class="block font-bold text-slate-600 mb-1">County</label>
+                      <input id="piCountyInput" type="text" list="dhiInspCountyList" value="${esc(pi.county || '')}" oninput="updatePropInfo('county', this.value)" onblur="rememberCurrentAddressHistory()" placeholder="El Paso" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-1 sm:col-span-2">
+                      <label class="block font-bold text-slate-600 mb-1">MLS # (optional)</label>
+                      <input type="text" value="${esc(pi.mls || '')}" oninput="updatePropInfo('mls', this.value)" placeholder="Optional" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-1 sm:col-span-2">
+                      <label class="block font-bold text-slate-600 mb-1">Year built</label>
+                      <input type="text" value="${esc(pi.yearBuilt || '')}" oninput="updatePropInfo('yearBuilt', this.value)" placeholder="e.g., 1984" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-1 sm:col-span-2">
+                      <label class="block font-bold text-slate-600 mb-1">Approx. sq ft</label>
+                      <input type="text" value="${esc(pi.sqft || '')}" oninput="updatePropInfo('sqft', this.value)" placeholder="e.g., 2,400" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-2 sm:col-span-2">
+                      <label class="block font-bold text-slate-600 mb-1">Weather / temp</label>
+                      <input type="text" value="${esc(pi.weather || '')}" oninput="updatePropInfo('weather', this.value)" placeholder="Clear, 48F" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label class="block font-bold text-slate-600 mb-1">Year built</label>
-                  <input type="text" value="${esc(pi.yearBuilt || '')}" oninput="updatePropInfo('yearBuilt', this.value)" placeholder="e.g., 1984" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+
+                <!-- Type of building & In attendance (multi-select chips + editable box) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                  <div class="space-y-1.5">
+                    <div class="flex items-center justify-between gap-2">
+                      <label class="font-bold text-slate-700">Type of building</label>
+                      <input type="text" value="${esc(pi.buildingType || '')}" oninput="updatePropInfo('buildingType', this.value)" placeholder="Select below or type..." class="w-56 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                      ${DHI_BUILDING_TYPES.map(opt => {
+                        const sel = (pi.buildingType || '').split(',').map(x => x.trim()).includes(opt);
+                        return `<button type="button" onclick="togglePropChip('buildingType', '${esc(opt).replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
+                      }).join('')}
+                    </div>
+                  </div>
+                  <div class="space-y-1.5">
+                    <div class="flex items-center justify-between gap-2">
+                      <label class="font-bold text-slate-700">In attendance</label>
+                      <input type="text" value="${esc(pi.inAttendance || '')}" oninput="updatePropInfo('inAttendance', this.value)" placeholder="Select one or combine..." class="w-56 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                      ${DHI_ATTENDANCE_OPTIONS.map(opt => {
+                        const sel = (pi.inAttendance || '').split(',').map(x => x.trim()).includes(opt);
+                        return `<button type="button" onclick="togglePropChip('inAttendance', '${esc(opt).replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
+                      }).join('')}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label class="block font-bold text-slate-600 mb-1">Approx. sq ft</label>
-                  <input type="text" value="${esc(pi.sqft || '')}" oninput="updatePropInfo('sqft', this.value)" placeholder="e.g., 2,400" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Collapsible Customer & Agent Info Card -->
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <button type="button" onclick="state.showContactsCard=!state.showContactsCard; render();" class="w-full px-4 py-3 flex items-center justify-between text-xs font-extrabold text-slate-800 bg-slate-50 border-b border-slate-200">
+              <span>Customer &amp; agent info (${esc(((state.draft.contacts?.clientFirstName || '') + ' ' + (state.draft.contacts?.clientLastName || '')).trim() || 'Not set')}${state.draft.contacts?.agentFirstName ? ' • Agent: ' + esc(state.draft.contacts.agentFirstName + ' ' + (state.draft.contacts.agentLastName || '')) : ''})</span>
+              <span>${state.showContactsCard ? 'Hide' : 'Show'}</span>
+            </button>
+            ${state.showContactsCard ? `
+              <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div class="space-y-2.5 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
+                  <div class="font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Customer</div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">First name</label>
+                      <input type="text" value="${esc(state.draft.contacts?.clientFirstName || '')}" oninput="updateContactField('clientFirstName', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">Last name</label>
+                      <input type="text" value="${esc(state.draft.contacts?.clientLastName || '')}" oninput="updateContactField('clientLastName', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">Email</label>
+                      <input type="email" value="${esc(state.draft.contacts?.clientEmail || '')}" oninput="updateContactField('clientEmail', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">Phone</label>
+                      <input type="tel" value="${esc(state.draft.contacts?.clientPhone || '')}" oninput="updateContactField('clientPhone', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label class="block font-bold text-slate-600 mb-1">Weather / temp</label>
-                  <input type="text" value="${esc(pi.weather || '')}" oninput="updatePropInfo('weather', this.value)" placeholder="Clear, 48F" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
-                </div>
-                <div>
-                  <label class="block font-bold text-slate-600 mb-1">Occupancy</label>
-                  <select onchange="updatePropInfo('occupancy', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white">
-                    <option value="">Select...</option>
-                    <option value="Vacant" ${pi.occupancy === 'Vacant' ? 'selected' : ''}>Vacant</option>
-                    <option value="Occupied" ${pi.occupancy === 'Occupied' ? 'selected' : ''}>Occupied</option>
-                    <option value="Staged" ${pi.occupancy === 'Staged' ? 'selected' : ''}>Staged</option>
-                  </select>
+                <div class="space-y-2.5 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
+                  <div class="font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Real estate agent</div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">First name</label>
+                      <input type="text" value="${esc(state.draft.contacts?.agentFirstName || '')}" oninput="updateContactField('agentFirstName', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">Last name</label>
+                      <input type="text" value="${esc(state.draft.contacts?.agentLastName || '')}" oninput="updateContactField('agentLastName', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">Email</label>
+                      <input type="email" value="${esc(state.draft.contacts?.agentEmail || '')}" oninput="updateContactField('agentEmail', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">Brokerage</label>
+                      <input type="text" value="${esc(state.draft.contacts?.agentBrokerage || '')}" oninput="updateContactField('agentBrokerage', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                  </div>
                 </div>
               </div>
             ` : ''}
@@ -1686,8 +2982,32 @@
             </div>
           ` : ''}
 
-          <!-- Items List -->
-          <div class="space-y-3">${itemCards}</div>
+          <!-- Items List + Optional Desktop Photo Tray Sidebar -->
+          <div class="grid grid-cols-1 ${state.showPhotoTray ? 'lg:grid-cols-12' : ''} gap-4 items-start">
+            <div class="${state.showPhotoTray ? 'lg:col-span-8' : ''} space-y-3">${itemCards}</div>
+            ${state.showPhotoTray ? `
+              <aside class="lg:col-span-4 lg:sticky lg:top-16 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div class="text-xs font-extrabold text-slate-900">Photo tray (${state.photoTray.length})</div>
+                    <div class="text-[11px] text-slate-500">Drag any photo onto an item card to insert &amp; edit.</div>
+                  </div>
+                  <div class="flex gap-1.5">
+                    <button type="button" onclick="openPhotoFolderPicker(true)" class="px-2.5 py-1.5 rounded-lg bg-davis-navy text-white text-[11px] font-bold">Load folder</button>
+                    <button type="button" onclick="openPhotoFolderPicker(false)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-[11px] font-bold">+ Files</button>
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 max-h-[65vh] overflow-y-auto pr-1">
+                  ${state.photoTray.map(p => `
+                    <div draggable="true" ondragstart="handleTrayDragStart(event, '${p.id}')" class="relative cursor-grab active:cursor-grabbing rounded-xl overflow-hidden border ${p.used ? 'border-emerald-400 opacity-70' : 'border-slate-300 hover:border-davis-navy'} bg-slate-100">
+                      <img src="${p.dataUrl}" class="w-full h-20 object-cover pointer-events-none" />
+                      ${p.used ? '<span class="absolute top-1 right-1 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold">Used</span>' : ''}
+                    </div>
+                  `).join('') || '<div class="col-span-3 text-xs text-slate-400 text-center py-8 border border-dashed border-slate-200 rounded-xl">Click <strong>Load folder</strong> to open your inspection photos here.</div>'}
+                </div>
+              </aside>
+            ` : ''}
+          </div>
         </div>
       `;
     }
