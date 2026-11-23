@@ -688,20 +688,29 @@
       }
 
       // PPRBD serves El Paso County (except Ramah/Calhan) plus Woodland Park in Teller County.
+      const pprbdCities = [
+        'colorado springs', 'fountain', 'monument', 'palmer lake', 'manitou springs',
+        'green mountain falls', 'woodland park', 'peyton', 'falcon', 'black forest',
+        'security', 'widefield', 'cascade', 'chipita park'
+      ];
+      const normCountyCompact = effectiveCounty.replace(/[^a-z]/g, '');
       const isWoodlandPark = normCity === 'woodland park';
-      const isPprbd = isWoodlandPark || !effectiveCounty || effectiveCounty === 'el paso';
+      const isPprbdCity = pprbdCities.includes(normCity);
+      const isElPasoCounty = !effectiveCounty || effectiveCounty.includes('el paso') || normCountyCompact.includes('elpaso');
+      const isPprbd = isWoodlandPark || isPprbdCity || isElPasoCounty;
 
       if (!isPprbd) {
-        const countyPortals = {
-          'teller': { label: 'Teller County Permits', url: 'https://www.tellercounty.gov/Building-Permit-Contractor-Search' },
-          'douglas': { label: 'Douglas County Permits', url: 'https://apps.douglas.co.us/building/services/Default.aspx?PossePresentation=SimplePermitSearch' },
-          'pueblo': { label: 'Pueblo County Permits', url: 'https://pueblopermits.com/building/records/' },
-          'fremont': { label: 'Fremont County Permits', url: 'https://fremontcountyco.gov/building/building-permit-record-search' },
-          'park': { label: 'Park County Permits', url: 'https://www.parkcountyco.gov/75/Building' },
-          'elbert': { label: 'Elbert County Records', url: 'https://services.elbertcounty-co.gov/assessor/web/' }
-        };
-        if (countyPortals[effectiveCounty]) return countyPortals[effectiveCounty];
-        const titleCounty = rawCounty.replace(/\s+county$/i, '').trim() || effectiveCounty;
+        const countyPortals = [
+          ['teller', { label: 'Teller County Permits', url: 'https://www.tellercounty.gov/Building-Permit-Contractor-Search' }],
+          ['douglas', { label: 'Douglas County Permits', url: 'https://apps.douglas.co.us/building/services/Default.aspx?PossePresentation=SimplePermitSearch' }],
+          ['pueblo', { label: 'Pueblo County Permits', url: 'https://pueblopermits.com/building/records/' }],
+          ['fremont', { label: 'Fremont County Permits', url: 'https://fremontcountyco.gov/building/building-permit-record-search' }],
+          ['park', { label: 'Park County Permits', url: 'https://www.parkcountyco.gov/75/Building' }],
+          ['elbert', { label: 'Elbert County Records', url: 'https://services.elbertcounty-co.gov/assessor/web/' }]
+        ];
+        const matchedPortal = countyPortals.find(([k]) => effectiveCounty.includes(k));
+        if (matchedPortal) return matchedPortal[1];
+        const titleCounty = rawCounty.replace(/\s+county.*$/i, '').trim() || effectiveCounty;
         return {
           label: titleCounty + ' County Permits',
           url: 'https://www.google.com/search?q=' + encodeURIComponent(titleCounty + ' County Colorado building permit search')

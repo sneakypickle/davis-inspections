@@ -3950,20 +3950,29 @@ function submitInspectionQuoteRequest(payload) {
       }
 
       // PPRBD serves El Paso County (except Ramah/Calhan) plus Woodland Park in Teller County.
+      const pprbdCities = [
+        'colorado springs', 'fountain', 'monument', 'palmer lake', 'manitou springs',
+        'green mountain falls', 'woodland park', 'peyton', 'falcon', 'black forest',
+        'security', 'widefield', 'cascade', 'chipita park'
+      ];
+      const normCountyCompact = effectiveCounty.replace(/[^a-z]/g, '');
       const isWoodlandPark = normCity === 'woodland park';
-      const isPprbd = isWoodlandPark || !effectiveCounty || effectiveCounty === 'el paso';
+      const isPprbdCity = pprbdCities.includes(normCity);
+      const isElPasoCounty = !effectiveCounty || effectiveCounty.includes('el paso') || normCountyCompact.includes('elpaso');
+      const isPprbd = isWoodlandPark || isPprbdCity || isElPasoCounty;
 
       if (!isPprbd) {
-        const countyPortals = {
-          'teller': { label: 'Teller County Permits', url: 'https://www.tellercounty.gov/Building-Permit-Contractor-Search' },
-          'douglas': { label: 'Douglas County Permits', url: 'https://apps.douglas.co.us/building/services/Default.aspx?PossePresentation=SimplePermitSearch' },
-          'pueblo': { label: 'Pueblo County Permits', url: 'https://pueblopermits.com/building/records/' },
-          'fremont': { label: 'Fremont County Permits', url: 'https://fremontcountyco.gov/building/building-permit-record-search' },
-          'park': { label: 'Park County Permits', url: 'https://www.parkcountyco.gov/75/Building' },
-          'elbert': { label: 'Elbert County Records', url: 'https://services.elbertcounty-co.gov/assessor/web/' }
-        };
-        if (countyPortals[effectiveCounty]) return countyPortals[effectiveCounty];
-        const titleCounty = rawCounty.replace(/\s+county$/i, '').trim() || effectiveCounty;
+        const countyPortals = [
+          ['teller', { label: 'Teller County Permits', url: 'https://www.tellercounty.gov/Building-Permit-Contractor-Search' }],
+          ['douglas', { label: 'Douglas County Permits', url: 'https://apps.douglas.co.us/building/services/Default.aspx?PossePresentation=SimplePermitSearch' }],
+          ['pueblo', { label: 'Pueblo County Permits', url: 'https://pueblopermits.com/building/records/' }],
+          ['fremont', { label: 'Fremont County Permits', url: 'https://fremontcountyco.gov/building/building-permit-record-search' }],
+          ['park', { label: 'Park County Permits', url: 'https://www.parkcountyco.gov/75/Building' }],
+          ['elbert', { label: 'Elbert County Records', url: 'https://services.elbertcounty-co.gov/assessor/web/' }]
+        ];
+        const matchedPortal = countyPortals.find(([k]) => effectiveCounty.includes(k));
+        if (matchedPortal) return matchedPortal[1];
+        const titleCounty = rawCounty.replace(/\s+county.*$/i, '').trim() || effectiveCounty;
         return {
           label: titleCounty + ' County Permits',
           url: 'https://www.google.com/search?q=' + encodeURIComponent(titleCounty + ' County Colorado building permit search')
@@ -6020,16 +6029,15 @@ function submitInspectionQuoteRequest(payload) {
         </button>
       `).join('');
 
+      const activeExtraDoc = protoState.activeDocTab !== 'main' ? (extraDocs.find(d => d.id === protoState.activeDocTab) || extraDocs[0] || null) : null;
       const headerAndDocsBar = `
-        <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm no-print">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div class="flex flex-wrap items-center gap-3 mb-0.5">
-                ${protoState.demoMode
-                  ? `<button type="button" onclick="protoExitDemoToSamples()" class="text-xs font-bold text-slate-600 hover:text-davis-navy">← Back to Sample Reports</button><span class="text-slate-300">|</span><button type="button" onclick="protoLaunchSampleDemo()" class="text-xs font-bold text-sky-700 hover:underline">Switch View (Buyer / Agent)</button>`
-                  : `<button type="button" onclick="protoState.viewingReport=false; renderProtoPortal();" class="text-xs font-bold text-sky-700 hover:underline">← Back to Dashboard</button><span class="text-slate-300">|</span><button type="button" onclick="dhiSignOut()" class="text-xs font-semibold text-slate-500 hover:text-rose-600">Sign Out</button>`}
-              </div>
-              <div class="flex items-center gap-3">${insp.coverPhotoUrl ? `<img src="${insp.coverPhotoUrl}" alt="${escapeHtml(insp.address)}" class="w-20 h-14 rounded-lg object-cover border border-slate-200 shrink-0" />` : ''}<h2 class="text-lg font-extrabold text-slate-900">${insp.address}</h2></div>
+        <div class="bg-white rounded-2xl border border-slate-200 px-4 py-3 space-y-2.5 shadow-sm no-print">
+          <div class="flex flex-wrap items-center justify-between gap-2.5">
+            <div class="flex flex-wrap items-center gap-2.5">
+              ${protoState.demoMode
+                ? `<button type="button" onclick="protoExitDemoToSamples()" class="text-xs font-bold text-slate-600 hover:text-davis-navy">← Back to Sample Reports</button><span class="text-slate-300">|</span><button type="button" onclick="protoLaunchSampleDemo()" class="text-xs font-bold text-sky-700 hover:underline">Switch View (Buyer / Agent)</button>`
+                : `<button type="button" onclick="protoState.viewingReport=false; renderProtoPortal();" class="text-xs font-bold text-sky-700 hover:underline">← Back to Dashboard</button><span class="text-slate-300">|</span><button type="button" onclick="dhiSignOut()" class="text-xs font-semibold text-slate-500 hover:text-rose-600">Sign Out</button>`}
+              ${activeExtraDoc ? `<span class="text-slate-300 hidden sm:inline">|</span><span class="text-xs font-bold text-slate-700 truncate max-w-xs hidden sm:inline">${escapeHtml(insp.address)}</span>` : ''}
             </div>
             <div class="flex flex-wrap items-center gap-2 no-print">
               ${(() => {
@@ -6042,31 +6050,22 @@ function submitInspectionQuoteRequest(payload) {
                 const canSeePermit = isAdminRole || (isAgentRole && !!share.agent) || (isBuyerRole && !!share.buyer);
                 if (!canSeePermit) return '';
                 if (isDemoInsp) {
-                  return `<button type="button" onclick="protoToastMsg('Permit lookup is not available in the interactive demo. On live inspections, this links directly to the PPRBD or county permit page for the home.')" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</button>`;
+                  return `<button type="button" onclick="protoToastMsg('Permit lookup is not available in the interactive demo. On live inspections, this links directly to the PPRBD or county permit page for the home.')" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</button>`;
                 }
                 if (isBuyerRole) {
-                  return `<button type="button" onclick="protoOpenBuyerPermitLookup('${insp.id}')" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</button>`;
+                  return `<button type="button" onclick="protoOpenBuyerPermitLookup('${insp.id}')" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</button>`;
                 }
                 const pLink = dhiBuildPermitLink({ address: insp.address, street: pInfo.street || '', city: pInfo.city || '', county: pInfo.county || '' });
-                return `<a href="${pLink.url}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</a>`;
+                return `<a href="${pLink.url}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</a>`;
               })()}
-              ${protoState.activeDocTab === 'main' ? `<button type="button" onclick="dhiPrintInspectionReport()" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Print / Save PDF</button>` : ''}
-              ${protoState.activeDocTab === 'main' ? `<button type="button" onclick="document.getElementById('objectionListPanel')?.scrollIntoView({behavior:'smooth', block:'start'})" class="px-3 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Jump to Objection List &darr;</button>` : ''}
+              ${protoState.activeDocTab === 'main'
+                ? `<button type="button" onclick="dhiPrintInspectionReport()" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Print / Save PDF</button>`
+                : (activeExtraDoc && (activeExtraDoc.pdfViewUrl || activeExtraDoc.pdfPreviewUrl)
+                    ? `<a href="${activeExtraDoc.pdfViewUrl || activeExtraDoc.pdfPreviewUrl}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Download / Open ${escapeHtml(activeExtraDoc.title)} &nearr;</a>`
+                    : '')}
+              ${protoState.activeDocTab === 'main' ? `<button type="button" onclick="document.getElementById('objectionListPanel')?.scrollIntoView({behavior:'smooth', block:'start'})" class="px-3 py-1.5 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Jump to Objection List &darr;</button>` : ''}
             </div>
           </div>
-          ${(() => {
-            const pInfo = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
-            const pills = [
-              pInfo.buildingType ? ['Building', pInfo.buildingType] : null,
-              pInfo.yearBuilt ? ['Year Built', pInfo.yearBuilt] : null,
-              pInfo.sqft ? ['Sq Ft', pInfo.sqft] : null,
-              pInfo.inAttendance ? ['In Attendance', pInfo.inAttendance] : null,
-              pInfo.county ? ['County', pInfo.county] : null,
-              pInfo.mls ? ['MLS #', pInfo.mls] : null
-            ].filter(Boolean);
-            if (!pills.length) return '';
-            return `<div class="flex flex-wrap gap-2 pt-2 border-t border-slate-100 text-[11px] text-slate-600">${pills.map(([k, v]) => `<span class="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200"><strong class="text-slate-800">${escapeHtml(k)}:</strong> ${escapeHtml(v)}</span>`).join('')}</div>`;
-          })()}
           <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
             <span class="text-[11px] font-bold text-slate-400 uppercase mr-1">Documents:</span>
             ${docTabs}
@@ -6329,7 +6328,7 @@ function submitInspectionQuoteRequest(payload) {
           <div class="px-5 py-3 bg-davis-navy text-white flex flex-wrap items-center justify-between gap-2">
             <div>
               <div class="text-[10px] font-bold uppercase tracking-widest text-sky-300">Home Inspection Report</div>
-              <div class="text-base font-extrabold tracking-tight">Davis Home Inspections, LLC</div>
+              <div class="text-base font-extrabold tracking-tight">Davis Home Inspections, LLC${protoState.hideReportCover ? ' &bull; ' + escapeHtml(insp.address) : ''}</div>
             </div>
             <div class="flex items-center gap-3 text-[11px] text-sky-100">
               <span>Matt Davis &bull; Matt@Davis-Inspections.com &bull; (719) 203-9262</span>
