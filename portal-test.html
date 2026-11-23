@@ -2631,11 +2631,14 @@ function submitInspectionQuoteRequest(payload) {
       agentSearch: '',
       customerSearch: '',
       agents: [
-        { id: 'ag-1', name: 'Sarah Jenkins', email: 'sarah@coloradospringsrealty.com', phone: '(719) 555-0192', brokerage: 'RE/MAX Properties' }
+        { id: 'ag-1', firstName: 'Sarah', lastName: 'Jenkins', name: 'Sarah Jenkins', email: 'sarah@coloradospringsrealty.com', phone: '(719) 555-0192', brokerage: 'RE/MAX Properties' }
       ],
       customers: [
-        { id: 'cu-1', name: 'Jordan Lee', email: 'jordan.lee@example.com', phone: '(719) 555-0148', lastAddress: '7420 Mesa Ridge Pkwy, Fountain, CO 80817' }
+        { id: 'cu-1', firstName: 'Jordan', lastName: 'Lee', name: 'Jordan Lee', email: 'jordan.lee@example.com', phone: '(719) 555-0148', lastAddress: '7420 Mesa Ridge Pkwy, Fountain, CO 80817' }
       ],
+      agentProfile: null,
+      authLoading: false,
+      magicLinkSentContext: '',
       convertingRequestId: null,
       requests: [{"id": "req-sample-1", "createdAt": "2026-11-22T18:10:00Z", "clientName": "Jordan Lee", "clientRole": "Home Buyer", "clientEmail": "jordan.lee@example.com", "clientPhone": "(719) 555-0148", "preferredResponse": "Text", "address": "7420 Mesa Ridge Pkwy, Fountain, CO 80817", "sqft": "2,150", "yearBuilt": "2004", "preferredDate": "2026-11-25 9:00 AM", "addons": ["Sewer Scope ($145)", "48-Hour Radon Testing ($125+)"], "notes": "Crawlspace access is in the hall closet.", "status": "New"}],
       sections: [{"num": "1", "name": "Roofing", "stylesMaterials": [{"label": "Roof Covering", "value": "Dimensional"}, {"label": "Viewed roof covering from", "value": "Walked roof"}, {"label": "Sky Light(s)", "value": "One"}, {"label": "Chimney (exterior)", "value": "Brick"}]}, {"num": "2", "name": "Exterior", "stylesMaterials": [{"label": "Siding Style", "value": "Brick"}, {"label": "Siding Material", "value": "Brick veneer"}, {"label": "Exterior Entry Doors", "value": "Metal"}, {"label": "Appurtenance", "value": "Covered porch"}, {"label": "Driveway", "value": "Concrete"}]}, {"num": "3", "name": "Garage", "stylesMaterials": [{"label": "Garage Door Type", "value": "One automatic"}, {"label": "Garage Door Material", "value": "Insulated"}, {"label": "Auto-opener Manufacturer", "value": "SEARS"}]}, {"num": "4", "name": "Interiors", "stylesMaterials": [{"label": "Ceiling Materials", "value": "Gypsum Board"}, {"label": "Wall Material", "value": "Gypsum Board"}, {"label": "Floor Covering(s)", "value": "Carpet"}, {"label": "Interior Doors", "value": "Hollow core"}, {"label": "Window Types", "value": "Thermal/Insulated"}, {"label": "Cabinetry", "value": "Wood"}, {"label": "Countertop", "value": "Laminate"}]}, {"num": "5", "name": "Structural Components", "stylesMaterials": [{"label": "Foundation", "value": "Masonry block"}, {"label": "Method used to observe Crawlspace", "value": "Crawled"}, {"label": "Floor Structure", "value": "2 X 8"}, {"label": "Wall Structure", "value": "2 X 4 Wood"}, {"label": "Columns or Piers", "value": "Supporting walls"}, {"label": "Ceiling Structure", "value": "2X4"}, {"label": "Roof Structure", "value": "Engineered wood trusses"}, {"label": "Roof-Type", "value": "Hip and Valley"}, {"label": "Attic info", "value": "Scuttle hole"}, {"label": "Method used to observe attic", "value": "From entry"}]}, {"num": "6", "name": "Plumbing System", "stylesMaterials": [{"label": "Water Source", "value": "Public"}, {"label": "Water Filters", "value": "None"}, {"label": "Plumbing Water Supply (into home)", "value": "Copper"}, {"label": "Plumbing Water Distribution (inside home)", "value": "Copper"}, {"label": "Washer Drain Size", "value": "1 1/2\" Diameter (undersized)"}, {"label": "Plumbing Waste", "value": "ABS"}, {"label": "Water Heater Power Source", "value": "Gas (quick recovery)"}, {"label": "Water Heater Capacity", "value": "40 Gallon (1-2 people)"}, {"label": "Manufacturer", "value": "WHIRLPOOL"}, {"label": "Water Heater Location", "value": "Basement"}]}, {"num": "7", "name": "Electrical System", "stylesMaterials": [{"label": "Electrical Service Conductors", "value": "Below ground"}, {"label": "Panel capacity", "value": "100 AMP"}, {"label": "Panel Type", "value": "Circuit breakers"}, {"label": "Electric Panel Manufacturer", "value": "ITE"}, {"label": "Branch wire 15 and 20 AMP", "value": "Copper"}, {"label": "Wiring Methods", "value": "Romex"}]}, {"num": "8", "name": "Heating / Central Air Conditioning", "stylesMaterials": [{"label": "Heat Type", "value": "Forced Air"}, {"label": "Energy Source", "value": "Natural gas"}, {"label": "Number of Heat Systems (excluding wood)", "value": "One"}, {"label": "Heat System Manufacturer", "value": "INT. COMFORT"}, {"label": "Ductwork", "value": "Non-insulated"}, {"label": "Filter Type", "value": "Disposable"}, {"label": "Types of Fireplaces", "value": "Solid Fuel"}, {"label": "Operable Fireplaces", "value": "Two"}, {"label": "Number of Woodstoves", "value": "None"}, {"label": "Cooling Equipment Type", "value": "Air conditioner unit"}, {"label": "Number of AC Only Units", "value": "One"}, {"label": "Central Air Manufacturer", "value": "BRYANT"}]}, {"num": "9", "name": "Insulation and Ventilation", "stylesMaterials": [{"label": "Attic Insulation", "value": "Blown"}, {"label": "Ventilation", "value": "Gable vents"}, {"label": "Dryer Power Source", "value": "220 Electric"}, {"label": "Dryer Vent", "value": "Metal"}, {"label": "Floor System Insulation", "value": "NONE"}]}, {"num": "10", "name": "Built-In Kitchen Appliances", "stylesMaterials": [{"label": "Dishwasher Brand", "value": "AGED"}, {"label": "Disposer Brand", "value": "NONE"}, {"label": "Range/Oven", "value": "GENERAL ELECTRIC"}, {"label": "Exhaust/Range hood", "value": "KENMORE"}, {"label": "Built in Microwave", "value": "NONE"}, {"label": "Refrigerator Brand", "value": "LG"}]}],
@@ -3049,15 +3052,28 @@ function submitInspectionQuoteRequest(payload) {
       if (protoState.role === 'login') root.innerHTML = renderLoginHTML();
       else if (protoState.role === 'admin') root.innerHTML = renderAdminHTML();
       else if (protoState.role === 'agent') root.innerHTML = renderAgentHTML();
-      else if (protoState.role === 'buyer') { root.innerHTML = renderBuyerHTML(); initAgreementSigPad(); }
+      else if (protoState.role === 'buyer') {
+        root.innerHTML = renderBuyerHTML();
+        initAgreementSigPad();
+        initDhiSquareCard();
+      }
     }
 
     function renderLoginHTML() {
-      const sentMsg = protoState.magicLinkSentTo
-        ? `<div class="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-900 font-medium">Sign-in link sent to <strong>${protoState.magicLinkSentTo}</strong>. Check your inbox (and spam folder) and click the link to open your inspection.</div>`
+      const sentBanner = protoState.magicLinkSentTo
+        ? `<div class="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs text-emerald-900 space-y-2.5">
+            <div class="font-medium">Sign-in link sent to <strong>${escapeHtml(protoState.magicLinkSentTo)}</strong>. Check your inbox (and spam folder) and click the link to sign in.</div>
+            <div class="pt-2 border-t border-emerald-200/80 space-y-1.5">
+              <div class="text-[11px] text-emerald-800 font-semibold">Link expired or blocked by an email scanner? Enter the 6-digit code from the email:</div>
+              <div class="flex gap-2">
+                <input type="text" id="dhiOtpCodeInput" inputmode="numeric" maxlength="6" placeholder="6-digit code" onkeydown="if(event.key==='Enter') dhiVerifyEmailOtp()" class="w-36 px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-xs font-mono tracking-widest focus:ring-2 focus:ring-davis-navy focus:outline-none" />
+                <button type="button" onclick="dhiVerifyEmailOtp()" class="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition">Verify Code</button>
+              </div>
+            </div>
+          </div>`
         : '';
       const authErr = protoState.authErrorMsg
-        ? `<div class="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 font-medium">${protoState.authErrorMsg}</div>`
+        ? `<div class="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 font-medium">${escapeHtml(protoState.authErrorMsg)}</div>`
         : '';
       return `
         <div class="space-y-6">
@@ -3066,6 +3082,7 @@ function submitInspectionQuoteRequest(payload) {
             <p class="text-sm text-slate-600">Sign in to review your inspection agreement, pay your invoice, and view your reports.</p>
           </div>
           ${authErr ? `<div class="max-w-3xl mx-auto">${authErr}</div>` : ''}
+          ${sentBanner ? `<div class="max-w-3xl mx-auto">${sentBanner}</div>` : ''}
           <div class="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
             <!-- Homebuyers: Passwordless Magic Link -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between space-y-5">
@@ -3077,10 +3094,9 @@ function submitInspectionQuoteRequest(payload) {
               <div class="space-y-3">
                 <div>
                   <label for="protoBuyerMagicEmail" class="block text-xs font-bold text-slate-700 mb-1">Your Email Address</label>
-                  <input type="email" id="protoBuyerMagicEmail" placeholder="you@example.com" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-davis-navy focus:outline-none" />
+                  <input type="email" id="protoBuyerMagicEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter') protoSendBuyerMagicLink()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-davis-navy focus:outline-none" />
                 </div>
-                <button type="button" onclick="protoSendBuyerMagicLink()" class="w-full py-2.5 px-4 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-sm font-bold transition">Send Sign-In Link</button>
-                ${sentMsg}
+                <button type="button" onclick="protoSendBuyerMagicLink()" ${protoState.authLoading ? 'disabled' : ''} class="w-full py-2.5 px-4 rounded-xl bg-davis-navy hover:bg-davis-dark disabled:opacity-60 text-white text-sm font-bold transition">${protoState.authLoading ? 'Sending...' : 'Send Sign-In Link'}</button>
               </div>
             </div>
 
@@ -3102,8 +3118,8 @@ function submitInspectionQuoteRequest(payload) {
                   <div class="flex-grow border-t border-slate-200"></div>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <input type="email" id="dhiAgentEmail" placeholder="Email address" class="px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
-                  <input type="password" id="dhiAgentPassword" placeholder="Password" class="px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
+                  <input type="email" id="dhiAgentEmail" placeholder="Email address" onkeydown="if(event.key==='Enter') dhiAgentPasswordSignIn()" class="px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
+                  <input type="password" id="dhiAgentPassword" placeholder="Password" onkeydown="if(event.key==='Enter') dhiAgentPasswordSignIn()" class="px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
                 </div>
                 <div class="flex items-center justify-between gap-2">
                   <button type="button" onclick="dhiSendAgentMagicLink()" class="text-xs font-semibold text-sky-700 hover:underline">Email me a sign-in link instead</button>
@@ -3118,11 +3134,12 @@ function submitInspectionQuoteRequest(payload) {
             <div class="bg-slate-50 rounded-2xl border border-slate-200 p-5 space-y-3">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-sm font-extrabold text-slate-900">Inspector Login</h3>
+                <button type="button" onclick="dhiSendAdminMagicLink()" class="text-xs font-semibold text-sky-700 hover:underline">Send Inspector Magic Link instead</button>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                <input type="email" id="dhiAdminEmail" value="" placeholder="Email" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
-                <input type="password" id="dhiAdminPassword" placeholder="Password" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
-                <button type="button" onclick="dhiAdminPasswordSignIn()" class="py-2 px-4 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Sign In</button>
+                <input type="email" id="dhiAdminEmail" value="Matt@Davis-Inspections.com" placeholder="Inspector Email" onkeydown="if(event.key==='Enter') dhiAdminPasswordSignIn()" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
+                <input type="password" id="dhiAdminPassword" placeholder="Password" onkeydown="if(event.key==='Enter') dhiAdminPasswordSignIn()" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs focus:ring-2 focus:ring-davis-navy focus:outline-none" />
+                <button type="button" onclick="dhiAdminPasswordSignIn()" ${protoState.authLoading ? 'disabled' : ''} class="py-2 px-4 rounded-xl bg-davis-navy hover:bg-davis-dark disabled:opacity-60 text-white text-xs font-bold transition">${protoState.authLoading ? 'Signing In...' : 'Sign In'}</button>
               </div>
             </div>
           </div>
@@ -3137,12 +3154,14 @@ function submitInspectionQuoteRequest(payload) {
         protoToastMsg('Please enter a valid email address.');
         return;
       }
+      protoState.demoMode = false;
       protoState.authErrorMsg = '';
       protoState.magicLinkSentTo = '';
+      protoState.authLoading = true;
+      renderProtoPortal();
       const ok = await dhiSendLiveMagicLink(email);
-      if (ok) {
-        protoState.magicLinkSentTo = email;
-      }
+      protoState.authLoading = false;
+      if (ok) protoState.magicLinkSentTo = email;
       renderProtoPortal();
     }
 
@@ -3153,11 +3172,54 @@ function submitInspectionQuoteRequest(payload) {
         protoToastMsg('Enter your email address above first.');
         return;
       }
+      protoState.demoMode = false;
       protoState.authErrorMsg = '';
+      protoState.authLoading = true;
+      renderProtoPortal();
       const ok = await dhiSendLiveMagicLink(email);
-      if (ok) {
-        protoState.magicLinkSentTo = email;
+      protoState.authLoading = false;
+      if (ok) protoState.magicLinkSentTo = email;
+      renderProtoPortal();
+    }
+
+    async function dhiSendAdminMagicLink() {
+      const email = (document.getElementById('dhiAdminEmail')?.value || 'Matt@Davis-Inspections.com').trim();
+      if (!email || !email.includes('@')) {
+        protoToastMsg('Enter your inspector email first.');
+        return;
+      }
+      protoState.demoMode = false;
+      protoState.authErrorMsg = '';
+      protoState.authLoading = true;
+      renderProtoPortal();
+      const ok = await dhiSendLiveMagicLink(email);
+      protoState.authLoading = false;
+      if (ok) protoState.magicLinkSentTo = email;
+      renderProtoPortal();
+    }
+
+    async function dhiVerifyEmailOtp() {
+      const email = protoState.magicLinkSentTo;
+      const token = (document.getElementById('dhiOtpCodeInput')?.value || '').trim();
+      if (!email || !token) {
+        protoToastMsg('Enter the 6-digit code from your email.');
+        return;
+      }
+      if (!dhiSupabase) {
+        protoToastMsg('Authentication service unavailable.');
+        return;
+      }
+      protoState.demoMode = false;
+      protoState.authErrorMsg = '';
+      const { data, error } = await dhiSupabase.auth.verifyOtp({ email, token, type: 'email' });
+      if (error) {
+        protoState.authErrorMsg = error.message;
         renderProtoPortal();
+        return;
+      }
+      if (data && data.session) {
+        protoState.magicLinkSentTo = '';
+        await dhiApplyAuthSession(data.session);
       }
     }
 
@@ -3172,39 +3234,47 @@ function submitInspectionQuoteRequest(payload) {
         protoToastMsg('Authentication service unavailable.');
         return;
       }
+      protoState.demoMode = false;
       protoState.authErrorMsg = '';
-      const { error } = await dhiSupabase.auth.signInWithPassword({ email, password });
+      protoState.authLoading = true;
+      renderProtoPortal();
+      const { data, error } = await dhiSupabase.auth.signInWithPassword({ email, password });
+      protoState.authLoading = false;
       if (error) {
         protoState.authErrorMsg = error.message;
         renderProtoPortal();
+        return;
+      }
+      if (data && data.session) {
+        await dhiApplyAuthSession(data.session);
       }
     }
-
 
     async function dhiAdminPasswordSignIn() {
       const email = (document.getElementById('dhiAdminEmail')?.value || '').trim();
       const password = document.getElementById('dhiAdminPassword')?.value || '';
       if (!email || !password) {
-        protoToastMsg('Enter your admin email and password.');
+        protoToastMsg('Enter your inspector email and password.');
         return;
       }
-      if (dhiSupabase) {
-        protoState.authErrorMsg = '';
-        const { error } = await dhiSupabase.auth.signInWithPassword({ email, password });
-        if (error) {
-          protoState.authErrorMsg = error.message;
-          renderProtoPortal();
-        }
+      if (!dhiSupabase) {
+        protoState.authErrorMsg = 'Authentication service unavailable. Please check your internet connection.';
+        renderProtoPortal();
         return;
       }
-      if (email.toLowerCase() === 'matt@davis-inspections.com' && password === '4139295516') {
-        protoState.authErrorMsg = '';
-        protoState.role = 'admin';
-        protoState.activeCollaborator = 'Matt (Inspector)';
+      protoState.demoMode = false;
+      protoState.authErrorMsg = '';
+      protoState.authLoading = true;
+      renderProtoPortal();
+      const { data, error } = await dhiSupabase.auth.signInWithPassword({ email, password });
+      protoState.authLoading = false;
+      if (error) {
+        protoState.authErrorMsg = error.message + ' (Tip: If you have not set a password for this account in Supabase Auth, click "Send Inspector Magic Link instead" above.)';
         renderProtoPortal();
-      } else {
-        protoState.authErrorMsg = 'Invalid inspector email or password.';
-        renderProtoPortal();
+        return;
+      }
+      if (data && data.session) {
+        await dhiApplyAuthSession(data.session);
       }
     }
 
@@ -3221,31 +3291,61 @@ function submitInspectionQuoteRequest(payload) {
       protoToastMsg('Signed out.');
     }
 
-    function protoUpsertCustomer({ name, email, phone, lastAddress }) {
+    function dhiSplitFullName(fullName, firstName, lastName) {
+      let fn = (firstName || '').trim();
+      let ln = (lastName || '').trim();
+      const raw = (fullName || '').trim();
+      if (!fn && !ln && raw) {
+        const parts = raw.split(/\s+/);
+        fn = parts[0] || '';
+        ln = parts.slice(1).join(' ');
+      }
+      const combined = (fn + ' ' + ln).trim() || raw;
+      return { firstName: fn, lastName: ln, name: combined };
+    }
+
+    function dhiDisplayName(p) {
+      if (!p) return '';
+      const combined = ((p.firstName || p.first_name || '') + ' ' + (p.lastName || p.last_name || '')).trim();
+      return combined || p.name || p.email || '';
+    }
+
+    async function protoUpsertCustomer({ firstName, lastName, name, email, phone, lastAddress }, skipDb) {
       if (!email) return;
       const cleanEmail = email.trim().toLowerCase();
+      const split = dhiSplitFullName(name, firstName, lastName);
       protoState.customers = protoState.customers || [];
       const existing = protoState.customers.find(c => (c.email || '').toLowerCase() === cleanEmail);
       if (existing) {
-        if (name) existing.name = name;
+        if (split.firstName) existing.firstName = split.firstName;
+        if (split.lastName) existing.lastName = split.lastName;
+        if (split.name) existing.name = split.name;
         if (phone) existing.phone = phone;
         if (lastAddress) existing.lastAddress = lastAddress;
       } else {
         protoState.customers.unshift({
           id: 'cu-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
-          name: name || cleanEmail,
-          email: email.trim(),
+          firstName: split.firstName,
+          lastName: split.lastName,
+          name: split.name || cleanEmail,
+          email: cleanEmail,
           phone: phone || '',
           lastAddress: lastAddress || ''
         });
       }
-      if (typeof dhiSupabase !== 'undefined' && dhiSupabase) {
-        dhiSupabase.from('customers').upsert({
-          email: email.trim().toLowerCase(),
-          name: name || email.trim(),
-          phone: phone || '',
-          last_address: lastAddress || ''
-        }, { onConflict: 'email' }).then(() => {}).catch(() => {});
+      if (!skipDb && typeof dhiSupabase !== 'undefined' && dhiSupabase) {
+        try {
+          await dhiSupabase.from('customers').upsert({
+            email: cleanEmail,
+            first_name: split.firstName,
+            last_name: split.lastName,
+            name: split.name || cleanEmail,
+            phone: phone || '',
+            last_address: lastAddress || ''
+          }, { onConflict: 'email' });
+        } catch (e) {
+          console.warn('Customer upsert error:', e);
+        }
       }
     }
 
@@ -3323,46 +3423,63 @@ function submitInspectionQuoteRequest(payload) {
       protoUpdateCalPreview();
     }
 
-    function protoDeleteRequest(reqId) {
+    async function protoDeleteRequest(reqId) {
       protoState.requests = (protoState.requests || []).filter(r => r.id !== reqId);
       renderProtoPortal();
+      if (dhiIsLiveSession() && reqId && !String(reqId).startsWith('req-sample')) {
+        try { await dhiSupabase.from('inspection_requests').delete().eq('id', reqId); } catch (e) {}
+      }
       protoToastMsg('Inspection request deleted.');
     }
 
-    function protoAddNewAgent() {
-      const name = (document.getElementById('protoAddAgentName')?.value || '').trim();
-      const email = (document.getElementById('protoAddAgentEmail')?.value || '').trim();
+    async function protoAddNewAgent() {
+      const firstName = (document.getElementById('protoAddAgentFirstName')?.value || '').trim();
+      const lastName = (document.getElementById('protoAddAgentLastName')?.value || '').trim();
+      const email = (document.getElementById('protoAddAgentEmail')?.value || '').trim().toLowerCase();
       const phone = (document.getElementById('protoAddAgentPhone')?.value || '').trim();
       const brokerage = (document.getElementById('protoAddAgentBrokerage')?.value || '').trim();
-      if (!name || !email) {
-        protoToastMsg('Please enter both the agent name and email.');
+      const fullName = (firstName + ' ' + lastName).trim();
+      if (!fullName || !email) {
+        protoToastMsg('Please enter the agent first/last name and email.');
         return;
       }
       protoState.agents = protoState.agents || [];
       const existing = protoFindAgentByEmail(email);
       if (existing) {
-        existing.name = name;
+        existing.firstName = firstName;
+        existing.lastName = lastName;
+        existing.name = fullName;
         existing.phone = phone;
         existing.brokerage = brokerage;
       } else {
         protoState.agents.unshift({
           id: 'ag-' + Date.now(),
-          name,
+          firstName,
+          lastName,
+          name: fullName,
           email,
           phone,
           brokerage
         });
       }
       if (typeof dhiSupabase !== 'undefined' && dhiSupabase) {
-        dhiSupabase.from('agents').upsert({
-          email: email.toLowerCase(),
-          name,
+        const { data, error } = await dhiSupabase.from('agents').upsert({
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          name: fullName,
           phone,
           brokerage
-        }, { onConflict: 'email' }).then(() => {}).catch(() => {});
+        }, { onConflict: 'email' }).select().single();
+        if (error) {
+          protoToastMsg('Saved locally, but Supabase sync failed: ' + error.message);
+        } else if (data) {
+          const item = protoFindAgentByEmail(email);
+          if (item) item.id = data.id;
+        }
       }
       renderProtoPortal();
-      protoToastMsg('Saved agent: ' + name);
+      protoToastMsg('Saved agent: ' + fullName);
     }
 
     function protoImportHomeGaugeCSV(targetType) {
@@ -3372,7 +3489,7 @@ function submitInspectionQuoteRequest(payload) {
       inp.onchange = async () => {
         const file = inp.files && inp.files[0];
         if (!file) return;
-        const text = await file.text();
+        const text = (await file.text()).replace(/^\uFEFF/, '');
         const lines = text.split(/\r?\n/).filter(l => l.trim());
         if (lines.length < 2) {
           protoToastMsg('CSV file appears empty.');
@@ -3383,50 +3500,126 @@ function submitInspectionQuoteRequest(payload) {
           let cur = '', inQ = false;
           for (let i = 0; i < row.length; i++) {
             const ch = row[i];
-            if (ch === '"') { inQ = !inQ; }
-            else if (ch === ',' && !inQ) { out.push(cur.trim()); cur = ''; }
-            else { cur += ch; }
+            if (ch === '"') {
+              if (inQ && row[i + 1] === '"') { cur += '"'; i++; }
+              else { inQ = !inQ; }
+            } else if (ch === ',' && !inQ) {
+              out.push(cur.trim()); cur = '';
+            } else {
+              cur += ch;
+            }
           }
           out.push(cur.trim());
           return out;
         };
         const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
-        const idxOf = (cands) => headers.findIndex(h => cands.some(c => h.includes(c)));
-        const iEmail = idxOf(['email']);
-        const iName = idxOf(['fullname', 'name']);
-        const iFirst = idxOf(['firstname', 'first']);
-        const iLast = idxOf(['lastname', 'last']);
-        const iPhone = idxOf(['phone', 'mobile', 'cell']);
-        const iCompany = idxOf(['company', 'brokerage', 'office']);
-        const iAddr = idxOf(['address', 'street']);
+        const idxExactOrContains = (exactList, partialList) => {
+          for (const ex of exactList) {
+            const idx = headers.findIndex(h => h === ex);
+            if (idx >= 0) return idx;
+          }
+          for (const part of partialList) {
+            const idx = headers.findIndex(h => h.includes(part));
+            if (idx >= 0) return idx;
+          }
+          return -1;
+        };
+        const iEmail = idxExactOrContains(['email', 'emailaddress', 'primaryemail'], ['email']);
+        const iFirst = idxExactOrContains(['firstname', 'fname', 'first'], ['firstname', 'first']);
+        const iLast = idxExactOrContains(['lastname', 'lname', 'last'], ['lastname', 'last']);
+        const iName = idxExactOrContains(['fullname', 'name', 'contactname', 'clientname', 'agentname'], ['fullname']);
+        const iPhone = idxExactOrContains(['cellphone', 'mobilephone', 'phone', 'mobile', 'cell', 'workphone', 'homephone'], ['phone', 'mobile', 'cell']);
+        const iCompany = idxExactOrContains(['company', 'companyname', 'brokerage', 'office'], ['company', 'brokerage', 'office']);
+        const iAddr = idxExactOrContains(['address', 'address1', 'street', 'streetaddress', 'propertyaddress'], ['address', 'street']);
 
-        let imported = 0;
+        const deduped = new Map();
+        let skippedNoEmail = 0;
         for (let r = 1; r < lines.length; r++) {
           const cols = parseRow(lines[r]);
-          const email = iEmail >= 0 ? (cols[iEmail] || '').trim() : '';
-          let name = iName >= 0 ? (cols[iName] || '').trim() : '';
-          if (!name && (iFirst >= 0 || iLast >= 0)) {
-            name = `${iFirst >= 0 ? cols[iFirst] || '' : ''} ${iLast >= 0 ? cols[iLast] || '' : ''}`.trim();
+          const email = (iEmail >= 0 ? (cols[iEmail] || '').trim() : '').toLowerCase();
+          const rawFirst = iFirst >= 0 ? (cols[iFirst] || '').trim() : '';
+          const rawLast = iLast >= 0 ? (cols[iLast] || '').trim() : '';
+          const rawFull = iName >= 0 ? (cols[iName] || '').trim() : '';
+          const split = dhiSplitFullName(rawFull, rawFirst, rawLast);
+          if (!email) {
+            if (split.name) skippedNoEmail++;
+            continue;
           }
-          if (!email && !name) continue;
           const phone = iPhone >= 0 ? (cols[iPhone] || '').trim() : '';
           const brokerage = iCompany >= 0 ? (cols[iCompany] || '').trim() : '';
           const addr = iAddr >= 0 ? (cols[iAddr] || '').trim() : '';
+          deduped.set(email, {
+            email,
+            first_name: split.firstName,
+            last_name: split.lastName,
+            name: split.name || email,
+            phone,
+            brokerage,
+            last_address: addr
+          });
+        }
 
-          if (targetType === 'agents') {
-            protoState.agents = protoState.agents || [];
-            const ex = email ? protoFindAgentByEmail(email) : null;
-            if (!ex) {
-              protoState.agents.push({ id: 'ag-' + Date.now() + '-' + r, name: name || email, email, phone, brokerage });
-              imported++;
+        const rows = Array.from(deduped.values());
+        if (!rows.length) {
+          protoToastMsg('No rows with valid email addresses found in CSV.');
+          return;
+        }
+
+        // Update local state immediately
+        if (targetType === 'agents') {
+          protoState.agents = protoState.agents || [];
+          rows.forEach((row, idx) => {
+            const ex = protoFindAgentByEmail(row.email);
+            if (ex) {
+              ex.firstName = row.first_name; ex.lastName = row.last_name; ex.name = row.name;
+              if (row.phone) ex.phone = row.phone;
+              if (row.brokerage) ex.brokerage = row.brokerage;
+            } else {
+              protoState.agents.push({
+                id: 'ag-' + Date.now() + '-' + idx,
+                firstName: row.first_name, lastName: row.last_name, name: row.name,
+                email: row.email, phone: row.phone, brokerage: row.brokerage
+              });
             }
-          } else {
-            protoUpsertCustomer({ name: name || email, email, phone, lastAddress: addr });
-            imported++;
+          });
+        } else {
+          rows.forEach(row => {
+            protoUpsertCustomer({
+              firstName: row.first_name, lastName: row.last_name, name: row.name,
+              email: row.email, phone: row.phone, lastAddress: row.last_address
+            }, true);
+          });
+        }
+
+        // Batch upsert to Supabase in chunks of 200
+        let dbErr = '';
+        if (dhiSupabase) {
+          const table = targetType === 'agents' ? 'agents' : 'customers';
+          const payload = rows.map(row => targetType === 'agents'
+            ? { email: row.email, first_name: row.first_name, last_name: row.last_name, name: row.name, phone: row.phone, brokerage: row.brokerage }
+            : { email: row.email, first_name: row.first_name, last_name: row.last_name, name: row.name, phone: row.phone, last_address: row.last_address }
+          );
+          for (let i = 0; i < payload.length; i += 200) {
+            const chunk = payload.slice(i, i + 200);
+            const { error } = await dhiSupabase.from(table).upsert(chunk, { onConflict: 'email' });
+            if (error) { dbErr = error.message; break; }
+          }
+          // Reload IDs from Supabase if clean
+          if (!dbErr) {
+            const { data } = await dhiSupabase.from(table).select('*').order('last_name', { ascending: true });
+            if (Array.isArray(data)) {
+              if (targetType === 'agents') protoState.agents = data.map(dhiMapAgentRow);
+              else protoState.customers = data.map(dhiMapCustomerRow);
+            }
           }
         }
         renderProtoPortal();
-        protoToastMsg(`Imported ${imported} ${targetType === 'agents' ? 'agents' : 'customers'} from HomeGauge CSV.`);
+        const skipNote = skippedNoEmail ? ` (${skippedNoEmail} skipped without email)` : '';
+        if (dbErr) {
+          protoToastMsg(`Loaded ${rows.length} locally, but Supabase sync failed: ${dbErr}`);
+        } else {
+          protoToastMsg(`Imported & synced ${rows.length} ${targetType === 'agents' ? 'agents' : 'customers'}${skipNote}.`);
+        }
       };
       inp.click();
     }
@@ -3586,19 +3779,23 @@ function submitInspectionQuoteRequest(payload) {
         `;
       } else if (protoState.adminTab === 'agents') {
         const q = (protoState.agentSearch || '').toLowerCase();
-        const filteredAgents = agentsList.filter(a => !q || (a.name + ' ' + a.email + ' ' + (a.brokerage || '')).toLowerCase().includes(q));
-        const agentRows = filteredAgents.map(a => `
+        const filteredAgents = agentsList.filter(a => !q || ((a.firstName || '') + ' ' + (a.lastName || '') + ' ' + (a.name || '') + ' ' + (a.email || '') + ' ' + (a.brokerage || '')).toLowerCase().includes(q));
+        const agentRows = filteredAgents.map(a => {
+          const sp = dhiSplitFullName(a.name, a.firstName, a.lastName);
+          return `
           <tr onclick="protoOpenPersonModal('agent', '${(a.email || '').replace(/'/g, "\\'")}')" class="border-t border-slate-100 hover:bg-sky-50/60 cursor-pointer transition">
-            <td class="py-2.5 pr-3 font-bold text-davis-navy hover:underline text-xs">${a.name}</td>
-            <td class="py-2.5 px-2 text-xs text-slate-700">${a.email}</td>
-            <td class="py-2.5 px-2 text-xs text-slate-600">${a.phone || '—'}</td>
-            <td class="py-2.5 px-2 text-xs text-slate-600">${a.brokerage || '—'}</td>
+            <td class="py-2.5 pr-2 font-bold text-davis-navy hover:underline text-xs">${escapeHtml(sp.firstName || '—')}</td>
+            <td class="py-2.5 px-2 font-bold text-davis-navy hover:underline text-xs">${escapeHtml(sp.lastName || '—')}</td>
+            <td class="py-2.5 px-2 text-xs text-slate-700">${escapeHtml(a.email)}</td>
+            <td class="py-2.5 px-2 text-xs text-slate-600">${escapeHtml(a.phone || '—')}</td>
+            <td class="py-2.5 px-2 text-xs text-slate-600">${escapeHtml(a.brokerage || '—')}</td>
             <td class="py-2.5 pl-2 text-right whitespace-nowrap space-x-1" onclick="event.stopPropagation()">
               <button type="button" onclick="protoOpenPersonModal('agent', '${(a.email || '').replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy text-slate-700 text-[11px] font-bold transition">Edit / Reports</button>
               <button type="button" onclick="protoRequestDelete('agent', '${a.id || ''}', '${(a.email || '').replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold transition">Delete</button>
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
 
         bodyHTML = `
           <div class="space-y-4">
@@ -3610,10 +3807,14 @@ function submitInspectionQuoteRequest(payload) {
                 </div>
                 <button type="button" onclick="protoImportHomeGaugeCSV('agents')" class="px-3.5 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Import HomeGauge Agents CSV</button>
               </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
                 <div>
-                  <label class="block font-bold text-slate-700 mb-1">Agent Name *</label>
-                  <input id="protoAddAgentName" type="text" value="" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+                  <label class="block font-bold text-slate-700 mb-1">First Name *</label>
+                  <input id="protoAddAgentFirstName" type="text" value="" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Last Name *</label>
+                  <input id="protoAddAgentLastName" type="text" value="" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
                 </div>
                 <div>
                   <label class="block font-bold text-slate-700 mb-1">Agent Email *</label>
@@ -3636,20 +3837,21 @@ function submitInspectionQuoteRequest(payload) {
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-base font-extrabold text-slate-900">Agent Directory (${filteredAgents.length})</h3>
-                <input type="search" value="${protoState.agentSearch || ''}" oninput="protoState.agentSearch=this.value; renderProtoPortal();" placeholder="Search agents..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-56" />
+                <input type="search" value="${escapeHtml(protoState.agentSearch || '')}" oninput="protoState.agentSearch=this.value; renderProtoPortal();" placeholder="Search agents..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-56" />
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                   <thead>
                     <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      <th class="pb-2 pr-3">Name</th>
+                      <th class="pb-2 pr-2">First Name</th>
+                      <th class="pb-2 px-2">Last Name</th>
                       <th class="pb-2 px-2">Email</th>
                       <th class="pb-2 px-2">Phone</th>
                       <th class="pb-2 px-2">Brokerage</th>
                       <th class="pb-2 pl-2 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody>${agentRows || '<tr><td colspan="5" class="py-6 text-center text-xs text-slate-400">No agents found.</td></tr>'}</tbody>
+                  <tbody>${agentRows || '<tr><td colspan="6" class="py-6 text-center text-xs text-slate-400">No agents found.</td></tr>'}</tbody>
                 </table>
               </div>
             </div>
@@ -3657,19 +3859,23 @@ function submitInspectionQuoteRequest(payload) {
         `;
       } else if (protoState.adminTab === 'customers') {
         const q = (protoState.customerSearch || '').toLowerCase();
-        const filteredCusts = customersList.filter(c => !q || (c.name + ' ' + c.email + ' ' + (c.lastAddress || '')).toLowerCase().includes(q));
-        const custRows = filteredCusts.map(c => `
+        const filteredCusts = customersList.filter(c => !q || ((c.firstName || '') + ' ' + (c.lastName || '') + ' ' + (c.name || '') + ' ' + (c.email || '') + ' ' + (c.lastAddress || '')).toLowerCase().includes(q));
+        const custRows = filteredCusts.map(c => {
+          const sp = dhiSplitFullName(c.name, c.firstName, c.lastName);
+          return `
           <tr onclick="protoOpenPersonModal('customer', '${(c.email || '').replace(/'/g, "\\'")}')" class="border-t border-slate-100 hover:bg-sky-50/60 cursor-pointer transition">
-            <td class="py-2.5 pr-3 font-bold text-davis-navy hover:underline text-xs">${c.name}</td>
-            <td class="py-2.5 px-2 text-xs text-slate-700">${c.email}</td>
-            <td class="py-2.5 px-2 text-xs text-slate-600">${c.phone || '—'}</td>
-            <td class="py-2.5 px-2 text-xs text-slate-600">${c.lastAddress ? c.lastAddress.split(',')[0].trim() : '—'}</td>
+            <td class="py-2.5 pr-2 font-bold text-davis-navy hover:underline text-xs">${escapeHtml(sp.firstName || '—')}</td>
+            <td class="py-2.5 px-2 font-bold text-davis-navy hover:underline text-xs">${escapeHtml(sp.lastName || '—')}</td>
+            <td class="py-2.5 px-2 text-xs text-slate-700">${escapeHtml(c.email)}</td>
+            <td class="py-2.5 px-2 text-xs text-slate-600">${escapeHtml(c.phone || '—')}</td>
+            <td class="py-2.5 px-2 text-xs text-slate-600">${escapeHtml(c.lastAddress ? c.lastAddress.split(',')[0].trim() : '—')}</td>
             <td class="py-2.5 pl-2 text-right whitespace-nowrap space-x-1" onclick="event.stopPropagation()">
               <button type="button" onclick="protoOpenPersonModal('customer', '${(c.email || '').replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy text-slate-700 text-[11px] font-bold transition">Edit / Reports</button>
               <button type="button" onclick="protoRequestDelete('customer', '${c.id || ''}', '${(c.email || '').replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold transition">Delete</button>
             </td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
 
         bodyHTML = `
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
@@ -3679,7 +3885,7 @@ function submitInspectionQuoteRequest(payload) {
                 <p class="text-xs text-slate-500">Automatically populates when buyers submit requests or when you create inspections. You can also import your HomeGauge customer CSV.</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <input type="search" value="${protoState.customerSearch || ''}" oninput="protoState.customerSearch=this.value; renderProtoPortal();" placeholder="Search customers..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-52" />
+                <input type="search" value="${escapeHtml(protoState.customerSearch || '')}" oninput="protoState.customerSearch=this.value; renderProtoPortal();" placeholder="Search customers..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-52" />
                 <button type="button" onclick="protoImportHomeGaugeCSV('customers')" class="px-3.5 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Import HomeGauge CSV</button>
               </div>
             </div>
@@ -3687,14 +3893,15 @@ function submitInspectionQuoteRequest(payload) {
               <table class="w-full text-left border-collapse">
                 <thead>
                   <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    <th class="pb-2 pr-3">Name</th>
+                    <th class="pb-2 pr-2">First Name</th>
+                    <th class="pb-2 px-2">Last Name</th>
                     <th class="pb-2 px-2">Email</th>
                     <th class="pb-2 px-2">Phone</th>
                     <th class="pb-2 px-2">Property Address</th>
                     <th class="pb-2 pl-2 text-right">Action</th>
                   </tr>
                 </thead>
-                <tbody>${custRows || '<tr><td colspan="5" class="py-6 text-center text-xs text-slate-400">No customers found.</td></tr>'}</tbody>
+                <tbody>${custRows || '<tr><td colspan="6" class="py-6 text-center text-xs text-slate-400">No customers found.</td></tr>'}</tbody>
               </table>
             </div>
           </div>
@@ -3804,8 +4011,9 @@ function submitInspectionQuoteRequest(payload) {
             <div class="flex flex-wrap items-center gap-2">
               ${tabBtns}
             </div>
-            <div class="text-[11px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl">
-              Phase 2 Ready: Mobile Web Report Builder (Android + Gemini) plugs in here
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-semibold text-slate-500 hidden sm:inline">${escapeHtml(protoState.authUser?.email || 'Matt@Davis-Inspections.com')}</span>
+              <button type="button" onclick="dhiSignOut()" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-xs font-bold transition">Sign Out</button>
             </div>
           </div>
           ${bodyHTML}
@@ -3862,8 +4070,26 @@ function submitInspectionQuoteRequest(payload) {
       const matchedAgent = protoFindAgentByEmail(agentEmail);
       const agentInputName = (document.getElementById('protoNewAgentName')?.value || '').trim();
       const agent = agentInputName || (matchedAgent ? matchedAgent.name : '');
+      const clientSplit = dhiSplitFullName(client);
+      const agentSplit = dhiSplitFullName(agent);
       if (agentEmail && agent && !matchedAgent) {
-        protoState.agents.push({ id: 'ag-' + Date.now(), name: agent, email: agentEmail, phone: '', brokerage: '' });
+        protoState.agents.push({
+          id: 'ag-' + Date.now(),
+          firstName: agentSplit.firstName,
+          lastName: agentSplit.lastName,
+          name: agentSplit.name,
+          email: agentEmail.toLowerCase(),
+          phone: '',
+          brokerage: ''
+        });
+        if (dhiSupabase) {
+          dhiSupabase.from('agents').upsert({
+            email: agentEmail.toLowerCase(),
+            first_name: agentSplit.firstName,
+            last_name: agentSplit.lastName,
+            name: agentSplit.name
+          }, { onConflict: 'email' }).then(() => {}).catch(() => {});
+        }
       }
       const fee = Number(document.getElementById('protoNewFee')?.value) || 0;
 
@@ -3877,6 +4103,7 @@ function submitInspectionQuoteRequest(payload) {
       if (document.getElementById('protoNewSewer')?.checked) { services.push({ name: 'Sewer Scope Inspection', price: 145 }); addonNames.push('Sewer Scope Inspection'); }
       if (document.getElementById('protoNewRadon')?.checked) { services.push({ name: '48-Hour Radon Testing', price: 125 }); addonNames.push('48-Hour Radon Testing'); }
       if (document.getElementById('protoNewTermite')?.checked) { services.push({ name: 'Termite / WDI Inspection', price: 125 }); addonNames.push('Termite / WDI Inspection'); }
+      const totalCents = Math.round(services.reduce((sum, s) => sum + (Number(s.price) || 0), 0) * 100);
 
       const gcalTitle = `Inspection with ${agent || client}`;
       const gcalDetails = `Add-Ons: ${addonNames.length ? addonNames.join(', ') : 'None'}\n${agent ? 'Agent: ' + agent + (agentEmail ? ' (' + agentEmail + ')' : '') + '\n' : ''}Buyer: ${client}${phone ? ' • ' + phone : ''} • ${email}`;
@@ -3888,19 +4115,41 @@ function submitInspectionQuoteRequest(payload) {
         details: gcalDetails
       });
 
-      protoUpsertCustomer({ name: client, email, phone, lastAddress: addr });
+      await protoUpsertCustomer({ firstName: clientSplit.firstName, lastName: clientSplit.lastName, name: clientSplit.name, email, phone, lastAddress: addr });
 
-      const newId = 'insp-' + Date.now();
+      let newId = 'insp-' + Date.now();
+      if (dhiIsLiveSession()) {
+        const { data: inserted, error: insErr } = await dhiSupabase.from('inspections').insert({
+          address: addr,
+          inspection_date: dateStr,
+          client_first_name: clientSplit.firstName,
+          client_last_name: clientSplit.lastName,
+          client_name: clientSplit.name,
+          client_email: email.toLowerCase(),
+          agent_first_name: agentSplit.firstName,
+          agent_last_name: agentSplit.lastName,
+          agent_name: agentSplit.name,
+          agent_email: agentEmail ? agentEmail.toLowerCase() : null,
+          services,
+          total_cents: totalCents
+        }).select().single();
+        if (insErr) {
+          protoToastMsg('Error saving inspection to Supabase: ' + insErr.message);
+          return;
+        }
+        if (inserted && inserted.id) newId = inserted.id;
+      }
+
       protoState.inspections.unshift({
         id: newId,
         isDemo: false,
         address: addr,
         date: dateStr,
-        clientName: client,
-        clientEmail: email,
+        clientName: clientSplit.name,
+        clientEmail: email.toLowerCase(),
         clientPhone: phone,
-        agentName: agent,
-        agentEmail: agentEmail,
+        agentName: agentSplit.name,
+        agentEmail: agentEmail ? agentEmail.toLowerCase() : '',
         services,
         gcalUrl,
         agreementSigned: false,
@@ -3914,8 +4163,12 @@ function submitInspectionQuoteRequest(payload) {
       });
 
       if (protoState.convertingRequestId) {
-        const req = (protoState.requests || []).find(x => x.id === protoState.convertingRequestId);
+        const reqId = protoState.convertingRequestId;
+        const req = (protoState.requests || []).find(x => x.id === reqId);
         if (req) req.status = 'Scheduled';
+        if (dhiIsLiveSession() && !String(reqId).startsWith('req-sample')) {
+          try { await dhiSupabase.from('inspection_requests').update({ status: 'Scheduled' }).eq('id', reqId); } catch (e) {}
+        }
         protoState.convertingRequestId = null;
       }
       protoState.newInspDraft = null;
@@ -3955,10 +4208,34 @@ function submitInspectionQuoteRequest(payload) {
         const file = inp.files && inp.files[0];
         if (!file) return;
         const cleanTitle = file.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ');
-        const url = URL.createObjectURL(file);
+        let url = URL.createObjectURL(file);
+        let docId = 'doc-' + Date.now();
+        if (dhiIsLiveSession() && inspId && inspId !== 'insp-demo') {
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const storagePath = `${inspId}/${Date.now()}-${safeName}`;
+          const { error: upErr } = await dhiSupabase.storage.from('reports').upload(storagePath, file, { contentType: 'application/pdf', upsert: true });
+          if (upErr) {
+            protoToastMsg('Upload failed: ' + upErr.message);
+            return;
+          }
+          const { data: docRow, error: dbErr } = await dhiSupabase.from('inspection_documents').insert({
+            inspection_id: inspId,
+            doc_type: 'specialty_pdf',
+            title: cleanTitle,
+            storage_path: storagePath,
+            summary: 'Uploaded ' + file.name
+          }).select().single();
+          if (dbErr) {
+            protoToastMsg('File uploaded, but DB link failed: ' + dbErr.message);
+            return;
+          }
+          if (docRow && docRow.id) docId = docRow.id;
+          const { data: signed } = await dhiSupabase.storage.from('reports').createSignedUrl(storagePath, 3600);
+          if (signed && signed.signedUrl) url = signed.signedUrl;
+        }
         insp.extraDocs = insp.extraDocs || [];
         insp.extraDocs.push({
-          id: 'doc-' + Date.now(),
+          id: docId,
           title: cleanTitle,
           badge: 'PDF',
           summary: 'Uploaded ' + file.name,
@@ -3975,34 +4252,73 @@ function submitInspectionQuoteRequest(payload) {
       inp.click();
     }
 
-    function protoReleaseReport(id) {
+    async function protoReleaseReport(id) {
       const insp = protoState.inspections.find(i => i.id === id);
       if (!insp) return;
+      if (dhiIsLiveSession() && id && id !== 'insp-demo') {
+        const { error } = await dhiSupabase.from('inspections').update({ report_notified: true }).eq('id', id);
+        if (error) {
+          protoToastMsg('Error updating report status: ' + error.message);
+          return;
+        }
+        try {
+          await dhiSupabase.functions.invoke('send-portal-email', {
+            body: {
+              type: 'report_ready',
+              to: insp.clientEmail,
+              recipientName: insp.clientName || 'Client',
+              address: insp.address,
+              portalLink: dhiGetRedirectUrl()
+            }
+          });
+        } catch (err) {
+          console.warn('Report ready email error:', err);
+        }
+      }
       insp.reportUploaded = true;
       insp.reportNotified = true;
       protoState.activeInspectionId = id;
       protoState.adminTab = 'reports';
       renderProtoPortal();
-      protoToastMsg('Report Ready email sent! Moved to Inspection Reports.');
+      protoToastMsg('Report Ready email sent to ' + insp.clientEmail + '!');
     }
 
-        function renderAgentHTML() {
-      const cards = protoState.inspections.map(insp => {
+    async function dhiLinkGoogleIdentity() {
+      if (!dhiSupabase) {
+        protoToastMsg('Authentication service unavailable.');
+        return;
+      }
+      const { error } = await dhiSupabase.auth.linkIdentity({
+        provider: 'google',
+        options: { redirectTo: dhiGetRedirectUrl() }
+      });
+      if (error) {
+        protoToastMsg('Could not link Google account: ' + error.message);
+      }
+    }
+
+    function renderAgentHTML() {
+      const userEmail = protoState.authUser?.email || protoState.loggedInAgentEmail || '';
+      const hasGoogleLinked = !!(protoState.authUser?.identities || []).some(id => id.provider === 'google');
+      const agentDisplay = protoState.demoMode
+        ? 'Sarah Jenkins (Pikes Peak Realty)'
+        : (protoState.agentProfile ? dhiDisplayName(protoState.agentProfile) + (protoState.agentProfile.brokerage ? ' (' + protoState.agentProfile.brokerage + ')' : '') : (protoState.authUser?.user_metadata?.full_name || userEmail || 'Agent'));
+
+      const cards = (protoState.inspections || []).map(insp => {
         const extraBtns = (insp.extraDocs || []).map(d => `
-          <button type="button" onclick="protoOpenReport('${insp.id}','${d.id}')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition">${d.title} (PDF)</button>
+          <button type="button" onclick="protoOpenReport('${insp.id}','${d.id}')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold transition">${escapeHtml(d.title)} (PDF)</button>
         `).join('');
         return `
           <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col gap-3">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div class="space-y-1">
                 <div class="flex flex-wrap items-center gap-2">
-                  <h3 class="text-base font-extrabold text-slate-900">${insp.address}</h3>
+                  <h3 class="text-base font-extrabold text-slate-900">${escapeHtml(insp.address)}</h3>
                   <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${insp.paid ? 'Report Unlocked' : 'Awaiting Client Payment'}</span>
                 </div>
-                <p class="text-xs text-slate-600">Buyer: <strong>${insp.clientName}</strong> • ${insp.date}</p>
+                <p class="text-xs text-slate-600">Buyer: <strong>${escapeHtml(insp.clientName)}</strong> • ${escapeHtml(insp.date)}</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <button type="button" onclick="protoCopyText('Contractor Repair Summary for ${insp.address}:\\n1. Licensed Electrician: Correct double-lugged conductors in main panel.\\n2. Roofing Contractor: Install kick-out flashing at garage roofline.', 'Copied contractor-safe summary!')" class="px-3 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-xs font-bold text-slate-700 transition">Share w/ Contractor</button>
                 <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Open Report &amp; Objection Builder →</button>
               </div>
             </div>
@@ -4011,24 +4327,56 @@ function submitInspectionQuoteRequest(payload) {
         `;
       }).join('');
 
+      const emptyAgentHTML = `
+        <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center space-y-2">
+          <div class="text-sm font-bold text-slate-800">No inspections linked to ${escapeHtml(userEmail)} yet</div>
+          <p class="text-xs text-slate-500">When Davis Home Inspections schedules an inspection with your email address, it will appear here automatically.</p>
+        </div>
+      `;
+
       return `
         <div class="space-y-5">
           <div class="bg-davis-navy text-white rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <div class="text-[11px] font-bold uppercase tracking-wider text-sky-300">Persistent Google Account • Stayed Signed In</div>
-              <h2 class="text-xl font-extrabold">Welcome back, Sarah Jenkins (Pikes Peak Realty)</h2>
+              <div class="text-[11px] font-bold uppercase tracking-wider text-sky-300">Agent Portal • ${escapeHtml(userEmail)}</div>
+              <h2 class="text-xl font-extrabold">Welcome back, ${escapeHtml(agentDisplay)}</h2>
               <p class="text-xs text-slate-200">All of your clients' Davis Home Inspections reports &amp; specialty PDFs in one place.</p>
             </div>
-            <span class="px-3 py-1.5 rounded-xl bg-white/10 text-xs font-bold">${protoState.inspections.length} Active Properties</span>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-3 py-1.5 rounded-xl bg-white/10 text-xs font-bold">${(protoState.inspections || []).length} Active Properties</span>
+              ${!protoState.demoMode ? (hasGoogleLinked
+                ? `<span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-300/40 text-emerald-100 text-xs font-bold">Google Linked</span>`
+                : `<button type="button" onclick="dhiLinkGoogleIdentity()" class="px-3 py-1.5 rounded-xl bg-white text-davis-navy hover:bg-sky-50 text-xs font-bold transition">Link My Google Account</button>`
+              ) : ''}
+              ${!protoState.demoMode ? `<button type="button" onclick="dhiSignOut()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Sign Out</button>` : ''}
+            </div>
           </div>
-          <div class="space-y-3">${cards}</div>
+          <div class="space-y-3">${cards || emptyAgentHTML}</div>
         </div>
       `;
     }
 
     function renderBuyerHTML() {
-      const buyerInsps = protoState.inspections.filter(i => i.clientEmail.toLowerCase() === protoState.loggedInBuyerEmail.toLowerCase());
-      const list = buyerInsps.length ? buyerInsps : [protoState.inspections[0]];
+      const activeEmail = (protoState.authUser?.email || protoState.loggedInBuyerEmail || '').toLowerCase();
+      const buyerInsps = (protoState.inspections || []).filter(i => (i.clientEmail || '').toLowerCase() === activeEmail);
+      const list = buyerInsps.length ? buyerInsps : (protoState.demoMode && protoState.inspections.length ? [protoState.inspections[0]] : []);
+      if (!list.length) {
+        return `
+          <div class="space-y-6">
+            <div class="bg-davis-navy text-white rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div class="text-[11px] font-bold uppercase tracking-wider text-sky-300">Signed In • ${escapeHtml(activeEmail)}</div>
+                <h2 class="text-xl font-extrabold">Your Inspections (0)</h2>
+              </div>
+              <button type="button" onclick="dhiSignOut()" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Sign Out</button>
+            </div>
+            <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center space-y-2">
+              <div class="text-base font-extrabold text-slate-800">No inspections found for ${escapeHtml(activeEmail)}</div>
+              <p class="text-xs text-slate-500 max-w-md mx-auto">If you booked under a different email address, sign out and request a sign-in link for that email, or contact Matt at Matt@Davis-Inspections.com / (719) 660-4724.</p>
+            </div>
+          </div>
+        `;
+      }
       const insp = list.find(i => i.id === protoState.activeInspectionId) || list[0];
       protoState.activeInspectionId = insp.id;
 
@@ -4063,7 +4411,10 @@ function submitInspectionQuoteRequest(payload) {
                 <div class="text-[11px] font-bold uppercase tracking-wider text-sky-300">Signed In via Magic Link • ${insp.clientEmail}</div>
                 <h2 class="text-xl font-extrabold">Your Inspections (${list.length})</h2>
               </div>
-              ${canViewReport ? `<button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-extrabold shadow transition">Open Reports &amp; Co-View →</button>` : `<span class="px-3 py-1.5 rounded-xl bg-white/10 text-xs font-bold">Complete steps below to unlock reports</span>`}
+              <div class="flex flex-wrap items-center gap-2">
+                ${canViewReport ? `<button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-extrabold shadow transition">Open Reports &amp; Co-View →</button>` : `<span class="px-3 py-1.5 rounded-xl bg-white/10 text-xs font-bold">Complete steps below to unlock reports</span>`}
+                ${!protoState.demoMode ? `<button type="button" onclick="dhiSignOut()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Sign Out</button>` : ''}
+              </div>
             </div>
             <div class="flex flex-wrap gap-2">${propTabs}</div>
           </div>
@@ -4131,7 +4482,7 @@ function submitInspectionQuoteRequest(payload) {
                   <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 space-y-2">
                     <div class="font-bold">Payment Unlocks After Inspection</div>
                     <div>No payment is due yet in case services are added or removed during the inspection. Once your report is ready, you can pay right here with Card, Apple Pay, or Google Pay.</div>
-                    <button type="button" onclick="protoReleaseReport('${insp.id}')" class="mt-1 px-3 py-1.5 rounded-lg bg-amber-900 text-white text-[11px] font-bold">Demo: Simulate Post-Inspection Release</button>
+                    ${protoState.demoMode ? `<button type="button" onclick="protoReleaseReport('${insp.id}')" class="mt-1 px-3 py-1.5 rounded-lg bg-amber-900 text-white text-[11px] font-bold">Demo: Simulate Post-Inspection Release</button>` : ''}
                   </div>
                 ` : `
                   <div class="space-y-3">
@@ -4140,13 +4491,14 @@ function submitInspectionQuoteRequest(payload) {
                         <span>Square Secure Checkout</span>
                         <span class="text-slate-400">Card • Apple Pay • Google Pay</span>
                       </div>
-                      <input type="text" value="4242 •••• •••• 4242" readonly class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm font-mono" />
-                      <div class="grid grid-cols-2 gap-2">
-                        <input type="text" value="08 / 29" readonly class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm font-mono" />
-                        <input type="text" value="842" readonly class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm font-mono" />
-                      </div>
+                      ${protoState.demoMode ? `
+                        <input type="text" value="4242 •••• •••• 4242" readonly class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm font-mono" />
+                      ` : `
+                        <div id="dhi-square-card-container" class="min-h-[96px] bg-white rounded-lg p-2 border border-slate-200"></div>
+                        <div id="dhi-square-status" class="text-xs text-rose-600 font-medium hidden"></div>
+                      `}
                     </div>
-                    <button type="button" onclick="protoPaySquare()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-extrabold shadow transition">Pay $${total.toFixed(2)} &amp; Unlock Reports</button>
+                    <button type="button" id="dhiSquarePayBtn" onclick="protoPaySquare()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-extrabold shadow transition">Pay $${total.toFixed(2)} &amp; Unlock Reports</button>
                   </div>
                 `)}
               </div>
@@ -4183,21 +4535,91 @@ function submitInspectionQuoteRequest(payload) {
       const signedAt = new Date().toISOString();
       const rawText = insp.address + '|' + protoTotal(insp) + '|' + protoState.buyerSigText.trim() + '|' + signedAt + '|' + DHI_AGREEMENT_CLAUSES.join(' ');
       const hash = await dhiHashAgreement(rawText);
+      const signedName = protoState.buyerSigText.trim();
+      if (dhiIsLiveSession() && insp.id && insp.id !== 'insp-demo') {
+        const { error } = await dhiSupabase.from('inspections').update({
+          agreement_signed: true,
+          signed_at: signedAt,
+          signed_name: signedName,
+          audit_hash: hash
+        }).eq('id', insp.id);
+        if (error) {
+          protoToastMsg('Could not save signature: ' + error.message);
+          return;
+        }
+      }
       insp.agreementSigned = true;
       insp.signedAt = signedAt;
-      insp.signedName = protoState.buyerSigText.trim();
+      insp.signedName = signedName;
       insp.sigDataUrl = protoState.buyerSigDataUrl || '';
       insp.auditHash = hash;
       renderProtoPortal();
       protoToastMsg('Agreement signed & ESIGN PDF ready to download!');
     }
 
-    function protoPaySquare() {
+    let dhiSquareCardInstance = null;
+    async function initDhiSquareCard() {
+      const container = document.getElementById('dhi-square-card-container');
+      if (!container || protoState.demoMode) return;
+      const statusEl = document.getElementById('dhi-square-status');
+      if (!window.Square) {
+        if (statusEl) { statusEl.textContent = 'Square Payments SDK failed to load. Please refresh the page.'; statusEl.classList.remove('hidden'); }
+        return;
+      }
+      try {
+        if (dhiSquareCardInstance) {
+          try { await dhiSquareCardInstance.destroy(); } catch (e) {}
+          dhiSquareCardInstance = null;
+        }
+        container.innerHTML = '';
+        const payments = window.Square.payments(DHI_SQUARE_APP_ID, DHI_SQUARE_LOCATION_ID);
+        const card = await payments.card();
+        await card.attach('#dhi-square-card-container');
+        dhiSquareCardInstance = card;
+      } catch (err) {
+        console.error('Square card init error:', err);
+        if (statusEl) { statusEl.textContent = 'Unable to load card form: ' + (err.message || err); statusEl.classList.remove('hidden'); }
+      }
+    }
+
+    async function protoPaySquare() {
       const insp = protoGetActiveInsp();
-      insp.paid = true;
-      insp.paidAt = new Date().toISOString();
-      renderProtoPortal();
-      protoToastMsg('Square payment confirmed! All reports are now unlocked.');
+      if (!insp) return;
+      if (protoState.demoMode || insp.id === 'insp-demo') {
+        insp.paid = true;
+        insp.paidAt = new Date().toISOString();
+        renderProtoPortal();
+        protoToastMsg('Demo Square payment confirmed! All reports are now unlocked.');
+        return;
+      }
+      const btn = document.getElementById('dhiSquarePayBtn');
+      const statusEl = document.getElementById('dhi-square-status');
+      if (statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
+      if (!dhiSquareCardInstance) {
+        protoToastMsg('Payment form is still loading. Please wait a moment and try again.');
+        return;
+      }
+      if (btn) { btn.disabled = true; btn.textContent = 'Processing Payment...'; }
+      try {
+        const tokenResult = await dhiSquareCardInstance.tokenize();
+        if (tokenResult.status !== 'OK' || !tokenResult.token) {
+          const errMsg = (tokenResult.errors && tokenResult.errors[0]?.message) || 'Card verification failed.';
+          throw new Error(errMsg);
+        }
+        const { data, error } = await dhiSupabase.functions.invoke('process-square-payment', {
+          body: { inspectionId: insp.id, sourceId: tokenResult.token }
+        });
+        if (error) throw new Error(error.message || 'Payment service error');
+        if (data && data.error) throw new Error(data.error);
+        insp.paid = true;
+        insp.paidAt = new Date().toISOString();
+        renderProtoPortal();
+        protoToastMsg('Square payment confirmed! All reports are now unlocked.');
+      } catch (err) {
+        if (statusEl) { statusEl.textContent = err.message || 'Payment failed.'; statusEl.classList.remove('hidden'); }
+        protoToastMsg('Payment error: ' + (err.message || 'Failed'));
+        if (btn) { btn.disabled = false; btn.textContent = 'Pay $' + protoTotal(insp).toFixed(2) + ' & Unlock Reports'; }
+      }
     }
 
     function protoLaunchSampleDemo() {
@@ -4256,9 +4678,21 @@ function submitInspectionQuoteRequest(payload) {
         protoToastMsg('Report deleted.');
       } else if (type === 'agent') {
         protoState.agents = (protoState.agents || []).filter(a => !((id && a.id === id) || (email && a.email === email)));
+        if (dhiSupabase) {
+          try {
+            if (id && !String(id).startsWith('ag-')) await dhiSupabase.from('agents').delete().eq('id', id);
+            else if (email) await dhiSupabase.from('agents').delete().eq('email', email.toLowerCase());
+          } catch (e) {}
+        }
         protoToastMsg('Agent removed from directory.');
       } else if (type === 'customer') {
         protoState.customers = (protoState.customers || []).filter(c => !((id && c.id === id) || (email && c.email === email)));
+        if (dhiSupabase) {
+          try {
+            if (id && !String(id).startsWith('cu-')) await dhiSupabase.from('customers').delete().eq('id', id);
+            else if (email) await dhiSupabase.from('customers').delete().eq('email', email.toLowerCase());
+          } catch (e) {}
+        }
         protoToastMsg('Customer removed from directory.');
       }
       renderProtoPortal();
@@ -4701,15 +5135,58 @@ function submitInspectionQuoteRequest(payload) {
       }
     }
 
-    function protoGeneratePendingAI() {
+    async function protoGeneratePendingAI() {
       const pending = protoState.objectionItems.filter(i => i.approvedByAgent && !i.aiGenerated);
       if (!pending.length) {
         protoToastMsg('All approved items already have AI wording generated (0 API calls used).');
         return;
       }
-      pending.forEach(i => { i.aiGenerated = true; });
-      renderProtoPortal();
-      protoToastMsg('Generated AI objection wording for ' + pending.length + ' new item(s) only!');
+      if (!dhiSupabase || protoState.demoMode) {
+        pending.forEach(i => { i.aiGenerated = true; });
+        renderProtoPortal();
+        protoToastMsg('Generated demo AI objection wording for ' + pending.length + ' new item(s).');
+        return;
+      }
+      protoToastMsg('Generating CREC NTC43 wording for ' + pending.length + ' item(s)...');
+      try {
+        const itemsPayload = pending.map(i => {
+          const f = (protoState.findings || []).find(x => x.id === i.findingId) || {};
+          return {
+            id: i.findingId,
+            item_code: f.code || '',
+            title: f.title || '',
+            narrative: f.narrative || '',
+            mode: i.mode || 'repair',
+            credit_amount: i.creditAmount || ''
+          };
+        });
+        const { data, error } = await dhiSupabase.functions.invoke('rewrite-objection', {
+          body: { items: itemsPayload }
+        });
+        if (error) throw new Error(error.message || 'AI rewrite error');
+        if (data && data.error) throw new Error(data.error);
+        const results = (data && Array.isArray(data.results)) ? data.results : [];
+        const byId = new Map(results.map(r => [String(r.id), r.objection_text || '']));
+        for (const item of pending) {
+          const rewritten = byId.get(String(item.findingId));
+          if (rewritten) {
+            item.customText = rewritten;
+          }
+          item.aiGenerated = true;
+          if (dhiIsLiveSession() && protoState.activeInspectionId && protoState.activeInspectionId !== 'insp-demo') {
+            try {
+              await dhiSupabase.from('objection_items')
+                .update({ custom_text: item.customText || '' })
+                .eq('inspection_id', protoState.activeInspectionId)
+                .eq('finding_id', item.findingId);
+            } catch (e) {}
+          }
+        }
+        renderProtoPortal();
+        protoToastMsg('Generated & cached AI objection wording for ' + pending.length + ' item(s).');
+      } catch (err) {
+        protoToastMsg('AI rewrite error: ' + (err.message || 'Failed'));
+      }
     }
 
     async function protoApproveObj(findingId) {
@@ -5038,22 +5515,103 @@ function submitInspectionQuoteRequest(payload) {
 
         const insp = (protoState.inspections || []).find(i => i.id === inspectionId);
         if (insp && Array.isArray(dRes.data) && dRes.data.length > 0) {
-          insp.extraDocs = dRes.data.map(d => ({
-            id: d.id,
-            title: d.title,
-            summary: d.summary || '',
-            pdfPreviewUrl: d.storage_path,
-            pdfViewUrl: d.storage_path,
-            currentPage: 1,
-            totalPages: 1,
-            marks: [],
-            comments: []
+          const resolvedDocs = await Promise.all(dRes.data.map(async d => {
+            let url = d.storage_path || '';
+            if (url && !/^https?:\/\//i.test(url)) {
+              try {
+                const { data: signed } = await dhiSupabase.storage.from('reports').createSignedUrl(url, 3600);
+                if (signed && signed.signedUrl) url = signed.signedUrl;
+              } catch (e) {}
+            }
+            return {
+              id: d.id,
+              title: d.title,
+              badge: 'PDF',
+              summary: d.summary || '',
+              pdfPreviewUrl: url,
+              pdfViewUrl: url,
+              currentPage: 1,
+              totalPages: 1,
+              marks: [],
+              comments: []
+            };
           }));
+          insp.extraDocs = resolvedDocs;
         }
         renderProtoPortal();
       } catch (err) {
         console.warn('Error loading inspection details:', err);
       }
+    }
+
+    function dhiMapAgentRow(r) {
+      const sp = dhiSplitFullName(r.name, r.first_name, r.last_name);
+      return {
+        id: r.id,
+        firstName: sp.firstName,
+        lastName: sp.lastName,
+        name: sp.name,
+        email: r.email || '',
+        phone: r.phone || '',
+        brokerage: r.brokerage || ''
+      };
+    }
+
+    function dhiMapCustomerRow(r) {
+      const sp = dhiSplitFullName(r.name, r.first_name, r.last_name);
+      return {
+        id: r.id,
+        firstName: sp.firstName,
+        lastName: sp.lastName,
+        name: sp.name,
+        email: r.email || '',
+        phone: r.phone || '',
+        lastAddress: r.last_address || r.lastAddress || ''
+      };
+    }
+
+    function dhiMapRequestRow(r) {
+      return {
+        id: r.id,
+        createdAt: r.created_at || r.createdAt || '',
+        clientName: r.client_name || r.clientName || '',
+        clientRole: r.client_role || r.clientRole || 'Client',
+        clientEmail: r.client_email || r.clientEmail || '',
+        clientPhone: r.client_phone || r.clientPhone || '',
+        preferredResponse: r.preferred_response || r.preferredResponse || 'Email',
+        address: r.property_address || r.address || '',
+        sqft: r.property_sqft || r.sqft || '',
+        yearBuilt: r.property_year || r.yearBuilt || '',
+        preferredDate: r.preferred_date || r.preferredDate || '',
+        addons: Array.isArray(r.interested_addons) ? r.interested_addons : (Array.isArray(r.addons) ? r.addons : []),
+        notes: r.notes || '',
+        status: r.status || 'New'
+      };
+    }
+
+    function dhiMapInspectionRow(r) {
+      return {
+        id: r.id,
+        isDemo: false,
+        address: r.address || '',
+        date: r.inspection_date || '',
+        clientName: r.client_name || ((r.client_first_name || '') + ' ' + (r.client_last_name || '')).trim(),
+        clientEmail: r.client_email || '',
+        buyerName: r.client_name || '',
+        buyerEmail: r.client_email || '',
+        agentName: r.agent_name || ((r.agent_first_name || '') + ' ' + (r.agent_last_name || '')).trim(),
+        agentEmail: r.agent_email || '',
+        agreementSigned: !!r.agreement_signed,
+        signedAt: r.signed_at || '',
+        signedName: r.signed_name || '',
+        auditHash: r.audit_hash || '',
+        paid: !!r.paid,
+        paidAt: r.paid_at || '',
+        reportNotified: !!r.report_notified,
+        reportReady: !!r.report_notified,
+        services: Array.isArray(r.services) ? r.services : [],
+        extraDocs: []
+      };
     }
 
     function dhiSubscribeReportRealtime(inspectionId) {
@@ -5075,15 +5633,18 @@ function submitInspectionQuoteRequest(payload) {
         .subscribe();
     }
 
+    let dhiAccountSubUserId = null;
     function dhiSubscribeAccountRealtime(session) {
-      if (!dhiSupabase || !session) return;
+      if (!dhiSupabase || !session || !session.user) return;
+      if (dhiAccountSubUserId === session.user.id && dhiAccountChannel) return;
+      dhiAccountSubUserId = session.user.id;
       if (dhiAccountChannel) {
         try { dhiSupabase.removeChannel(dhiAccountChannel); } catch (e) {}
       }
       dhiAccountChannel = dhiSupabase
         .channel('account-sync-' + (session.user.id || 'user'))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'inspections' }, () => {
-          dhiApplyAuthSession(session);
+          dhiRefreshAccountData(session);
         })
         .subscribe();
     }
@@ -5103,8 +5664,11 @@ function submitInspectionQuoteRequest(payload) {
         return false;
       }
       const { error } = await dhiSupabase.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: dhiGetRedirectUrl() }
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: dhiGetRedirectUrl(),
+          shouldCreateUser: true
+        }
       });
       if (error) {
         protoState.authErrorMsg = error.message;
@@ -5121,6 +5685,7 @@ function submitInspectionQuoteRequest(payload) {
         protoToastMsg('Authentication service unavailable.');
         return;
       }
+      protoState.demoMode = false;
       const { error } = await dhiSupabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: dhiGetRedirectUrl() }
@@ -5132,100 +5697,94 @@ function submitInspectionQuoteRequest(payload) {
       }
     }
 
-    async function dhiApplyAuthSession(session) {
-      if (!session || !session.user) return;
-      if (protoState.demoMode) return;
-      const email = (session.user.email || '').toLowerCase();
-      protoState.authUser = session.user;
-      dhiSubscribeAccountRealtime(session);
-      if (email === 'matt@davis-inspections.com') {
-        protoState.role = 'admin';
-        protoState.activeCollaborator = 'Matt (Inspector)';
-        try {
+    let dhiAuthRefreshInFlight = false;
+    async function dhiRefreshAccountData(session) {
+      if (!session || !session.user || protoState.demoMode || dhiAuthRefreshInFlight) return;
+      dhiAuthRefreshInFlight = true;
+      try {
+        const email = (session.user.email || '').toLowerCase();
+        if (email === 'matt@davis-inspections.com') {
+          protoState.role = 'admin';
+          protoState.activeCollaborator = 'Matt (Inspector)';
           const [iRes, aRes, cRes, rRes] = await Promise.all([
             dhiSupabase.from('inspections').select('*').order('created_at', { ascending: false }),
-            dhiSupabase.from('agents').select('*').order('name', { ascending: true }),
-            dhiSupabase.from('customers').select('*').order('name', { ascending: true }),
+            dhiSupabase.from('agents').select('*').order('last_name', { ascending: true }),
+            dhiSupabase.from('customers').select('*').order('last_name', { ascending: true }),
             dhiSupabase.from('inspection_requests').select('*').order('created_at', { ascending: false })
           ]);
-          if (Array.isArray(iRes.data)) {
-            protoState.inspections = iRes.data.map(r => ({
-              id: r.id,
-              address: r.address,
-              date: r.inspection_date || '',
-              clientName: r.client_name || '',
-              clientEmail: r.client_email || '',
-              buyerName: r.client_name || '',
-              buyerEmail: r.client_email || '',
-              agentName: r.agent_name || '',
-              agentEmail: r.agent_email || '',
-              agreementSigned: !!r.agreement_signed,
-              signedAt: r.signed_at || '',
-              paid: !!r.paid,
-              reportNotified: !!r.report_notified,
-              reportReady: !!r.report_notified,
-              services: r.services || [],
-              extraDocs: []
-            }));
-          }
-          if (Array.isArray(aRes.data) && aRes.data.length) protoState.agents = aRes.data;
-          if (Array.isArray(cRes.data) && cRes.data.length) protoState.customers = cRes.data;
-          if (Array.isArray(rRes.data)) protoState.requests = rRes.data;
-        } catch (err) {
-          console.warn('Error loading admin data:', err);
+          if (Array.isArray(iRes.data)) protoState.inspections = iRes.data.map(dhiMapInspectionRow);
+          if (Array.isArray(aRes.data)) protoState.agents = aRes.data.map(dhiMapAgentRow);
+          if (Array.isArray(cRes.data)) protoState.customers = cRes.data.map(dhiMapCustomerRow);
+          if (Array.isArray(rRes.data)) protoState.requests = rRes.data.map(dhiMapRequestRow);
+        } else {
+          protoState.loggedInBuyerEmail = email;
+          protoState.loggedInAgentEmail = email;
+          protoState.activeCollaborator = email;
+          const [inspRes, agentRes] = await Promise.all([
+            dhiSupabase.from('inspections').select('*').or(`client_email.ilike.${email},agent_email.ilike.${email}`).order('created_at', { ascending: false }),
+            dhiSupabase.from('agents').select('*').ilike('email', email).maybeSingle()
+          ]);
+          const data = inspRes.data || [];
+          protoState.agentProfile = agentRes && agentRes.data ? dhiMapAgentRow(agentRes.data) : null;
+          const isAgent = !!protoState.agentProfile || data.some(r => (r.agent_email || '').toLowerCase() === email);
+          protoState.role = isAgent ? 'agent' : 'buyer';
+          protoState.inspections = data.map(dhiMapInspectionRow);
+          protoState.activeInspectionId = protoState.inspections.length ? protoState.inspections[0].id : null;
         }
-      } else {
-        protoState.loggedInBuyerEmail = email;
-        protoState.loggedInAgentEmail = email;
-        protoState.role = 'buyer';
-        protoState.activeCollaborator = email;
-        try {
-          const { data } = await dhiSupabase
-            .from('inspections')
-            .select('*')
-            .or(`client_email.ilike.${email},agent_email.ilike.${email}`);
-          if (Array.isArray(data) && data.length > 0) {
-            const isAgent = data.some(r => (r.agent_email || '').toLowerCase() === email);
-            protoState.role = isAgent ? 'agent' : 'buyer';
-            protoState.inspections = data.map(r => ({
-              id: r.id,
-              address: r.address,
-              date: r.inspection_date || '',
-              clientName: r.client_name || '',
-              clientEmail: r.client_email || '',
-              buyerName: r.client_name || '',
-              buyerEmail: r.client_email || '',
-              agentName: r.agent_name || '',
-              agentEmail: r.agent_email || '',
-              agreementSigned: !!r.agreement_signed,
-              signedAt: r.signed_at || '',
-              paid: !!r.paid,
-              reportNotified: !!r.report_notified,
-              reportReady: !!r.report_notified,
-              services: r.services || [],
-              extraDocs: []
-            }));
-            protoState.activeInspectionId = protoState.inspections[0].id;
-          } else {
-            protoState.inspections = [];
-          }
-        } catch (err) {
-          console.warn('Error loading inspections:', err);
-        }
+      } catch (err) {
+        console.warn('Error loading account data:', err);
+      } finally {
+        dhiAuthRefreshInFlight = false;
+        renderProtoPortal();
       }
-      renderProtoPortal();
     }
+
+    async function dhiApplyAuthSession(session) {
+      if (!session || !session.user) return;
+      protoState.demoMode = false;
+      protoState.authUser = session.user;
+      protoState.authErrorMsg = '';
+      protoState.magicLinkSentTo = '';
+      // Clean OAuth/Magic-Link hash tokens from URL bar once signed in
+      if (window.location.hash && (window.location.hash.includes('access_token=') || window.location.hash.includes('refresh_token='))) {
+        try {
+          window.history.replaceState(null, '', window.location.pathname + '?view=portal');
+        } catch (e) {}
+      }
+      dhiSubscribeAccountRealtime(session);
+      await dhiRefreshAccountData(session);
+    }
+
+    // Surface Supabase auth redirect errors (e.g. expired or pre-fetched Magic Link)
+    (function checkAuthRedirectErrors() {
+      const hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+      const queryParams = new URLSearchParams(window.location.search || '');
+      const errDesc = hashParams.get('error_description') || queryParams.get('error_description');
+      const errCode = hashParams.get('error_code') || queryParams.get('error_code') || hashParams.get('error') || queryParams.get('error');
+      if (errDesc || errCode) {
+        protoState.authErrorMsg = errCode === 'otp_expired'
+          ? 'Your sign-in link expired or was already used (some email security scanners pre-click links). Request a fresh link below or use the 6-digit code.'
+          : (errDesc ? errDesc.replace(/\+/g, ' ') : 'Sign-in failed (' + errCode + '). Please try again.');
+        navigatePage('portal', false);
+        renderProtoPortal();
+        try { window.history.replaceState(null, '', window.location.pathname + '?view=portal'); } catch (e) {}
+      }
+    })();
 
     if (dhiSupabase) {
       const hasAuthRedirect = window.location.hash.includes('access_token=') || window.location.search.includes('code=') || window.location.search.includes('view=portal');
-      dhiSupabase.auth.getSession().then(({ data }) => {
-        if (data && data.session) {
-          if (hasAuthRedirect) navigatePage('portal', false);
-          dhiApplyAuthSession(data.session);
-        }
-      });
       dhiSupabase.auth.onAuthStateChange((event, session) => {
-        if (session) {
+        if (event === 'SIGNED_OUT') {
+          protoState.authUser = null;
+          protoState.agentProfile = null;
+          dhiAccountSubUserId = null;
+          if (!protoState.demoMode) {
+            protoState.role = 'login';
+            renderProtoPortal();
+          }
+          return;
+        }
+        if (session && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
           if (event === 'SIGNED_IN' || hasAuthRedirect) navigatePage('portal', false);
           dhiApplyAuthSession(session);
         }
@@ -5242,8 +5801,10 @@ function submitInspectionQuoteRequest(payload) {
       if (!person) return;
       protoEditingPerson = { type, origEmail: targetEmail, id: person.id || '' };
       document.getElementById('protoPersonModalType').textContent = type === 'agent' ? 'Agent Directory' : 'Customer Directory';
-      document.getElementById('protoPersonModalTitle').textContent = person.name || person.email;
-      document.getElementById('protoPersonEditName').value = person.name || '';
+      const sp = dhiSplitFullName(person.name, person.firstName, person.lastName);
+      document.getElementById('protoPersonModalTitle').textContent = sp.name || person.email;
+      document.getElementById('protoPersonEditFirstName').value = sp.firstName || '';
+      document.getElementById('protoPersonEditLastName').value = sp.lastName || '';
       document.getElementById('protoPersonEditEmail').value = person.email || '';
       document.getElementById('protoPersonEditPhone').value = person.phone || '';
       const brokWrap = document.getElementById('protoPersonBrokerageWrap');
@@ -5292,26 +5853,32 @@ function submitInspectionQuoteRequest(payload) {
     async function protoSavePersonEdit() {
       if (!protoEditingPerson) return;
       const { type, origEmail, id } = protoEditingPerson;
-      const name = (document.getElementById('protoPersonEditName')?.value || '').trim();
-      const email = (document.getElementById('protoPersonEditEmail')?.value || '').trim();
+      const firstName = (document.getElementById('protoPersonEditFirstName')?.value || '').trim();
+      const lastName = (document.getElementById('protoPersonEditLastName')?.value || '').trim();
+      const name = (firstName + ' ' + lastName).trim();
+      const email = (document.getElementById('protoPersonEditEmail')?.value || '').trim().toLowerCase();
       const phone = (document.getElementById('protoPersonEditPhone')?.value || '').trim();
       const brokerage = (document.getElementById('protoPersonEditBrokerage')?.value || '').trim();
       if (!name || !email) {
-        protoToastMsg('Name and email are required.');
+        protoToastMsg('First or last name and email are required.');
         return;
       }
       const list = type === 'agent' ? (protoState.agents || []) : (protoState.customers || []);
       const person = list.find(x => (x.email || '').toLowerCase() === origEmail);
       if (person) {
+        person.firstName = firstName;
+        person.lastName = lastName;
         person.name = name;
         person.email = email;
         person.phone = phone;
         if (type === 'agent') person.brokerage = brokerage;
       }
-      if (dhiSupabase && id) {
+      if (dhiSupabase && id && !String(id).startsWith('ag-') && !String(id).startsWith('cu-')) {
         try {
           const table = type === 'agent' ? 'agents' : 'customers';
-          const payload = type === 'agent' ? { name, email, phone, brokerage } : { name, email, phone };
+          const payload = type === 'agent'
+            ? { first_name: firstName, last_name: lastName, name, email, phone, brokerage }
+            : { first_name: firstName, last_name: lastName, name, email, phone };
           await dhiSupabase.from(table).update(payload).eq('id', id);
         } catch (err) {
           console.warn('Error updating directory contact:', err);
@@ -5340,8 +5907,12 @@ function submitInspectionQuoteRequest(payload) {
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Full Name</label>
-          <input id="protoPersonEditName" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+          <label class="block font-bold text-slate-700 mb-1">First Name</label>
+          <input id="protoPersonEditFirstName" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Last Name</label>
+          <input id="protoPersonEditLastName" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
         </div>
         <div>
           <label class="block font-bold text-slate-700 mb-1">Email Address</label>
