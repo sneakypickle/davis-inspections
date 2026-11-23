@@ -1889,9 +1889,19 @@ function submitInspectionQuoteRequest(payload) {
       }
     });
 
-    function navigatePage(pageKey, fromChecklist) {
+    function navigatePage(pageKey, fromChecklist, preserveDemo) {
       if (!ALL_PAGES.includes(pageKey)) {
         pageKey = 'home';
+      }
+      if (pageKey === 'portal' && !preserveDemo && typeof protoState !== 'undefined' && protoState.demoMode) {
+        protoState.demoMode = false;
+        protoState.viewingReport = false;
+        if (protoState.authUser) {
+          dhiRefreshAccountData({ user: protoState.authUser });
+        } else {
+          protoState.role = 'login';
+          renderProtoPortal();
+        }
       }
       APP_STATE.currentPage = pageKey;
       APP_STATE.cameFromChecklist = Boolean(fromChecklist);
@@ -2639,6 +2649,9 @@ function submitInspectionQuoteRequest(payload) {
       agentProfile: null,
       authLoading: false,
       magicLinkSentContext: '',
+      serviceCatalogCat: 'Base Inspections',
+      serviceCatalog: [{"id": "cat-1", "name": "Apartment", "category": "Base Inspections", "priceCents": 25000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 1}, {"id": "cat-2", "name": "Condo up to Sq Ft 1400", "category": "Base Inspections", "priceCents": 29000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 2}, {"id": "cat-3", "name": "Sq Ft 0 - 2,000", "category": "Base Inspections", "priceCents": 32000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 3}, {"id": "cat-4", "name": "Sq Ft 2,001 - 2,500", "category": "Base Inspections", "priceCents": 34000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 4}, {"id": "cat-5", "name": "Sq Ft 2,501 - 3,000", "category": "Base Inspections", "priceCents": 36500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 5}, {"id": "cat-6", "name": "Sq Ft 3,001 - 3,500", "category": "Base Inspections", "priceCents": 39000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 6}, {"id": "cat-7", "name": "Sq Ft 3,501 - 4,000", "category": "Base Inspections", "priceCents": 41500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 7}, {"id": "cat-8", "name": "Sq Ft 4,000 - 4,500", "category": "Base Inspections", "priceCents": 44000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 8}, {"id": "cat-9", "name": "Sq Ft 4,501 - 5,000", "category": "Base Inspections", "priceCents": 46500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 9}, {"id": "cat-10", "name": "Additional Sq Ft Over 5,000", "category": "Base Inspections", "priceCents": 10, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 10}, {"id": "cat-11", "name": "New Construction", "category": "Base Inspections", "priceCents": 35000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 11}, {"id": "cat-12", "name": "New Construction (4,000+ Sq Ft)", "category": "Base Inspections", "priceCents": 42500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 12}, {"id": "cat-13", "name": "New Construction (No Report)", "category": "Base Inspections", "priceCents": 25000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 13}, {"id": "cat-14", "name": "4 Point Inspection", "category": "Base Inspections", "priceCents": 25000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 14}, {"id": "cat-15", "name": "Phase Inspection (Per Phase)", "category": "Base Inspections", "priceCents": 15000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 15}, {"id": "cat-16", "name": "Pre-listing Inspection (No Report)", "category": "Base Inspections", "priceCents": 20000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 16}, {"id": "cat-17", "name": "Warranty Inspection", "category": "Base Inspections", "priceCents": 22000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 17}, {"id": "cat-18", "name": "Sewer Scope Inspection", "category": "Testing & Ancillaries", "priceCents": 14500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 18}, {"id": "cat-19", "name": "Termite / WDI Inspection", "category": "Testing & Ancillaries", "priceCents": 12500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 19}, {"id": "cat-20", "name": "Radon Test", "category": "Testing & Ancillaries", "priceCents": 10000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 20}, {"id": "cat-21", "name": "Radon Test (Douglas)", "category": "Testing & Ancillaries", "priceCents": 12500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 21}, {"id": "cat-22", "name": "Radon Test without Inspection", "category": "Testing & Ancillaries", "priceCents": 16000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 22}, {"id": "cat-23", "name": "Water Test (Bacteriological Only)", "category": "Testing & Ancillaries", "priceCents": 8500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 23}, {"id": "cat-24", "name": "Water Test (Bacteriological, Lead, Nitrite-N, Nitrate-N)", "category": "Testing & Ancillaries", "priceCents": 14500, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 24}, {"id": "cat-25", "name": "Extra Building (Sm)", "category": "Surcharges & Fees", "priceCents": 5000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 25}, {"id": "cat-26", "name": "Extra Building (Lg)", "category": "Surcharges & Fees", "priceCents": 10000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 26}, {"id": "cat-27", "name": "Over 50 Years Old", "category": "Surcharges & Fees", "priceCents": 3000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 27}, {"id": "cat-28", "name": "Over 100 Years Old", "category": "Surcharges & Fees", "priceCents": 6000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 28}, {"id": "cat-29", "name": "Trip Charge - Douglas County", "category": "Surcharges & Fees", "priceCents": 3000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 29}, {"id": "cat-30", "name": "Trip Charge 1Hr+", "category": "Surcharges & Fees", "priceCents": 10000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 30}, {"id": "cat-31", "name": "Late Fee (29%)", "category": "Surcharges & Fees", "priceCents": 3900, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 31}, {"id": "cat-32", "name": "Military Discount (10%)", "category": "Discounts", "priceCents": -4650, "isPercentDiscount": true, "percentRate": 10, "sortOrder": 32}, {"id": "cat-33", "name": "Inspection Discount", "category": "Discounts", "priceCents": -1800, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 33}, {"id": "cat-34", "name": "Large Condo/Townhome Discount", "category": "Discounts", "priceCents": -4000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 34}, {"id": "cat-35", "name": "Discount", "category": "Discounts", "priceCents": -10000, "isPercentDiscount": false, "percentRate": 0, "sortOrder": 35}],
+      draftLineItems: [],
       convertingRequestId: null,
       requests: [{"id": "req-sample-1", "createdAt": "2026-11-22T18:10:00Z", "clientName": "Jordan Lee", "clientRole": "Home Buyer", "clientEmail": "jordan.lee@example.com", "clientPhone": "(719) 555-0148", "preferredResponse": "Text", "address": "7420 Mesa Ridge Pkwy, Fountain, CO 80817", "sqft": "2,150", "yearBuilt": "2004", "preferredDate": "2026-11-25 9:00 AM", "addons": ["Sewer Scope ($145)", "48-Hour Radon Testing ($125+)"], "notes": "Crawlspace access is in the hall closet.", "status": "New"}],
       sections: [{"num": "1", "name": "Roofing", "stylesMaterials": [{"label": "Roof Covering", "value": "Dimensional"}, {"label": "Viewed roof covering from", "value": "Walked roof"}, {"label": "Sky Light(s)", "value": "One"}, {"label": "Chimney (exterior)", "value": "Brick"}]}, {"num": "2", "name": "Exterior", "stylesMaterials": [{"label": "Siding Style", "value": "Brick"}, {"label": "Siding Material", "value": "Brick veneer"}, {"label": "Exterior Entry Doors", "value": "Metal"}, {"label": "Appurtenance", "value": "Covered porch"}, {"label": "Driveway", "value": "Concrete"}]}, {"num": "3", "name": "Garage", "stylesMaterials": [{"label": "Garage Door Type", "value": "One automatic"}, {"label": "Garage Door Material", "value": "Insulated"}, {"label": "Auto-opener Manufacturer", "value": "SEARS"}]}, {"num": "4", "name": "Interiors", "stylesMaterials": [{"label": "Ceiling Materials", "value": "Gypsum Board"}, {"label": "Wall Material", "value": "Gypsum Board"}, {"label": "Floor Covering(s)", "value": "Carpet"}, {"label": "Interior Doors", "value": "Hollow core"}, {"label": "Window Types", "value": "Thermal/Insulated"}, {"label": "Cabinetry", "value": "Wood"}, {"label": "Countertop", "value": "Laminate"}]}, {"num": "5", "name": "Structural Components", "stylesMaterials": [{"label": "Foundation", "value": "Masonry block"}, {"label": "Method used to observe Crawlspace", "value": "Crawled"}, {"label": "Floor Structure", "value": "2 X 8"}, {"label": "Wall Structure", "value": "2 X 4 Wood"}, {"label": "Columns or Piers", "value": "Supporting walls"}, {"label": "Ceiling Structure", "value": "2X4"}, {"label": "Roof Structure", "value": "Engineered wood trusses"}, {"label": "Roof-Type", "value": "Hip and Valley"}, {"label": "Attic info", "value": "Scuttle hole"}, {"label": "Method used to observe attic", "value": "From entry"}]}, {"num": "6", "name": "Plumbing System", "stylesMaterials": [{"label": "Water Source", "value": "Public"}, {"label": "Water Filters", "value": "None"}, {"label": "Plumbing Water Supply (into home)", "value": "Copper"}, {"label": "Plumbing Water Distribution (inside home)", "value": "Copper"}, {"label": "Washer Drain Size", "value": "1 1/2\" Diameter (undersized)"}, {"label": "Plumbing Waste", "value": "ABS"}, {"label": "Water Heater Power Source", "value": "Gas (quick recovery)"}, {"label": "Water Heater Capacity", "value": "40 Gallon (1-2 people)"}, {"label": "Manufacturer", "value": "WHIRLPOOL"}, {"label": "Water Heater Location", "value": "Basement"}]}, {"num": "7", "name": "Electrical System", "stylesMaterials": [{"label": "Electrical Service Conductors", "value": "Below ground"}, {"label": "Panel capacity", "value": "100 AMP"}, {"label": "Panel Type", "value": "Circuit breakers"}, {"label": "Electric Panel Manufacturer", "value": "ITE"}, {"label": "Branch wire 15 and 20 AMP", "value": "Copper"}, {"label": "Wiring Methods", "value": "Romex"}]}, {"num": "8", "name": "Heating / Central Air Conditioning", "stylesMaterials": [{"label": "Heat Type", "value": "Forced Air"}, {"label": "Energy Source", "value": "Natural gas"}, {"label": "Number of Heat Systems (excluding wood)", "value": "One"}, {"label": "Heat System Manufacturer", "value": "INT. COMFORT"}, {"label": "Ductwork", "value": "Non-insulated"}, {"label": "Filter Type", "value": "Disposable"}, {"label": "Types of Fireplaces", "value": "Solid Fuel"}, {"label": "Operable Fireplaces", "value": "Two"}, {"label": "Number of Woodstoves", "value": "None"}, {"label": "Cooling Equipment Type", "value": "Air conditioner unit"}, {"label": "Number of AC Only Units", "value": "One"}, {"label": "Central Air Manufacturer", "value": "BRYANT"}]}, {"num": "9", "name": "Insulation and Ventilation", "stylesMaterials": [{"label": "Attic Insulation", "value": "Blown"}, {"label": "Ventilation", "value": "Gable vents"}, {"label": "Dryer Power Source", "value": "220 Electric"}, {"label": "Dryer Vent", "value": "Metal"}, {"label": "Floor System Insulation", "value": "NONE"}]}, {"num": "10", "name": "Built-In Kitchen Appliances", "stylesMaterials": [{"label": "Dishwasher Brand", "value": "AGED"}, {"label": "Disposer Brand", "value": "NONE"}, {"label": "Range/Oven", "value": "GENERAL ELECTRIC"}, {"label": "Exhaust/Range hood", "value": "KENMORE"}, {"label": "Built in Microwave", "value": "NONE"}, {"label": "Refrigerator Brand", "value": "LG"}]}],
@@ -2856,6 +2869,8 @@ function submitInspectionQuoteRequest(payload) {
       `15. PAYMENT: Payment is expected before the report is delivered. A 10% late fee (per month) will be charged for all late payments. All costs, including but not limited to, collections, liens & legal fees to recover past due payments will be added to the customer final bill. A $50.00 fee will be added to all returned checks.`,
       `16. ENTIRE CONTRACT: This Agreement represents the entire agreement between the parties. No oral agreements, understandings or representations shall change, modify or amend any part of this agreement. No change or modification shall be enforceable against any party unless such changes or modifications are in writing and signed by the parties. This Agreement shall be binding upon and inure to the parties hereto and their spouses, heirs, executors, administrators, successors, assigns and representatives of any kind whatsoever.`
     ];
+
+    const DHI_DEMO_INSPECTION_SNAPSHOT = (protoState.inspections || []).find(i => i.id === 'insp-demo') || null;
 
     function initAgreementSigPad() {
       const canvas = document.getElementById('protoAgreementSigCanvas');
@@ -3513,27 +3528,47 @@ function submitInspectionQuoteRequest(payload) {
           return out;
         };
         const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
-        const idxExactOrContains = (exactList, partialList) => {
-          for (const ex of exactList) {
+        const idxExact = (cands) => {
+          for (const ex of cands) {
             const idx = headers.findIndex(h => h === ex);
-            if (idx >= 0) return idx;
-          }
-          for (const part of partialList) {
-            const idx = headers.findIndex(h => h.includes(part));
             if (idx >= 0) return idx;
           }
           return -1;
         };
-        const iEmail = idxExactOrContains(['email', 'emailaddress', 'primaryemail'], ['email']);
-        const iFirst = idxExactOrContains(['firstname', 'fname', 'first'], ['firstname', 'first']);
-        const iLast = idxExactOrContains(['lastname', 'lname', 'last'], ['lastname', 'last']);
-        const iName = idxExactOrContains(['fullname', 'name', 'contactname', 'clientname', 'agentname'], ['fullname']);
-        const iPhone = idxExactOrContains(['cellphone', 'mobilephone', 'phone', 'mobile', 'cell', 'workphone', 'homephone'], ['phone', 'mobile', 'cell']);
-        const iCompany = idxExactOrContains(['company', 'companyname', 'brokerage', 'office'], ['company', 'brokerage', 'office']);
-        const iAddr = idxExactOrContains(['address', 'address1', 'street', 'streetaddress', 'propertyaddress'], ['address', 'street']);
+        const iEmail = idxExact(['email', 'emailaddress', 'primaryemail']);
+        const iFirst = idxExact(['firstname', 'fname', 'first']);
+        const iLast = idxExact(['lastname', 'lname', 'last']);
+        const iName = idxExact(['fullname', 'name', 'contactname', 'clientname', 'agentname']);
+        const iMobile = idxExact(['mobile', 'cellphone', 'mobilephone', 'cell', 'phone']);
+        const iHomePhone = idxExact(['homephone']);
+        const iWorkPhone = idxExact(['workphone', 'officephone']);
+        const iCompany = idxExact(['company', 'companyname', 'brokerage', 'office']);
+        const iAddr = idxExact(['address', 'address1', 'street', 'streetaddress', 'propertyaddress']);
+        const iAddr2 = idxExact(['address2']);
+        const iCity = idxExact(['city']);
+        const iState = idxExact(['state']);
+        const iZip = idxExact(['zip', 'zipcode', 'postalcode']);
+        const iType = idxExact(['type', 'contacttype', 'role']);
 
-        const deduped = new Map();
+        const agentMap = new Map();
+        const customerMap = new Map();
         let skippedNoEmail = 0;
+        let skippedJunk = 0;
+
+        const mergeRecord = (map, rec) => {
+          const prev = map.get(rec.email);
+          if (!prev) {
+            map.set(rec.email, rec);
+            return;
+          }
+          if (!prev.first_name && rec.first_name) prev.first_name = rec.first_name;
+          if (!prev.last_name && rec.last_name) prev.last_name = rec.last_name;
+          if ((!prev.name || prev.name === prev.email) && rec.name) prev.name = rec.name;
+          if (!prev.phone && rec.phone) prev.phone = rec.phone;
+          if (!prev.brokerage && rec.brokerage) prev.brokerage = rec.brokerage;
+          if (!prev.last_address && rec.last_address) prev.last_address = rec.last_address;
+        };
+
         for (let r = 1; r < lines.length; r++) {
           const cols = parseRow(lines[r]);
           const email = (iEmail >= 0 ? (cols[iEmail] || '').trim() : '').toLowerCase();
@@ -3541,84 +3576,93 @@ function submitInspectionQuoteRequest(payload) {
           const rawLast = iLast >= 0 ? (cols[iLast] || '').trim() : '';
           const rawFull = iName >= 0 ? (cols[iName] || '').trim() : '';
           const split = dhiSplitFullName(rawFull, rawFirst, rawLast);
-          if (!email) {
+
+          if (!email || !email.includes('@')) {
             if (split.name) skippedNoEmail++;
             continue;
           }
-          const phone = iPhone >= 0 ? (cols[iPhone] || '').trim() : '';
+          // Skip HomeGauge placeholder / redacted sample rows
+          if (email.includes('*') || /^_+$/.test(split.firstName) || /^_+$/.test(split.lastName) || split.lastName.toUpperCase() === 'SAMPLE') {
+            skippedJunk++;
+            continue;
+          }
+
+          const phone = (iMobile >= 0 && cols[iMobile] ? cols[iMobile].trim() : '')
+            || (iHomePhone >= 0 && cols[iHomePhone] ? cols[iHomePhone].trim() : '')
+            || (iWorkPhone >= 0 && cols[iWorkPhone] ? cols[iWorkPhone].trim() : '');
           const brokerage = iCompany >= 0 ? (cols[iCompany] || '').trim() : '';
-          const addr = iAddr >= 0 ? (cols[iAddr] || '').trim() : '';
-          deduped.set(email, {
+          const addrParts = [
+            iAddr >= 0 ? (cols[iAddr] || '').trim() : '',
+            iAddr2 >= 0 ? (cols[iAddr2] || '').trim() : '',
+            iCity >= 0 ? (cols[iCity] || '').trim() : '',
+            [iState >= 0 ? (cols[iState] || '').trim() : '', iZip >= 0 ? (cols[iZip] || '').trim() : ''].filter(Boolean).join(' ')
+          ].filter(Boolean);
+          const fullAddr = addrParts.join(', ');
+
+          const rowType = iType >= 0 ? (cols[iType] || '').trim().toLowerCase() : '';
+          const isRep = rowType ? (rowType === 'rep' || rowType === 'agent' || rowType.includes('realtor')) : (targetType === 'agents');
+
+          const rec = {
             email,
             first_name: split.firstName,
             last_name: split.lastName,
             name: split.name || email,
             phone,
             brokerage,
-            last_address: addr
-          });
+            last_address: fullAddr
+          };
+          if (isRep) mergeRecord(agentMap, rec);
+          else mergeRecord(customerMap, rec);
         }
 
-        const rows = Array.from(deduped.values());
-        if (!rows.length) {
-          protoToastMsg('No rows with valid email addresses found in CSV.');
+        const agentRows = Array.from(agentMap.values());
+        const customerRows = Array.from(customerMap.values());
+        if (!agentRows.length && !customerRows.length) {
+          protoToastMsg('No valid contacts with email addresses found in CSV.');
           return;
-        }
-
-        // Update local state immediately
-        if (targetType === 'agents') {
-          protoState.agents = protoState.agents || [];
-          rows.forEach((row, idx) => {
-            const ex = protoFindAgentByEmail(row.email);
-            if (ex) {
-              ex.firstName = row.first_name; ex.lastName = row.last_name; ex.name = row.name;
-              if (row.phone) ex.phone = row.phone;
-              if (row.brokerage) ex.brokerage = row.brokerage;
-            } else {
-              protoState.agents.push({
-                id: 'ag-' + Date.now() + '-' + idx,
-                firstName: row.first_name, lastName: row.last_name, name: row.name,
-                email: row.email, phone: row.phone, brokerage: row.brokerage
-              });
-            }
-          });
-        } else {
-          rows.forEach(row => {
-            protoUpsertCustomer({
-              firstName: row.first_name, lastName: row.last_name, name: row.name,
-              email: row.email, phone: row.phone, lastAddress: row.last_address
-            }, true);
-          });
         }
 
         // Batch upsert to Supabase in chunks of 200
         let dbErr = '';
         if (dhiSupabase) {
-          const table = targetType === 'agents' ? 'agents' : 'customers';
-          const payload = rows.map(row => targetType === 'agents'
-            ? { email: row.email, first_name: row.first_name, last_name: row.last_name, name: row.name, phone: row.phone, brokerage: row.brokerage }
-            : { email: row.email, first_name: row.first_name, last_name: row.last_name, name: row.name, phone: row.phone, last_address: row.last_address }
-          );
-          for (let i = 0; i < payload.length; i += 200) {
-            const chunk = payload.slice(i, i + 200);
-            const { error } = await dhiSupabase.from(table).upsert(chunk, { onConflict: 'email' });
-            if (error) { dbErr = error.message; break; }
-          }
-          // Reload IDs from Supabase if clean
-          if (!dbErr) {
-            const { data } = await dhiSupabase.from(table).select('*').order('last_name', { ascending: true });
-            if (Array.isArray(data)) {
-              if (targetType === 'agents') protoState.agents = data.map(dhiMapAgentRow);
-              else protoState.customers = data.map(dhiMapCustomerRow);
+          if (agentRows.length) {
+            const payload = agentRows.map(row => ({
+              email: row.email, first_name: row.first_name, last_name: row.last_name,
+              name: row.name, phone: row.phone, brokerage: row.brokerage
+            }));
+            for (let i = 0; i < payload.length; i += 200) {
+              const { error } = await dhiSupabase.from('agents').upsert(payload.slice(i, i + 200), { onConflict: 'email' });
+              if (error) { dbErr = 'Agents sync: ' + error.message; break; }
             }
+          }
+          if (!dbErr && customerRows.length) {
+            const payload = customerRows.map(row => ({
+              email: row.email, first_name: row.first_name, last_name: row.last_name,
+              name: row.name, phone: row.phone, last_address: row.last_address
+            }));
+            for (let i = 0; i < payload.length; i += 200) {
+              const { error } = await dhiSupabase.from('customers').upsert(payload.slice(i, i + 200), { onConflict: 'email' });
+              if (error) { dbErr = 'Customers sync: ' + error.message; break; }
+            }
+          }
+          if (!dbErr) {
+            const [aRes, cRes] = await Promise.all([
+              dhiSupabase.from('agents').select('*').order('last_name', { ascending: true }),
+              dhiSupabase.from('customers').select('*').order('last_name', { ascending: true })
+            ]);
+            if (Array.isArray(aRes.data)) protoState.agents = aRes.data.map(dhiMapAgentRow);
+            if (Array.isArray(cRes.data)) protoState.customers = cRes.data.map(dhiMapCustomerRow);
           }
         }
         renderProtoPortal();
-        const skipNote = skippedNoEmail ? ` (${skippedNoEmail} skipped without email)` : '';
+        const notes = [];
+        if (skippedNoEmail) notes.push(`${skippedNoEmail} without email skipped`);
+        if (skippedJunk) notes.push(`${skippedJunk} sample/blank skipped`);
+        const noteStr = notes.length ? ` (${notes.join(', ')})` : '';
         if (dbErr) {
-          protoToastMsg(`Loaded ${rows.length} locally, but Supabase sync failed: ${dbErr}`);
+          protoToastMsg(`CSV import error: ${dbErr}. Make sure you are signed in as Inspector.`);
         } else {
-          protoToastMsg(`Imported & synced ${rows.length} ${targetType === 'agents' ? 'agents' : 'customers'}${skipNote}.`);
+          protoToastMsg(`Imported ${agentRows.length} agents & ${customerRows.length} customers${noteStr}.`);
         }
       };
       inp.click();
@@ -3635,7 +3679,7 @@ function submitInspectionQuoteRequest(payload) {
       const tabBtns = [
         { id: 'scheduled', label: `Scheduled Inspections (${scheduledInspections.length})` },
         { id: 'reports', label: `Inspection Reports (${releasedReports.length})` },
-        { id: 'requests', label: `Requests${newReqCount ? ' (' + newReqCount + ' New)' : ''}` },
+        { id: 'requests', label: `Requests (${(protoState.requests || []).length})` },
         { id: 'agents', label: `Agents (${agentsList.length})` },
         { id: 'customers', label: `Customers (${customersList.length})` },
         { id: 'new', label: '+ New Inspection' }
@@ -3907,8 +3951,9 @@ function submitInspectionQuoteRequest(payload) {
           </div>
         `;
       } else {
-        const pre = protoState.newInspDraft || { address: '', dateOnly: '', timeOnly: '', clientName: '', clientEmail: '', clientPhone: '', agentEmail: '', baseFee: '', sewer: false, radon: false, termite: false };
-        const calcTotal = (Number(pre.baseFee) || 0) + (pre.sewer ? 145 : 0) + (pre.radon ? 125 : 0) + (pre.termite ? 125 : 0);
+        const pre = protoState.newInspDraft || { address: '', dateOnly: '', timeOnly: '', clientName: '', clientEmail: '', clientPhone: '', agentEmail: '', agentName: '' };
+        const lineItems = protoState.draftLineItems || [];
+        const calcTotal = lineItems.reduce((sum, li) => sum + ((Number(li.qty) || 0) * (Number(li.unitPrice) || 0)), 0);
 
         const timeSlots = [];
         for (let h = 7; h <= 18; h++) {
@@ -3923,82 +3968,141 @@ function submitInspectionQuoteRequest(payload) {
           timeSlots.map(t => `<option value="${t}" ${pre.timeOnly === t ? 'selected' : ''}>${t}</option>`)
         ).join('');
 
-        const agentDatalistOpts = agentsList.map(a => `<option value="${a.email}">${a.name}${a.brokerage ? ' (' + a.brokerage + ')' : ''}</option>`).join('');
+        const agentDatalistOpts = agentsList.map(a => `<option value="${escapeHtml(a.email)}">${escapeHtml(dhiDisplayName(a))}${a.brokerage ? ' (' + escapeHtml(a.brokerage) + ')' : ''}</option>`).join('');
         const matchedAgent = protoFindAgentByEmail(pre.agentEmail);
 
+        const categories = ['Base Inspections', 'Testing & Ancillaries', 'Surcharges & Fees', 'Discounts'];
+        const activeCat = protoState.serviceCatalogCat || 'Base Inspections';
+        const catTabsHTML = categories.map(cat => `
+          <button type="button" onclick="protoSaveNewInspDraftInputs(); protoState.serviceCatalogCat='${cat}'; renderProtoPortal();" class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition ${activeCat === cat ? 'bg-davis-navy text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">${cat}</button>
+        `).join('');
+
+        const catalogPillsHTML = (protoState.serviceCatalog || [])
+          .filter(item => item.category === activeCat)
+          .map(item => {
+            const dollars = (Number(item.priceCents || 0) / 100);
+            const priceLabel = item.isPercentDiscount
+              ? `-${item.percentRate || 10}%`
+              : (dollars < 0 ? `-$${Math.abs(dollars).toFixed(2)}` : `$${dollars.toFixed(2)}`);
+            const pillTone = dollars < 0 || item.isPercentDiscount
+              ? 'border-emerald-200 bg-emerald-50/70 hover:border-emerald-500 text-emerald-900'
+              : 'border-slate-200 bg-white hover:border-davis-navy text-slate-800';
+            return `
+              <button type="button" onclick="protoAddLineItemFromCatalog('${item.id}')" class="px-2.5 py-1.5 rounded-lg border text-left text-xs transition flex items-center justify-between gap-2 ${pillTone}">
+                <span class="font-semibold leading-tight">${escapeHtml(item.name)}</span>
+                <span class="font-extrabold whitespace-nowrap text-[11px] ${dollars < 0 || item.isPercentDiscount ? 'text-emerald-700' : 'text-davis-navy'}">${priceLabel}</span>
+              </button>
+            `;
+          }).join('');
+
+        const lineItemRowsHTML = lineItems.map((li, idx) => {
+          const lineTotal = (Number(li.qty) || 0) * (Number(li.unitPrice) || 0);
+          const totalStr = lineTotal < 0 ? `-$${Math.abs(lineTotal).toFixed(2)}` : `$${lineTotal.toFixed(2)}`;
+          return `
+            <div class="grid grid-cols-12 gap-2 items-center bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
+              <div class="col-span-12 sm:col-span-5">
+                <input type="text" value="${escapeHtml(li.name)}" oninput="protoUpdateDraftLineItem(${idx}, 'name', this.value)" placeholder="Service or discount description" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold" />
+              </div>
+              <div class="col-span-3 sm:col-span-2">
+                <input type="number" step="1" min="0" value="${li.qty}" oninput="protoUpdateDraftLineItem(${idx}, 'qty', this.value)" title="Quantity" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs text-center font-mono" />
+              </div>
+              <div class="col-span-5 sm:col-span-2">
+                <input type="number" step="0.01" value="${li.unitPrice}" oninput="protoUpdateDraftLineItem(${idx}, 'unitPrice', this.value)" title="Unit price (negative for discount)" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs text-right font-mono" />
+              </div>
+              <div class="col-span-3 sm:col-span-2 text-right font-extrabold ${lineTotal < 0 ? 'text-emerald-700' : 'text-slate-900'}" id="dhiLineTotal-${idx}">${totalStr}</div>
+              <div class="col-span-1 text-right">
+                <button type="button" onclick="protoRemoveDraftLineItem(${idx})" title="Remove line item" class="text-slate-400 hover:text-rose-600 font-bold px-1">&times;</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
         bodyHTML = `
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 max-w-3xl space-y-5">
-            <div>
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6 space-y-5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
               <h2 class="text-lg font-extrabold text-slate-900">New Inspection</h2>
-              <p class="text-xs text-slate-500">Creates the inspection, adds a 2 hr 50 min event to your Google Calendar, and emails the client their portal link.</p>
+              <button type="button" onclick="protoOpenCatalogModal()" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Edit Price Catalog (${(protoState.serviceCatalog || []).length})</button>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div class="sm:col-span-2">
-                <label class="block font-bold text-slate-700 mb-1">Property Address *</label>
-                <input id="protoNewAddr" type="text" value="${pre.address}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">Inspection Date *</label>
-                <input id="protoNewDateOnly" type="date" value="${pre.dateOnly || ''}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm bg-white" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">Inspection Time *</label>
-                <select id="protoNewTimeOnly" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm bg-white">
-                  ${timeOptionsHTML}
-                </select>
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">Base Inspection Fee ($)</label>
-                <input id="protoNewFee" type="number" value="${pre.baseFee}" oninput="protoUpdateDraftTotal()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">Buyer Name *</label>
-                <input id="protoNewClient" type="text" value="${pre.clientName}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">Buyer Email *</label>
-                <input id="protoNewClientEmail" type="email" value="${pre.clientEmail}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">Buyer Phone</label>
-                <input id="protoNewClientPhone" type="tel" value="${pre.clientPhone}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
-              </div>
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">Agent Email (auto-fills agent &amp; portal)</label>
-                <input id="protoNewAgentEmail" type="email" list="dhiAgentEmailList" value="${pre.agentEmail}" oninput="protoUpdateAgentMatchHint()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
-                <datalist id="dhiAgentEmailList">${agentDatalistOpts}</datalist>
-                <div id="protoNewAgentMatchHint" class="mt-1.5">
-                  ${matchedAgent ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">✓ Matched Agent: ${matchedAgent.name}${matchedAgent.brokerage ? ' • ' + matchedAgent.brokerage : ''}</span>` : ''}
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+              <!-- Left Column: Property, Schedule, Buyer & Agent -->
+              <div class="xl:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                <div class="sm:col-span-2">
+                  <label class="block font-bold text-slate-700 mb-1">Property Address *</label>
+                  <input id="protoNewAddr" type="text" value="${escapeHtml(pre.address || '')}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Inspection Date *</label>
+                  <input id="protoNewDateOnly" type="date" value="${escapeHtml(pre.dateOnly || '')}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm bg-white" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Inspection Time *</label>
+                  <select id="protoNewTimeOnly" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm bg-white">
+                    ${timeOptionsHTML}
+                  </select>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block font-bold text-slate-700 mb-1">Buyer Name *</label>
+                  <input id="protoNewClient" type="text" value="${escapeHtml(pre.clientName || '')}" oninput="protoUpdateCalPreview()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Buyer Email *</label>
+                  <input id="protoNewClientEmail" type="email" value="${escapeHtml(pre.clientEmail || '')}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Buyer Phone</label>
+                  <input id="protoNewClientPhone" type="tel" value="${escapeHtml(pre.clientPhone || '')}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block font-bold text-slate-700 mb-1">Agent Email (auto-fills agent &amp; portal)</label>
+                  <input id="protoNewAgentEmail" type="email" list="dhiAgentEmailList" value="${escapeHtml(pre.agentEmail || '')}" oninput="protoUpdateAgentMatchHint()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  <datalist id="dhiAgentEmailList">${agentDatalistOpts}</datalist>
+                  <div id="protoNewAgentMatchHint" class="mt-1.5">
+                    ${matchedAgent ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">Matched Agent: ${escapeHtml(dhiDisplayName(matchedAgent))}${matchedAgent.brokerage ? ' • ' + escapeHtml(matchedAgent.brokerage) : ''}</span>` : ''}
+                  </div>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="block font-bold text-slate-700 mb-1">Agent Name (auto-fills Calendar event)</label>
+                  <input id="protoNewAgentName" type="text" placeholder="Auto-filled from saved agents" value="${escapeHtml(matchedAgent ? dhiDisplayName(matchedAgent) : (pre.agentName || ''))}" oninput="protoUpdateCalPreview()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
                 </div>
               </div>
-              <div>
-                <label class="block font-bold text-slate-700 mb-1">Agent Name (auto-fills Calendar event)</label>
-                <input id="protoNewAgentName" type="text" placeholder="Auto-filled from saved agents" value="${matchedAgent ? matchedAgent.name : (pre.agentName || '')}" oninput="protoUpdateCalPreview()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+
+              <!-- Right Column: Pre-Filled Service Menu & Editable Invoice -->
+              <div class="xl:col-span-7 space-y-4">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-slate-700">Click to Add Service or Discount</span>
+                    <div class="flex flex-wrap gap-1.5">${catTabsHTML}</div>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1">
+                    ${catalogPillsHTML || '<div class="text-xs text-slate-400 italic py-3">No items in this category.</div>'}
+                  </div>
+                </div>
+
+                <div class="rounded-2xl border border-slate-200 bg-white p-4 space-y-2.5">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-slate-700">Invoice Line Items (${lineItems.length})</span>
+                    <button type="button" onclick="protoAddCustomLineItem()" class="px-2.5 py-1 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-[11px] font-bold transition">+ Custom Line Item</button>
+                  </div>
+                  ${lineItems.length ? `
+                    <div class="hidden sm:grid grid-cols-12 gap-2 px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <div class="col-span-5">Description</div>
+                      <div class="col-span-2 text-center">Qty</div>
+                      <div class="col-span-2 text-right">Unit ($)</div>
+                      <div class="col-span-2 text-right">Total</div>
+                      <div class="col-span-1"></div>
+                    </div>
+                    <div class="space-y-1.5">${lineItemRowsHTML}</div>
+                  ` : `
+                    <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-xs text-slate-500">Click services or discounts above to build the invoice. You can edit any description, quantity, or dollar amount.</div>
+                  `}
+                </div>
               </div>
             </div>
 
-            <div class="space-y-2 pt-2 border-t border-slate-100">
-              <div class="text-xs font-bold text-slate-700">Ancillary Services</div>
-              <div class="flex flex-wrap gap-3 text-xs">
-                <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 cursor-pointer">
-                  <input type="checkbox" id="protoNewSewer" ${pre.sewer ? 'checked' : ''} onchange="protoUpdateDraftTotal()" />
-                  <span class="font-semibold">Sewer Scope ($145)</span>
-                </label>
-                <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 cursor-pointer">
-                  <input type="checkbox" id="protoNewRadon" ${pre.radon ? 'checked' : ''} onchange="protoUpdateDraftTotal()" />
-                  <span class="font-semibold">48-Hour Radon ($125)</span>
-                </label>
-                <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 cursor-pointer">
-                  <input type="checkbox" id="protoNewTermite" ${pre.termite ? 'checked' : ''} onchange="protoUpdateDraftTotal()" />
-                  <span class="font-semibold">Termite / WDI ($125)</span>
-                </label>
-              </div>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100">
-              <div class="text-sm font-extrabold text-slate-900">Estimated Total: <span id="protoNewTotalDisplay" class="text-davis-navy">$${calcTotal}</span></div>
-              <div id="protoCalPreviewText" class="text-xs text-slate-600 bg-sky-50 border border-sky-200 rounded-xl px-3.5 py-2 font-medium">Calendar Event Title: <strong class="text-davis-navy">Inspection with ${(matchedAgent ? matchedAgent.name : (pre.agentName || pre.clientName || 'Buyer / Agent'))}</strong></div>
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
+              <div class="text-base font-extrabold text-slate-900">Invoice Total: <span id="protoNewTotalDisplay" class="text-davis-navy">${calcTotal < 0 ? '-$' + Math.abs(calcTotal).toFixed(2) : '$' + calcTotal.toFixed(2)}</span></div>
+              <div id="protoCalPreviewText" class="text-xs text-slate-600 bg-sky-50 border border-sky-200 rounded-xl px-3.5 py-2 font-medium">Calendar Event Title: <strong class="text-davis-navy">Inspection with ${escapeHtml(matchedAgent ? dhiDisplayName(matchedAgent) : (pre.agentName || pre.clientName || 'Buyer / Agent'))}</strong></div>
               <button type="button" onclick="protoCreateInspection()" class="px-5 py-2.5 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Create Inspection &amp; Add to Google Calendar</button>
             </div>
           </div>
@@ -4021,13 +4125,157 @@ function submitInspectionQuoteRequest(payload) {
       `;
     }
 
+    function protoSaveNewInspDraftInputs() {
+      const addrEl = document.getElementById('protoNewAddr');
+      if (!addrEl) return;
+      protoState.newInspDraft = {
+        address: addrEl.value || '',
+        dateOnly: document.getElementById('protoNewDateOnly')?.value || '',
+        timeOnly: document.getElementById('protoNewTimeOnly')?.value || '',
+        clientName: document.getElementById('protoNewClient')?.value || '',
+        clientEmail: document.getElementById('protoNewClientEmail')?.value || '',
+        clientPhone: document.getElementById('protoNewClientPhone')?.value || '',
+        agentEmail: document.getElementById('protoNewAgentEmail')?.value || '',
+        agentName: document.getElementById('protoNewAgentName')?.value || ''
+      };
+    }
+
     function protoUpdateDraftTotal() {
-      const base = Number(document.getElementById('protoNewFee')?.value) || 0;
-      const sewer = document.getElementById('protoNewSewer')?.checked ? 145 : 0;
-      const radon = document.getElementById('protoNewRadon')?.checked ? 125 : 0;
-      const termite = document.getElementById('protoNewTermite')?.checked ? 125 : 0;
+      const total = (protoState.draftLineItems || []).reduce((sum, li) => sum + ((Number(li.qty) || 0) * (Number(li.unitPrice) || 0)), 0);
       const el = document.getElementById('protoNewTotalDisplay');
-      if (el) el.textContent = '$' + (base + sewer + radon + termite);
+      if (el) el.textContent = total < 0 ? '-$' + Math.abs(total).toFixed(2) : '$' + total.toFixed(2);
+    }
+
+    function protoAddLineItemFromCatalog(catId) {
+      protoSaveNewInspDraftInputs();
+      const item = (protoState.serviceCatalog || []).find(x => String(x.id) === String(catId));
+      if (!item) return;
+      protoState.draftLineItems = protoState.draftLineItems || [];
+      let unitPrice = Number((Number(item.priceCents || 0) / 100).toFixed(2));
+      if (item.isPercentDiscount) {
+        const posSubtotal = protoState.draftLineItems.reduce((s, li) => {
+          const lt = (Number(li.qty) || 0) * (Number(li.unitPrice) || 0);
+          return lt > 0 ? s + lt : s;
+        }, 0);
+        if (posSubtotal > 0) {
+          unitPrice = -Number(((posSubtotal * (Number(item.percentRate) || 10)) / 100).toFixed(2));
+        }
+      }
+      protoState.draftLineItems.push({ name: item.name, qty: 1, unitPrice });
+      renderProtoPortal();
+    }
+
+    function protoAddCustomLineItem() {
+      protoSaveNewInspDraftInputs();
+      protoState.draftLineItems = protoState.draftLineItems || [];
+      protoState.draftLineItems.push({ name: '', qty: 1, unitPrice: 0 });
+      renderProtoPortal();
+    }
+
+    function protoUpdateDraftLineItem(idx, field, val) {
+      const li = (protoState.draftLineItems || [])[idx];
+      if (!li) return;
+      if (field === 'name') li.name = val;
+      else if (field === 'qty') li.qty = val === '' ? 0 : Number(val);
+      else if (field === 'unitPrice') li.unitPrice = val === '' ? 0 : Number(val);
+      const lt = (Number(li.qty) || 0) * (Number(li.unitPrice) || 0);
+      const ltEl = document.getElementById('dhiLineTotal-' + idx);
+      if (ltEl) {
+        ltEl.textContent = lt < 0 ? '-$' + Math.abs(lt).toFixed(2) : '$' + lt.toFixed(2);
+        ltEl.className = 'col-span-3 sm:col-span-2 text-right font-extrabold ' + (lt < 0 ? 'text-emerald-700' : 'text-slate-900');
+      }
+      protoUpdateDraftTotal();
+    }
+
+    function protoRemoveDraftLineItem(idx) {
+      protoSaveNewInspDraftInputs();
+      protoState.draftLineItems = (protoState.draftLineItems || []).filter((_, i) => i !== idx);
+      renderProtoPortal();
+    }
+
+    function protoOpenCatalogModal() {
+      protoSaveNewInspDraftInputs();
+      renderCatalogModalBody();
+      document.getElementById('dhiCatalogModal')?.classList.remove('hidden');
+    }
+
+    function protoCloseCatalogModal() {
+      document.getElementById('dhiCatalogModal')?.classList.add('hidden');
+      renderProtoPortal();
+    }
+
+    function renderCatalogModalBody() {
+      const container = document.getElementById('dhiCatalogListContainer');
+      if (!container) return;
+      const cats = ['Base Inspections', 'Testing & Ancillaries', 'Surcharges & Fees', 'Discounts'];
+      const rows = (protoState.serviceCatalog || []).map(item => `
+        <div class="grid grid-cols-12 gap-2 items-center bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
+          <div class="col-span-12 sm:col-span-5">
+            <input type="text" id="catName-${item.id}" value="${escapeHtml(item.name)}" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold" />
+          </div>
+          <div class="col-span-6 sm:col-span-3">
+            <select id="catGroup-${item.id}" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs">
+              ${cats.map(c => `<option value="${c}" ${item.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="col-span-4 sm:col-span-2">
+            <input type="number" step="0.01" id="catPrice-${item.id}" value="${(Number(item.priceCents || 0) / 100).toFixed(2)}" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs text-right font-mono" />
+          </div>
+          <div class="col-span-2 sm:col-span-2 flex justify-end gap-1">
+            <button type="button" onclick="protoSaveCatalogItem('${item.id}')" class="px-2 py-1 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-[11px] font-bold">Save</button>
+            <button type="button" onclick="protoDeleteCatalogItem('${item.id}')" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold">&times;</button>
+          </div>
+        </div>
+      `).join('');
+      container.innerHTML = rows || '<div class="text-xs text-slate-400 text-center py-4">No catalog items yet.</div>';
+    }
+
+    async function protoSaveCatalogItem(id) {
+      const name = (document.getElementById('catName-' + id)?.value || '').trim();
+      const category = document.getElementById('catGroup-' + id)?.value || 'Base Inspections';
+      const priceDollars = Number(document.getElementById('catPrice-' + id)?.value || 0);
+      const priceCents = Math.round(priceDollars * 100);
+      if (!name) { protoToastMsg('Item name is required.'); return; }
+      const item = (protoState.serviceCatalog || []).find(x => String(x.id) === String(id));
+      if (item) {
+        item.name = name; item.category = category; item.priceCents = priceCents;
+      }
+      if (dhiIsLiveSession() && !String(id).startsWith('cat-')) {
+        const { error } = await dhiSupabase.from('service_catalog').update({ name, category, price_cents: priceCents }).eq('id', id);
+        if (error) { protoToastMsg('Save failed: ' + error.message); return; }
+      }
+      protoToastMsg('Saved "' + name + '" ($' + (priceCents / 100).toFixed(2) + ').');
+    }
+
+    async function protoAddCatalogItem() {
+      const name = (document.getElementById('dhiNewCatName')?.value || '').trim();
+      const category = document.getElementById('dhiNewCatGroup')?.value || 'Base Inspections';
+      const priceDollars = Number(document.getElementById('dhiNewCatPrice')?.value || 0);
+      const priceCents = Math.round(priceDollars * 100);
+      if (!name) { protoToastMsg('Enter a service or discount name.'); return; }
+      let newId = 'cat-' + Date.now();
+      const sortOrder = (protoState.serviceCatalog || []).length + 1;
+      if (dhiIsLiveSession()) {
+        const { data, error } = await dhiSupabase.from('service_catalog').insert({
+          name, category, price_cents: priceCents, sort_order: sortOrder
+        }).select().single();
+        if (error) { protoToastMsg('Could not add catalog item: ' + error.message); return; }
+        if (data && data.id) newId = data.id;
+      }
+      protoState.serviceCatalog.push({ id: newId, name, category, priceCents, isPercentDiscount: false, percentRate: 0, sortOrder });
+      document.getElementById('dhiNewCatName').value = '';
+      document.getElementById('dhiNewCatPrice').value = '';
+      renderCatalogModalBody();
+      protoToastMsg('Added "' + name + '" to Price Catalog.');
+    }
+
+    async function protoDeleteCatalogItem(id) {
+      protoState.serviceCatalog = (protoState.serviceCatalog || []).filter(x => String(x.id) !== String(id));
+      if (dhiIsLiveSession() && !String(id).startsWith('cat-')) {
+        try { await dhiSupabase.from('service_catalog').delete().eq('id', id); } catch (e) {}
+      }
+      renderCatalogModalBody();
+      protoToastMsg('Removed item from Price Catalog.');
     }
 
     function protoConvertRequestToInspection(reqId) {
@@ -4048,12 +4296,23 @@ function submitInspectionQuoteRequest(payload) {
         clientEmail: (r.clientRole || '').toLowerCase().includes('agent') ? '' : (r.clientEmail || ''),
         clientPhone: (r.clientRole || '').toLowerCase().includes('agent') ? '' : (r.clientPhone || ''),
         agentEmail: (r.clientRole || '').toLowerCase().includes('agent') ? (r.clientEmail || '') : '',
-        agentName: (r.clientRole || '').toLowerCase().includes('agent') ? (r.clientName || '') : '',
-        baseFee: '',
-        sewer: addonsStr.includes('sewer'),
-        radon: addonsStr.includes('radon'),
-        termite: addonsStr.includes('termite')
+        agentName: (r.clientRole || '').toLowerCase().includes('agent') ? (r.clientName || '') : ''
       };
+      const preItems = [];
+      const findCat = (kw) => (protoState.serviceCatalog || []).find(c => c.name.toLowerCase().includes(kw));
+      if (addonsStr.includes('sewer')) {
+        const c = findCat('sewer');
+        preItems.push({ name: c ? c.name : 'Sewer Scope Inspection', qty: 1, unitPrice: c ? c.priceCents / 100 : 145 });
+      }
+      if (addonsStr.includes('radon')) {
+        const c = findCat('radon test');
+        preItems.push({ name: c ? c.name : 'Radon Test', qty: 1, unitPrice: c ? c.priceCents / 100 : 100 });
+      }
+      if (addonsStr.includes('termite')) {
+        const c = findCat('termite');
+        preItems.push({ name: c ? c.name : 'Termite / WDI Inspection', qty: 1, unitPrice: c ? c.priceCents / 100 : 125 });
+      }
+      protoState.draftLineItems = preItems;
       protoState.adminTab = 'new';
       renderProtoPortal();
     }
@@ -4091,18 +4350,24 @@ function submitInspectionQuoteRequest(payload) {
           }, { onConflict: 'email' }).then(() => {}).catch(() => {});
         }
       }
-      const fee = Number(document.getElementById('protoNewFee')?.value) || 0;
-
       if (!addr || !client || !email) {
         protoToastMsg('Please enter at least the Property Address, Buyer Name, and Buyer Email.');
         return;
       }
 
-      const services = [{ name: 'Standard Home Inspection', price: fee }];
-      const addonNames = [];
-      if (document.getElementById('protoNewSewer')?.checked) { services.push({ name: 'Sewer Scope Inspection', price: 145 }); addonNames.push('Sewer Scope Inspection'); }
-      if (document.getElementById('protoNewRadon')?.checked) { services.push({ name: '48-Hour Radon Testing', price: 125 }); addonNames.push('48-Hour Radon Testing'); }
-      if (document.getElementById('protoNewTermite')?.checked) { services.push({ name: 'Termite / WDI Inspection', price: 125 }); addonNames.push('Termite / WDI Inspection'); }
+      const rawItems = (protoState.draftLineItems || []).filter(li => (li.name || '').trim());
+      if (!rawItems.length) {
+        protoToastMsg('Please add at least one service line item to the invoice.');
+        return;
+      }
+      const services = rawItems.map(li => {
+        const qty = Number(li.qty) || 1;
+        const unitPrice = Number(li.unitPrice) || 0;
+        const linePrice = Number((qty * unitPrice).toFixed(2));
+        const displayName = qty !== 1 ? `${li.name.trim()} (x${qty} @ $${unitPrice.toFixed(2)})` : li.name.trim();
+        return { name: displayName, price: linePrice, qty, unitPrice };
+      });
+      const addonNames = services.map(s => s.name);
       const totalCents = Math.round(services.reduce((sum, s) => sum + (Number(s.price) || 0), 0) * 100);
 
       const gcalTitle = `Inspection with ${agent || client}`;
@@ -4172,6 +4437,7 @@ function submitInspectionQuoteRequest(payload) {
         protoState.convertingRequestId = null;
       }
       protoState.newInspDraft = null;
+      protoState.draftLineItems = [];
       protoState.activeInspectionId = newId;
       protoState.adminTab = 'scheduled';
       renderProtoPortal();
@@ -4391,7 +4657,7 @@ function submitInspectionQuoteRequest(payload) {
       const serviceRows = insp.services.map(s => `
         <div class="flex justify-between text-sm py-1.5 border-b border-slate-100">
           <span class="text-slate-700">${s.name}</span>
-          <span class="font-bold text-slate-900">$${s.price.toFixed(2)}</span>
+          <span class="font-bold ${Number(s.price) < 0 ? 'text-emerald-700' : 'text-slate-900'}">${Number(s.price) < 0 ? '-$' + Math.abs(Number(s.price)).toFixed(2) : '$' + Number(s.price).toFixed(2)}</span>
         </div>
       `).join('');
 
@@ -4701,13 +4967,18 @@ function submitInspectionQuoteRequest(payload) {
     function protoEnterDemoRole(role) {
       const m = document.getElementById('protoDemoRoleModal');
       if (m) m.classList.add('hidden');
+      if (typeof DHI_DEMO_INSPECTION_SNAPSHOT !== 'undefined' && DHI_DEMO_INSPECTION_SNAPSHOT) {
+        if (!(protoState.inspections || []).some(i => i.id === 'insp-demo')) {
+          protoState.inspections = [DHI_DEMO_INSPECTION_SNAPSHOT].concat(protoState.inspections || []);
+        }
+      }
       protoState.demoMode = true;
       protoState.role = role;
       protoState.activeCollaborator = role === 'buyer' ? 'John (Buyer)' : 'Sarah (Agent)';
       protoState.activeInspectionId = 'insp-demo';
       protoState.activeDocTab = 'main';
       protoState.viewingReport = true;
-      navigatePage('portal', false);
+      navigatePage('portal', false, true);
       renderProtoPortal();
       protoToastMsg(role === 'buyer' ? 'Viewing Report as Homebuyer (John)' : 'Viewing Report as Real Estate Agent (Sarah)');
     }
@@ -5706,16 +5977,28 @@ function submitInspectionQuoteRequest(payload) {
         if (email === 'matt@davis-inspections.com') {
           protoState.role = 'admin';
           protoState.activeCollaborator = 'Matt (Inspector)';
-          const [iRes, aRes, cRes, rRes] = await Promise.all([
+          const [iRes, aRes, cRes, rRes, catRes] = await Promise.all([
             dhiSupabase.from('inspections').select('*').order('created_at', { ascending: false }),
             dhiSupabase.from('agents').select('*').order('last_name', { ascending: true }),
             dhiSupabase.from('customers').select('*').order('last_name', { ascending: true }),
-            dhiSupabase.from('inspection_requests').select('*').order('created_at', { ascending: false })
+            dhiSupabase.from('inspection_requests').select('*').order('created_at', { ascending: false }),
+            dhiSupabase.from('service_catalog').select('*').eq('active', true).order('sort_order', { ascending: true })
           ]);
           if (Array.isArray(iRes.data)) protoState.inspections = iRes.data.map(dhiMapInspectionRow);
           if (Array.isArray(aRes.data)) protoState.agents = aRes.data.map(dhiMapAgentRow);
           if (Array.isArray(cRes.data)) protoState.customers = cRes.data.map(dhiMapCustomerRow);
           if (Array.isArray(rRes.data)) protoState.requests = rRes.data.map(dhiMapRequestRow);
+          if (Array.isArray(catRes.data) && catRes.data.length) {
+            protoState.serviceCatalog = catRes.data.map(c => ({
+              id: c.id,
+              name: c.name,
+              category: c.category || 'Base Inspections',
+              priceCents: Number(c.price_cents || 0),
+              isPercentDiscount: !!c.is_percent_discount,
+              percentRate: Number(c.percent_rate || 0),
+              sortOrder: Number(c.sort_order || 0)
+            }));
+          }
         } else {
           protoState.loggedInBuyerEmail = email;
           protoState.loggedInAgentEmail = email;
@@ -5977,5 +6260,43 @@ function submitInspectionQuoteRequest(payload) {
       </div>
 
 
+  <div id="dhiCatalogModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-3xl w-full p-6 space-y-4 shadow-2xl border border-slate-200 max-h-[88vh] flex flex-col">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Supabase Service Catalog</span>
+          <h3 class="text-lg font-extrabold text-slate-900">Edit Default Services &amp; Prices</h3>
+          <p class="text-xs text-slate-500">Changes save directly to your Supabase <code>service_catalog</code> table. Use negative numbers for discounts.</p>
+        </div>
+        <button type="button" onclick="protoCloseCatalogModal()" class="text-slate-400 hover:text-slate-700 text-sm font-bold">&times;</button>
+      </div>
+      <div class="bg-sky-50/70 border border-sky-200 rounded-xl p-3 grid grid-cols-1 sm:grid-cols-12 gap-2 items-end text-xs">
+        <div class="sm:col-span-5">
+          <label class="block font-bold text-slate-700 mb-1">New Item Name</label>
+          <input id="dhiNewCatName" type="text" placeholder="e.g., Crawlspace Fee" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+        </div>
+        <div class="sm:col-span-3">
+          <label class="block font-bold text-slate-700 mb-1">Category</label>
+          <select id="dhiNewCatGroup" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs">
+            <option value="Base Inspections">Base Inspections</option>
+            <option value="Testing &amp; Ancillaries">Testing &amp; Ancillaries</option>
+            <option value="Surcharges &amp; Fees">Surcharges &amp; Fees</option>
+            <option value="Discounts">Discounts</option>
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block font-bold text-slate-700 mb-1">Price ($)</label>
+          <input id="dhiNewCatPrice" type="number" step="0.01" placeholder="50.00" class="w-full px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs text-right font-mono" />
+        </div>
+        <div class="sm:col-span-2">
+          <button type="button" onclick="protoAddCatalogItem()" class="w-full py-1.5 px-3 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">+ Add</button>
+        </div>
+      </div>
+      <div id="dhiCatalogListContainer" class="space-y-1.5 overflow-y-auto pr-1 flex-1"></div>
+      <div class="flex justify-end pt-2 border-t border-slate-100">
+        <button type="button" onclick="protoCloseCatalogModal()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold">Done</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
