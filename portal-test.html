@@ -4769,11 +4769,11 @@ function submitInspectionQuoteRequest(payload) {
                 <div class="min-w-0 space-y-1">
                   <div class="font-extrabold text-slate-900 text-base leading-snug">${escapeHtml(insp.address)}</div>
                   <div class="text-xs font-semibold text-slate-500">${escapeHtml(insp.date || '')}</div>
-                  <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <div class="flex flex-col items-start gap-1.5 pt-1">
                     <a href="${permitInfo.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-[11px] font-bold transition">${escapeHtml(permitInfo.label)} &nearr;</a>
                     <details class="relative inline-block">
                       <summary class="list-none cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-200 bg-white hover:border-davis-navy text-slate-600 text-[11px] font-semibold select-none">
-                        <span>Share permits${(pInfo.permitShare && (pInfo.permitShare.buyer || pInfo.permitShare.agent)) ? ': ' + [pInfo.permitShare.agent ? 'Agent' : '', pInfo.permitShare.buyer ? 'Buyer' : ''].filter(Boolean).join(' & ') : ': Off'}</span>
+                        <span>Share Permits${(pInfo.permitShare && (pInfo.permitShare.buyer || pInfo.permitShare.agent)) ? ': ' + [pInfo.permitShare.agent ? 'Agent' : '', pInfo.permitShare.buyer ? 'Buyer' : ''].filter(Boolean).join(' & ') : ': Off'}</span>
                         <span class="text-[9px]">&#9662;</span>
                       </summary>
                       <div class="absolute left-0 mt-1 z-30 w-44 rounded-xl border border-slate-200 bg-white shadow-lg p-2.5 space-y-1.5 text-xs">
@@ -4788,7 +4788,6 @@ function submitInspectionQuoteRequest(payload) {
                         </label>
                       </div>
                     </details>
-                    ${docBadges}
                   </div>
                 </div>
               </div>
@@ -4807,6 +4806,7 @@ function submitInspectionQuoteRequest(payload) {
                   <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${insp.paid ? 'Paid ($' + total.toFixed(2) + ')' : 'Balance $' + total.toFixed(2)}</span>
                   <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.reportNotified ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'}">${insp.reportNotified ? 'Released' : 'Not Released'}</span>
                 </div>
+                ${(insp.extraDocs && insp.extraDocs.length) ? `<div class="flex flex-wrap gap-1 pt-0.5">${dhiRenderAdminDocPills(insp)}</div>` : ''}
               </div>
 
               <!-- Top-Right Corner: Edit / History / Delete -->
@@ -4822,7 +4822,15 @@ function submitInspectionQuoteRequest(payload) {
               <div class="flex flex-wrap items-center gap-1.5">
                 <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-davis-navy text-white text-xs font-bold transition">Open Report</button>
                 <button type="button" onclick="protoUploadHomeGaugeReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 border border-sky-300 hover:border-davis-navy text-davis-navy text-xs font-bold transition">Upload HG (.zip)</button>
-                <button type="button" onclick="protoAttachExtraPdf('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">+ Attach PDF</button>
+                <details class="relative inline-block">
+                  <summary class="list-none cursor-pointer px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition select-none">+ Attach PDF &#9662;</summary>
+                  <div class="absolute left-0 mt-1 z-30 w-40 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5 space-y-1 text-xs">
+                    <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'radon')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-amber-50 font-bold text-slate-800">Radon</button>
+                    <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'sewer')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-teal-50 font-bold text-slate-800">Sewer</button>
+                    <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'termite')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-indigo-50 font-bold text-slate-800">Termite</button>
+                    <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'other')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 font-bold text-slate-700">Other...</button>
+                  </div>
+                </details>
                 ${(insp.agreementRequired !== false && insp.agreementSigned) ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 hover:border-emerald-500 text-emerald-800 text-xs font-bold transition">Signed PDF</button>` : ''}
                 ${!insp.paid
                   ? `<button type="button" onclick="protoMarkInspectionPaidManual('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 hover:border-emerald-600 text-emerald-800 text-xs font-bold transition">Mark Paid</button>`
@@ -5937,18 +5945,76 @@ function submitInspectionQuoteRequest(payload) {
       inp.click();
     }
 
-    function protoAttachExtraPdf(inspId) {
+    function dhiGetExtraDocCategory(doc) {
+      const t = String((doc && doc.title) || '').toLowerCase();
+      if (t.includes('radon')) return { key: 'radon', label: 'Radon', cls: 'bg-amber-100 text-amber-900 border-amber-200 hover:bg-amber-200/80' };
+      if (t.includes('sewer')) return { key: 'sewer', label: 'Sewer', cls: 'bg-teal-100 text-teal-900 border-teal-200 hover:bg-teal-200/80' };
+      if (t.includes('termite') || t.includes('wdi') || t.includes('npma')) return { key: 'termite', label: 'Termite', cls: 'bg-indigo-100 text-indigo-900 border-indigo-200 hover:bg-indigo-200/80' };
+      return { key: 'other', label: 'Other', cls: 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200/80' };
+    }
+
+    function dhiRenderAdminDocPills(insp) {
+      const docs = Array.isArray(insp && insp.extraDocs) ? insp.extraDocs : [];
+      if (!docs.length) return '';
+      return docs.map(d => {
+        const cat = dhiGetExtraDocCategory(d);
+        return `<span title="${escapeHtml(d.title || cat.label)}" class="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded-full text-[11px] font-bold border transition ${cat.cls}">
+          <button type="button" onclick="protoOpenReport('${insp.id}', '${d.id}')" class="hover:underline">${cat.label}</button>
+          <button type="button" onclick="event.stopPropagation(); dhiRemoveExtraPdf('${insp.id}', '${d.id}')" title="Remove ${escapeHtml(d.title || cat.label)}" class="w-4 h-4 rounded-full inline-flex items-center justify-center hover:bg-black/10 text-[11px] leading-none">&times;</button>
+        </span>`;
+      }).join('');
+    }
+
+    async function dhiRemoveExtraPdf(inspId, docId) {
       const insp = protoState.inspections.find(i => i.id === inspId);
       if (!insp) return;
+      const doc = (insp.extraDocs || []).find(d => String(d.id) === String(docId));
+      if (!doc) return;
+      if (!confirm(`Remove "${doc.title || 'this PDF'}" from ${insp.address}?`)) return;
+      if (dhiIsLiveSession() && inspId && inspId !== 'insp-demo') {
+        const { error } = await dhiSupabase.from('inspection_documents').delete().eq('id', docId);
+        if (error) {
+          protoToastMsg('Could not remove PDF: ' + error.message);
+          return;
+        }
+      }
+      insp.extraDocs = (insp.extraDocs || []).filter(d => String(d.id) !== String(docId));
+      if (protoState.activeInspectionId === inspId && String(protoState.activeDocTab) === String(docId)) {
+        protoState.activeDocTab = 'main';
+      }
+      renderProtoPortal();
+      protoToastMsg('Removed ' + (doc.title || 'PDF') + '.');
+    }
+
+    function protoAttachExtraPdf(inspId, category) {
+      const insp = protoState.inspections.find(i => i.id === inspId);
+      if (!insp) return;
+      const cat = String(category || 'other').toLowerCase();
       const inp = document.createElement('input');
       inp.type = 'file';
       inp.accept = 'application/pdf';
       inp.onchange = async () => {
         const file = inp.files && inp.files[0];
         if (!file) return;
-        const cleanTitle = file.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ');
+        const presetTitles = {
+          radon: 'Radon Report',
+          sewer: 'Sewer Scope Report',
+          termite: 'Termite / WDI Report (NPMA-33)'
+        };
+        let cleanTitle = presetTitles[cat] || '';
+        if (!cleanTitle) {
+          const defName = file.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim() || 'Additional Report';
+          const entered = prompt('Enter a label for this PDF tab:', defName);
+          if (entered === null) return;
+          cleanTitle = entered.trim() || defName;
+        }
         let url = URL.createObjectURL(file);
         let docId = 'doc-' + Date.now();
+        const isReplaceable = (cat === 'radon' || cat === 'sewer' || cat === 'termite');
+        const existingMatch = isReplaceable
+          ? (insp.extraDocs || []).find(d => dhiGetExtraDocCategory(d).key === cat)
+          : null;
+
         if (dhiIsLiveSession() && inspId && inspId !== 'insp-demo') {
           const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
           const storagePath = `${inspId}/${Date.now()}-${safeName}`;
@@ -5957,36 +6023,56 @@ function submitInspectionQuoteRequest(payload) {
             protoToastMsg('Upload failed: ' + upErr.message);
             return;
           }
-          const { data: docRow, error: dbErr } = await dhiSupabase.from('inspection_documents').insert({
-            inspection_id: inspId,
-            doc_type: 'specialty_pdf',
-            title: cleanTitle,
-            storage_path: storagePath,
-            summary: 'Uploaded ' + file.name
-          }).select().single();
-          if (dbErr) {
-            protoToastMsg('File uploaded, but DB link failed: ' + dbErr.message);
-            return;
+          if (existingMatch && existingMatch.id) {
+            const { error: updErr } = await dhiSupabase.from('inspection_documents').update({
+              title: cleanTitle,
+              storage_path: storagePath,
+              summary: 'Uploaded ' + file.name
+            }).eq('id', existingMatch.id);
+            if (updErr) {
+              protoToastMsg('File uploaded, but DB update failed: ' + updErr.message);
+              return;
+            }
+            docId = existingMatch.id;
+          } else {
+            const { data: docRow, error: dbErr } = await dhiSupabase.from('inspection_documents').insert({
+              inspection_id: inspId,
+              doc_type: 'specialty_pdf',
+              title: cleanTitle,
+              storage_path: storagePath,
+              summary: 'Uploaded ' + file.name
+            }).select().single();
+            if (dbErr) {
+              protoToastMsg('File uploaded, but DB link failed: ' + dbErr.message);
+              return;
+            }
+            if (docRow && docRow.id) docId = docRow.id;
           }
-          if (docRow && docRow.id) docId = docRow.id;
           const { data: signed } = await dhiSupabase.storage.from('reports').createSignedUrl(storagePath, 3600);
           if (signed && signed.signedUrl) url = signed.signedUrl;
         }
+
         insp.extraDocs = insp.extraDocs || [];
-        insp.extraDocs.push({
+        const newDocObj = {
           id: docId,
           title: cleanTitle,
           badge: 'PDF',
           summary: 'Uploaded ' + file.name,
           pdfPreviewUrl: url,
           pdfViewUrl: url,
-          currentPage: 1,
+          comments: [],
           totalPages: 1,
-          marks: [],
-          comments: []
-        });
+          currentPage: 1
+        };
+        if (existingMatch) {
+          const idx = insp.extraDocs.indexOf(existingMatch);
+          if (idx >= 0) insp.extraDocs[idx] = newDocObj;
+          else insp.extraDocs.push(newDocObj);
+        } else {
+          insp.extraDocs.push(newDocObj);
+        }
         renderProtoPortal();
-        protoToastMsg('Attached "' + cleanTitle + '" to ' + insp.address);
+        protoToastMsg((existingMatch ? 'Replaced ' : 'Attached ') + cleanTitle + '.');
       };
       inp.click();
     }
@@ -8685,7 +8771,7 @@ function submitInspectionQuoteRequest(payload) {
         } else if (insp && Array.isArray(dRes.data) && dRes.data.length === 0) {
           insp.extraDocs = [];
         }
-        if (protoState.activeDocTab === 'main' && (!protoState.findings || !protoState.findings.length) && insp && insp.extraDocs && insp.extraDocs.length > 0) {
+        if (protoState.role !== 'admin' && insp && insp.agreementRequired === false && protoState.activeDocTab === 'main' && (!protoState.findings || !protoState.findings.length) && insp.extraDocs && insp.extraDocs.length > 0) {
           protoState.activeDocTab = insp.extraDocs[0].id;
         }
         renderProtoPortal();
