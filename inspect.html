@@ -748,6 +748,8 @@
       if (tokens.length > 1 && dirMap[tokens[0]]) {
         stDir = dirMap[tokens[0]];
         tokens.shift();
+      } else if (tokens.length > 2 && dirMap[tokens[tokens.length - 1]]) {
+        stDir = dirMap[tokens.pop()];
       }
 
       const typeMap = {
@@ -795,8 +797,9 @@
         + '&StDir=' + encodeURIComponent(stDir)
         + '&StName=' + encodeURIComponent(stName)
         + '&StType=' + encodeURIComponent(stType)
-        + '&SearchType=Permits';
-      return { label: 'PPRBD Permits', url };
+        + '&SearchType=Permits'
+        + '&BackLink=AddressSearch.aspx';
+      return { label: 'PPRBD Permits', url, streetText: cleanedStreet };
     }
 
     function buildBlankDraftFromTemplate(insp) {
@@ -3084,8 +3087,8 @@
 
         const isBusy = state.aiBusyItemId === it.id;
         return `
-          <div ondragover="event.preventDefault(); this.classList.add('ring-2', 'ring-sky-500', 'bg-sky-50/40');" ondragleave="this.classList.remove('ring-2', 'ring-sky-500', 'bg-sky-50/40');" ondrop="handleItemPhotoDrop(event, ${state.activeSecIdx}, ${itemIdx})" class="bg-white rounded-2xl border ${it.isSummary ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'} shadow-sm p-4 space-y-3 transition">
-            <div class="flex flex-wrap items-center justify-between gap-2">
+          <div ondragover="event.preventDefault(); this.classList.add('ring-2', 'ring-sky-500', 'bg-sky-50/40');" ondragleave="this.classList.remove('ring-2', 'ring-sky-500', 'bg-sky-50/40');" ondrop="handleItemPhotoDrop(event, ${state.activeSecIdx}, ${itemIdx})" class="bg-white rounded-2xl border border-l-4 ${it.isSummary ? 'border-amber-400 border-l-amber-500 ring-1 ring-amber-200' : 'border-slate-300 border-l-davis-navy'} shadow-sm p-4 space-y-3 transition">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-200">
               <div>
                 <span class="text-[11px] font-mono font-bold text-slate-400 mr-1.5">${esc(it.code)}</span>
                 <span class="text-sm font-extrabold text-slate-900">${esc(it.title)}</span>
@@ -3116,7 +3119,7 @@
             </div>
 
             <!-- Field Notes & AI Narrative -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-2.5 border-t border-slate-200">
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between">
                   <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Field notes (for AI)</label>
@@ -3142,7 +3145,7 @@
       root.innerHTML = `
         <div class="space-y-4">
           <!-- Top Action Bar -->
-          <div class="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-2.5">
+          <div class="bg-white rounded-2xl border border-slate-300 p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-2.5">
             <div class="flex flex-wrap items-center gap-2">
               <button type="button" onclick="closeActiveDraft()" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">&larr; All inspections</button>
               ${(() => {
@@ -3178,7 +3181,7 @@
           ` : ''}
 
           <!-- Property Info Card (Full Address, MLS, Cover Photo, Building Type, In Attendance) -->
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="bg-white rounded-2xl border border-slate-300 shadow-sm overflow-hidden">
             <button type="button" onclick="state.showPropInfo=!state.showPropInfo; render();" class="w-full px-4 py-3 flex items-center justify-between text-xs font-extrabold text-slate-800 bg-slate-50 border-b border-slate-200">
               <span>Property info &amp; cover photo (feeds AI context)</span>
               <span>${state.showPropInfo ? 'Hide' : 'Show'}</span>
@@ -3317,7 +3320,7 @@
           </div>
 
           <!-- Collapsible Customer & Agent Info Card -->
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="bg-white rounded-2xl border border-slate-300 shadow-sm overflow-hidden">
             <button type="button" onclick="state.showContactsCard=!state.showContactsCard; render();" class="w-full px-4 py-3 flex items-center justify-between text-xs font-extrabold text-slate-800 bg-slate-50 border-b border-slate-200">
               <span>Customer &amp; agent info (${esc(((state.draft.contacts?.clientFirstName || '') + ' ' + (state.draft.contacts?.clientLastName || '')).trim() || 'Not set')}${state.draft.contacts?.agentFirstName ? ' • Agent: ' + esc(state.draft.contacts.agentFirstName + ' ' + (state.draft.contacts.agentLastName || '')) : ''})</span>
               <span>${state.showContactsCard ? 'Hide' : 'Show'}</span>
@@ -3371,7 +3374,7 @@
           </div>
 
           <!-- Section Tabs + Add Optional Section -->
-          <div class="flex flex-wrap items-center gap-2 pb-1">
+          <div class="bg-white rounded-2xl border border-slate-300 shadow-sm p-3 flex flex-wrap items-center gap-2">
             ${secTabs}
             ${optionalLeft.length ? `
               <select onchange="if(this.value) addOptionalSection(this.value);" class="px-3 py-2 rounded-xl border border-dashed border-slate-400 bg-slate-50 text-xs font-bold text-slate-700 shrink-0">
@@ -3383,7 +3386,7 @@
 
           <!-- Styles & Materials -->
           ${(sec.stylesMaterials && sec.stylesMaterials.length) ? `
-            <div class="bg-slate-100/80 rounded-2xl border border-slate-200 overflow-hidden">
+            <div class="bg-slate-100/90 rounded-2xl border border-slate-300 shadow-sm overflow-hidden">
               <button type="button" onclick="state.showSM=!state.showSM; render();" class="w-full px-4 py-2.5 flex items-center justify-between text-xs font-extrabold text-slate-800">
                 <span>${sec.num}. ${esc(sec.name)} — Styles &amp; Materials (${sec.stylesMaterials.length})</span>
                 <span>${state.showSM ? 'Hide' : 'Show'}</span>
@@ -3401,7 +3404,7 @@
               <div onmousedown="startTraySplitResize(event)" ontouchstart="startTraySplitResize(event)" title="Drag to resize Photo Tray" class="hidden lg:flex w-3 shrink-0 self-stretch cursor-col-resize items-center justify-center group select-none">
                 <div class="w-1 h-24 rounded-full bg-slate-300 group-hover:bg-sky-500 transition"></div>
               </div>
-              <aside id="dhiPhotoTrayAside" style="width:${state.trayWidthPct}%" class="w-full lg:w-auto lg:shrink-0 lg:sticky lg:top-16 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+              <aside id="dhiPhotoTrayAside" style="width:${state.trayWidthPct}%" class="w-full lg:w-auto lg:shrink-0 lg:sticky lg:top-16 bg-white rounded-2xl border border-slate-300 shadow-sm p-4 space-y-3">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div class="text-xs font-extrabold text-slate-900">Photo tray (${state.photoTray.length})</div>

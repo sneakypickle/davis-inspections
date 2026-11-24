@@ -4033,6 +4033,8 @@ function submitInspectionQuoteRequest(payload) {
       if (tokens.length > 1 && dirMap[tokens[0]]) {
         stDir = dirMap[tokens[0]];
         tokens.shift();
+      } else if (tokens.length > 2 && dirMap[tokens[tokens.length - 1]]) {
+        stDir = dirMap[tokens.pop()];
       }
 
       const typeMap = {
@@ -4080,8 +4082,9 @@ function submitInspectionQuoteRequest(payload) {
         + '&StDir=' + encodeURIComponent(stDir)
         + '&StName=' + encodeURIComponent(stName)
         + '&StType=' + encodeURIComponent(stType)
-        + '&SearchType=Permits';
-      return { label: 'PPRBD Permits', url };
+        + '&SearchType=Permits'
+        + '&BackLink=AddressSearch.aspx';
+      return { label: 'PPRBD Permits', url, streetText: cleanedStreet };
     }
 
 
@@ -4685,26 +4688,35 @@ function submitInspectionQuoteRequest(payload) {
                 <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.reportNotified ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'}">${insp.reportNotified ? 'Released' : 'Not Released'}</span>
               </div>
             </td>
-            <td class="py-3.5 pl-2 text-right align-top space-y-1.5 whitespace-nowrap">
-              <div class="flex flex-wrap justify-end gap-1.5">
-                <button type="button" onclick="protoUploadHomeGaugeReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 border border-sky-300 hover:border-davis-navy text-davis-navy text-xs font-bold transition">Upload HG Report (.zip)</button>
-                <button type="button" onclick="protoAttachExtraPdf('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">+ Attach PDF</button>
-                <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Open Report</button>
-                <button type="button" onclick="dhiOpenEditInspModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Edit</button>
+            <td class="py-3.5 pl-2 text-right align-top space-y-2 whitespace-nowrap">
+              <div class="flex flex-wrap justify-end items-center gap-1.5">
+                <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-davis-navy text-white text-xs font-bold transition">Open Report</button>
+                <button type="button" onclick="dhiOpenEditInspModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Edit</button>
                 <button type="button" onclick="dhiOpenHistoryModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:border-indigo-500 text-indigo-800 text-xs font-bold transition">History</button>
-                ${!insp.paid ? `<button type="button" onclick="protoMarkInspectionPaidManual('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 hover:border-emerald-600 text-emerald-800 text-xs font-bold transition">Mark Paid</button>` : ''}
-                ${(insp.agreementRequired !== false && insp.agreementSigned) ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold transition">Signed PDF</button>` : ''}
                 ${isScheduled ? (() => {
                   const hasSewer = (insp.services || []).some(s => String(s && s.name || '').toLowerCase().includes('sewer'));
                   const btnCls = hasSewer
-                    ? 'border-teal-300 bg-teal-50 hover:border-teal-600 text-teal-800'
+                    ? 'border-teal-400 bg-teal-50 hover:border-teal-600 text-teal-900'
                     : 'border-slate-300 bg-slate-50 hover:border-davis-navy text-slate-700';
                   return `<button type="button" onclick="protoCopySewerText('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border ${btnCls} text-xs font-bold transition">Copy Sewer Text</button>`;
                 })() : ''}
-                ${insp.gcalUrl ? `<a href="${insp.gcalUrl}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 text-sky-800 text-xs font-bold transition">Google Calendar &nearr;</a>` : ''}
-                <button type="button" onclick="protoRequestDelete('inspection', '${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Delete</button>
+                <details class="relative inline-block text-left">
+                  <summary class="list-none cursor-pointer px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold select-none">Manage &#9662;</summary>
+                  <div class="absolute right-0 mt-1 z-30 w-52 rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 space-y-0.5 text-xs">
+                    <div class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Files &amp; Reports</div>
+                    <button type="button" onclick="this.closest('details').open=false; protoUploadHomeGaugeReport('${insp.id}')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-sky-50 text-davis-navy font-bold">Upload HG Report (.zip)</button>
+                    <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 text-slate-700 font-semibold">+ Attach PDF</button>
+                    ${(insp.agreementRequired !== false && insp.agreementSigned) ? `<button type="button" onclick="this.closest('details').open=false; downloadSignedAgreementPDF('${insp.id}')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 text-emerald-800 font-semibold">Signed Agreement PDF</button>` : ''}
+                    <div class="border-t border-slate-100 my-1"></div>
+                    <div class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Billing &amp; Schedule</div>
+                    ${!insp.paid ? `<button type="button" onclick="this.closest('details').open=false; protoMarkInspectionPaidManual('${insp.id}')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 text-emerald-800 font-bold">Mark Paid Manually</button>` : `<button type="button" onclick="this.closest('details').open=false; dhiDownloadReceiptPDF('${insp.id}')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 text-slate-700 font-semibold">Download Receipt PDF</button>`}
+                    ${insp.gcalUrl ? `<a href="${insp.gcalUrl}" target="_blank" rel="noopener noreferrer" onclick="this.closest('details').open=false;" class="block w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-sky-50 text-sky-800 font-semibold">Google Calendar &nearr;</a>` : ''}
+                    <div class="border-t border-slate-100 my-1"></div>
+                    <button type="button" onclick="this.closest('details').open=false; protoRequestDelete('inspection', '${insp.id}')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-rose-50 text-rose-700 font-bold">Delete Inspection</button>
+                  </div>
+                </details>
               </div>
-              <div class="flex flex-wrap justify-end items-center gap-1.5">
+              <div class="flex flex-wrap justify-end items-center gap-1.5 pt-1.5 border-t border-slate-100">
                 <select id="dhiEmailType-${insp.id}" class="px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700">
                   <option value="report_ready">Main Report Ready (Unlock Pay)</option>
                   <option value="radon_ready">Radon Report Ready</option>
