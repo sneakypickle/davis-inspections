@@ -82,11 +82,48 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
-    @page { margin: 0.5in; }
+    @page {
+      size: letter;
+      margin: 0.5in 0.5in 0.6in 0.5in;
+      @top-left { content: none; }
+      @top-center { content: none; }
+      @top-right { content: none; }
+      @bottom-left { content: none; }
+      @bottom-center { content: none; }
+      @bottom-right {
+        content: counter(page) " / " counter(pages);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 9pt;
+        color: #64748b;
+      }
+    }
     @media print {
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       header, nav, footer, .no-print { display: none !important; }
-      body { background: #ffffff !important; color: #0f172a !important; }
+      html, body {
+        height: auto !important;
+        min-height: 0 !important;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+      }
+      main, #mainContentContainer, #page-portal, #protoPortalRoot {
+        padding: 0 !important;
+        margin: 0 !important;
+        min-height: 0 !important;
+        height: auto !important;
+        max-width: 100% !important;
+        display: block !important;
+      }
+      #protoPortalRoot > :last-child,
+      .dhi-print-section:last-child {
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+        page-break-after: auto !important;
+        break-after: auto !important;
+      }
       #dhiReportCoverPage { display: block !important; page-break-after: always; break-after: page; border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
       #dhiReportCoverPage .bg-davis-navy { background-color: #0f2942 !important; color: #ffffff !important; }
       #dhiCommentKeyCard { display: block !important; border: 1px solid #cbd5e1 !important; box-shadow: none !important; break-inside: avoid; }
@@ -6464,6 +6501,14 @@ function submitInspectionQuoteRequest(payload) {
       return null;
     }
 
+    function dhiExtractStreetAddress(fullAddr) {
+      const raw = String(fullAddr || '').trim();
+      if (!raw) return 'Property';
+      const streetPart = raw.split(',')[0].trim();
+      const cleaned = streetPart.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+      return cleaned || 'Property';
+    }
+
     function dhiPrintInspectionReport(mode) {
       const insp = protoGetActiveInsp();
       const prevTitle = document.title;
@@ -6473,11 +6518,8 @@ function submitInspectionQuoteRequest(payload) {
       const prevPrintMode = protoState.printMode || null;
       protoState.printMode = mode || 'full';
 
-      const cleanAddr = ((insp && insp.address) ? insp.address : 'Property')
-        .replace(/[\\/:*?"<>|]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      document.title = cleanAddr + (mode === 'summary' ? ' - Inspection Summary' : ' - Inspection Report');
+      const streetName = dhiExtractStreetAddress(insp && insp.address);
+      document.title = streetName + (mode === 'summary' ? ' - Inspection Summary' : ' - Inspection Report');
 
       if (mode === 'summary') {
         protoState.buyerFilterMode = 'summary';
@@ -6509,6 +6551,629 @@ function submitInspectionQuoteRequest(payload) {
         window.addEventListener('afterprint', restore);
         window.print();
       }, 90);
+    }
+
+    function dhiLoadImageForPdf(url) {
+      return new Promise((resolve) => {
+        if (!url || typeof url !== 'string') { resolve(null); return; }
+        const img = new Image();
+        if (!url.startsWith('data:')) {
+          img.crossOrigin = 'anonymous';
+        }
+        let settled = false;
+        const finish = (val) => { if (!settled) { settled = true; resolve(val); } };
+        const timer = setTimeout(() => finish(null), 10000);
+        img.onload = () => {
+          clearTimeout(timer);
+          try {
+            const natW = img.naturalWidth || img.width || 800;
+            const natH = img.naturalHeight || img.height || 600;
+            const maxDim = 1200;
+            let w = natW, h = natH;
+            if (w > maxDim || h > maxDim) {
+              const scale = Math.min(maxDim / w, maxDim / h);
+              w = Math.round(w * scale);
+              h = Math.round(h * scale);
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.84);
+            finish({ dataUrl, width: w, height: h });
+          } catch (e) {
+            finish(null);
+          }
+        };
+        img.onerror = () => { clearTimeout(timer); finish(null); };
+        img.src = url;
+      });
+    }
+
+    async function dhiSaveInspectionPdf(mode) {
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        protoToastMsg('PDF library is still loading. Please try again in a moment.');
+        return;
+      }
+      const insp = protoGetActiveInsp();
+      if (!insp) return;
+      const isSummaryOnly = (mode === 'summary');
+      const streetName = dhiExtractStreetAddress(insp.address);
+      const filename = streetName + (isSummaryOnly ? ' - Inspection Summary.pdf' : ' - Inspection Report.pdf');
+
+      const saveSummaryEl = document.getElementById('dhiSavePdfSummaryBtn');
+      const prevBtnLabel = saveSummaryEl ? saveSummaryEl.innerHTML : '';
+      if (saveSummaryEl) {
+        saveSummaryEl.innerHTML = 'Building PDF...';
+        saveSummaryEl.style.pointerEvents = 'none';
+        saveSummaryEl.style.opacity = '0.7';
+      }
+      protoToastMsg('Building PDF, please wait...');
+
+      try {
+        const allSections = (protoState.sections || []);
+        const allFindings = (protoState.findings || []);
+
+        const includedSections = allSections.map(sec => {
+          const items = allFindings.filter(f => String(f.sectionNum) === String(sec.num) && (!isSummaryOnly || f.isSummary));
+          return items.length ? { sec, items } : null;
+        }).filter(Boolean);
+
+        // Preload cover photo + all finding photos/video posters in parallel batches
+        const urlsToLoad = new Set();
+        if (insp.coverPhotoUrl) urlsToLoad.add(insp.coverPhotoUrl);
+        includedSections.forEach(g => {
+          g.items.forEach(f => {
+            (f.photos || []).forEach(ph => {
+              if (ph.mediaType === 'video') {
+                if (ph.posterUrl) urlsToLoad.add(ph.posterUrl);
+              } else if (ph.dataUrl) {
+                urlsToLoad.add(ph.dataUrl);
+              }
+            });
+          });
+        });
+
+        const imgCache = {};
+        const urlList = Array.from(urlsToLoad);
+        for (let i = 0; i < urlList.length; i += 8) {
+          const batch = urlList.slice(i, i + 8);
+          const loaded = await Promise.all(batch.map(u => dhiLoadImageForPdf(u)));
+          batch.forEach((u, idx) => { if (loaded[idx]) imgCache[u] = loaded[idx]; });
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter', compress: true });
+        const pageW = doc.internal.pageSize.getWidth();   // 612
+        const pageH = doc.internal.pageSize.getHeight();  // 792
+        const marginX = 36;
+        const marginTop = 36;
+        const marginBottom = 42;
+        const contentW = pageW - marginX * 2;             // 540
+        const yMax = pageH - marginBottom;                // 750
+        let y = marginTop;
+
+        const cleanPdfText = (t) => String(t || '')
+          .replace(/\r\n/g, '\n')
+          .replace(/[\u2018\u2019]/g, "'")
+          .replace(/[\u201C\u201D]/g, '"')
+          .replace(/[\u2013\u2014]/g, '-')
+          .replace(/\u2022/g, '*')
+          .replace(/\u00B0/g, ' deg ')
+          .replace(/\s+deg\s+F/g, '°F')
+          .trim();
+
+        const ensureSpace = (neededH) => {
+          if (y + neededH > yMax) {
+            doc.addPage();
+            y = marginTop;
+            return true;
+          }
+          return false;
+        };
+
+        const drawWrappedText = (text, x, width, fontSize, lineH, colorRgb, fontStyle) => {
+          doc.setFont('helvetica', fontStyle || 'normal');
+          doc.setFontSize(fontSize);
+          doc.setTextColor(colorRgb[0], colorRgb[1], colorRgb[2]);
+          const paras = cleanPdfText(text).split('\n');
+          paras.forEach((para, pIdx) => {
+            if (!para.trim()) {
+              y += Math.round(lineH * 0.5);
+              return;
+            }
+            const lines = doc.splitTextToSize(para, width);
+            lines.forEach(line => {
+              if (y + lineH > yMax) {
+                doc.addPage();
+                y = marginTop;
+                doc.setFont('helvetica', fontStyle || 'normal');
+                doc.setFontSize(fontSize);
+                doc.setTextColor(colorRgb[0], colorRgb[1], colorRgb[2]);
+              }
+              doc.text(line, x, y + fontSize * 0.82);
+              y += lineH;
+            });
+            if (pIdx < paras.length - 1) y += 3;
+          });
+        };
+
+        // ===================================================================
+        // PAGE 1: COVER PAGE
+        // ===================================================================
+        // Top Navy Banner
+        doc.setFillColor(15, 41, 66);
+        doc.roundedRect(marginX, y, contentW, 56, 6, 6, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(125, 211, 252);
+        doc.text(isSummaryOnly ? 'HOME INSPECTION SUMMARY' : 'HOME INSPECTION REPORT', marginX + 16, y + 20);
+        doc.setFontSize(16);
+        doc.setTextColor(255, 255, 255);
+        doc.text('Davis Home Inspections, LLC', marginX + 16, y + 40);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(224, 242, 254);
+        doc.text('Matt Davis  |  Matt@Davis-Inspections.com  |  (719) 203-9262', marginX + contentW - 16, y + 36, { align: 'right' });
+        y += 72;
+
+        // Cover Photo
+        const coverImg = insp.coverPhotoUrl ? imgCache[insp.coverPhotoUrl] : null;
+        if (coverImg) {
+          const maxPhotoW = contentW;
+          const maxPhotoH = 265;
+          const ratio = Math.min(maxPhotoW / coverImg.width, maxPhotoH / coverImg.height);
+          const drawW = coverImg.width * ratio;
+          const drawH = coverImg.height * ratio;
+          const drawX = marginX + (contentW - drawW) / 2;
+          doc.setFillColor(248, 250, 252);
+          doc.setDrawColor(203, 213, 225);
+          doc.roundedRect(drawX - 4, y - 4, drawW + 8, drawH + 8, 6, 6, 'FD');
+          doc.addImage(coverImg.dataUrl, 'JPEG', drawX, y, drawW, drawH);
+          y += drawH + 22;
+        }
+
+        // Property Address Block
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text('INSPECTED PROPERTY', marginX, y);
+        y += 16;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.setTextColor(15, 23, 42);
+        const addrLines = doc.splitTextToSize(cleanPdfText(insp.address || ''), contentW);
+        addrLines.forEach(line => {
+          doc.text(line, marginX, y);
+          y += 22;
+        });
+        y += 6;
+
+        // Property & Inspection Specs 2-Column Card
+        const coverPInfo = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
+        const coverSpecs = [
+          ['Inspection Date', insp.date || ''],
+          ['Prepared For', insp.clientName || ''],
+          ['Real Estate Agent', insp.agentName || ''],
+          ['Type of Building', coverPInfo.buildingType || ''],
+          ['Year Built', coverPInfo.yearBuilt || ''],
+          ['Square Footage', coverPInfo.sqft || ''],
+          ['In Attendance', coverPInfo.inAttendance || ''],
+          ['Weather', coverPInfo.weather || ''],
+          ['Temperature', coverPInfo.temperature || ''],
+          ['Ground / Soil', coverPInfo.groundConditions || ''],
+          ['Standards of Practice', coverPInfo.standardsOfPractice || 'ASHI'],
+          ['County', coverPInfo.county || ''],
+          ['MLS #', coverPInfo.mls || '']
+        ].filter(([, v]) => String(v || '').trim());
+
+        const specRows = Math.ceil(coverSpecs.length / 2);
+        const specRowH = 30;
+        const specCardH = specRows * specRowH + 22;
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.roundedRect(marginX, y, contentW, specCardH, 6, 6, 'FD');
+
+        const specColW = (contentW - 36) / 2;
+        coverSpecs.forEach(([label, val], idx) => {
+          const col = idx % 2;
+          const row = Math.floor(idx / 2);
+          const sx = marginX + 14 + col * (specColW + 8);
+          const sy = y + 18 + row * specRowH;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text(label.toUpperCase(), sx, sy);
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9.5);
+          doc.setTextColor(30, 41, 59);
+          const valLine = doc.splitTextToSize(cleanPdfText(val), specColW)[0] || '';
+          doc.text(valLine, sx, sy + 12);
+        });
+
+        // ===================================================================
+        // PAGE 2: TABLE OF CONTENTS + COMMENT KEY & DEFINITIONS
+        // ===================================================================
+        doc.addPage();
+        y = marginTop;
+        const tocPageNum = doc.getCurrentPageInfo().pageNumber;
+        const tocSlotCoords = {};
+
+        // Table of Contents Box
+        const tocRows = Math.ceil(includedSections.length / 2);
+        const tocBoxH = 34 + tocRows * 18 + 10;
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(203, 213, 225);
+        doc.roundedRect(marginX, y, contentW, tocBoxH, 6, 6, 'FD');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(15, 41, 66);
+        doc.text('Table of Contents', marginX + 14, y + 20);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(marginX + 14, y + 26, marginX + contentW - 14, y + 26);
+
+        const tocColW = (contentW - 44) / 2;
+        includedSections.forEach((g, idx) => {
+          const col = idx % 2;
+          const row = Math.floor(idx / 2);
+          const tx = marginX + 14 + col * (tocColW + 16);
+          const ty = y + 43 + row * 18;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9.5);
+          doc.setTextColor(15, 23, 42);
+          const titleStr = cleanPdfText(`${g.sec.num}. ${g.sec.name}`);
+          doc.text(titleStr, tx, ty);
+          tocSlotCoords[g.sec.num] = { x: tx + tocColW, y: ty };
+        });
+        y += tocBoxH + 18;
+
+        // Comment Key & Definitions Card
+        const keyCardTop = y;
+        const keyItems = [
+          { title: 'Inspected (IN)', desc: 'Visually observed and appeared to function as intended, allowing for normal wear and tear.', bg: [236, 253, 245], bd: [167, 243, 208], tc: [6, 78, 59] },
+          { title: 'Not Inspected (NI)', desc: 'Item was not inspected; no representation is made regarding its condition, and the reason is noted.', bg: [255, 241, 242], bd: [254, 205, 211], tc: [136, 19, 55] },
+          { title: 'Not Present (NP)', desc: 'This item, component, or system is not present in the home or building.', bg: [248, 250, 252], bd: [226, 232, 240], tc: [30, 41, 59] },
+          { title: 'Repair or Replace (RR)', desc: 'Not functioning as intended or requires further evaluation by a qualified contractor.', bg: [255, 251, 235], bd: [253, 230, 138], tc: [120, 53, 15] }
+        ];
+        const keyBoxH = 158;
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(203, 213, 225);
+        doc.roundedRect(marginX, keyCardTop, contentW, keyBoxH, 6, 6, 'FD');
+
+        doc.setFillColor(248, 250, 252);
+        doc.roundedRect(marginX, keyCardTop, contentW, 26, 6, 6, 'F');
+        doc.setDrawColor(226, 232, 240);
+        doc.line(marginX, keyCardTop + 26, marginX + contentW, keyCardTop + 26);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10.5);
+        doc.setTextColor(15, 41, 66);
+        doc.text('Comment Key & Definitions', marginX + 14, keyCardTop + 17);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(71, 85, 105);
+        const keyIntro = doc.splitTextToSize('Consider all inspector comments before purchasing the home. Any recommendation to repair or replace suggests further evaluation or service by a qualified contractor prior to closing.', contentW - 28);
+        doc.text(keyIntro, marginX + 14, keyCardTop + 40);
+
+        const kColW = (contentW - 38) / 2;
+        const kTileH = 44;
+        keyItems.forEach((ki, idx) => {
+          const col = idx % 2;
+          const row = Math.floor(idx / 2);
+          const kx = marginX + 14 + col * (kColW + 10);
+          const ky = keyCardTop + 62 + row * (kTileH + 8);
+          doc.setFillColor(ki.bg[0], ki.bg[1], ki.bg[2]);
+          doc.setDrawColor(ki.bd[0], ki.bd[1], ki.bd[2]);
+          doc.roundedRect(kx, ky, kColW, kTileH, 4, 4, 'FD');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(8.5);
+          doc.setTextColor(ki.tc[0], ki.tc[1], ki.tc[2]);
+          doc.text(ki.title, kx + 8, ky + 13);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7.5);
+          doc.setTextColor(51, 65, 85);
+          const kLines = doc.splitTextToSize(ki.desc, kColW - 16);
+          doc.text(kLines, kx + 8, ky + 24);
+        });
+        y = keyCardTop + keyBoxH + 16;
+
+        // ===================================================================
+        // GENERAL SUMMARY (Option A, Full Report only)
+        // ===================================================================
+        if (!isSummaryOnly) {
+          const sumGroups = allSections.map(sec => {
+            const items = allFindings.filter(f => String(f.sectionNum) === String(sec.num) && f.isSummary);
+            return items.length ? { sec, items } : null;
+          }).filter(Boolean);
+
+          if (sumGroups.length) {
+            doc.addPage();
+            y = marginTop;
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.setTextColor(15, 41, 66);
+            doc.text('General Summary', marginX, y + 12);
+            y += 18;
+            doc.setDrawColor(15, 41, 66);
+            doc.setLineWidth(1.5);
+            doc.line(marginX, y, marginX + contentW, y);
+            doc.setLineWidth(0.5);
+            y += 10;
+
+            drawWrappedText(
+              'The following summary highlights items marked Repair or Replace / Summary across the report. See the numbered sections that follow for full details and photographs.',
+              marginX, contentW, 8.5, 12, [100, 116, 139], 'normal'
+            );
+            y += 8;
+
+            sumGroups.forEach(g => {
+              ensureSpace(58);
+              doc.setFillColor(241, 245, 249);
+              doc.roundedRect(marginX, y, contentW, 20, 4, 4, 'F');
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(9.5);
+              doc.setTextColor(15, 41, 66);
+              doc.text(cleanPdfText(`${g.sec.num}. ${g.sec.name}`), marginX + 10, y + 13.5);
+              y += 26;
+
+              g.items.forEach(it => {
+                const narr = cleanPdfText(it.narrative || '');
+                const estLines = doc.splitTextToSize(narr, contentW - 14).length;
+                const estH = 16 + estLines * 12.5 + 10;
+                if (estH < 220) ensureSpace(estH);
+
+                const itemStartY = y;
+                const itemStartPage = doc.getCurrentPageInfo().pageNumber;
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(9.5);
+                doc.setTextColor(15, 23, 42);
+                const headLines = doc.splitTextToSize(cleanPdfText(`${it.code || ''} ${it.title}`.trim()), contentW - 14);
+                headLines.forEach(hl => {
+                  ensureSpace(14);
+                  doc.text(hl, marginX + 10, y + 9);
+                  y += 13;
+                });
+                if (narr) {
+                  drawWrappedText(narr, marginX + 10, contentW - 14, 8.8, 12.2, [51, 65, 85], 'normal');
+                }
+                if (doc.getCurrentPageInfo().pageNumber === itemStartPage) {
+                  doc.setFillColor(245, 158, 11);
+                  doc.rect(marginX + 2, itemStartY + 1, 2.5, Math.max(12, y - itemStartY - 3), 'F');
+                }
+                y += 8;
+              });
+              y += 4;
+            });
+          }
+        }
+
+        // ===================================================================
+        // NUMBERED SECTIONS & FINDINGS
+        // ===================================================================
+        const sectionStartPages = {};
+
+        includedSections.forEach((g, secIdx) => {
+          const sec = g.sec;
+          const secItems = g.items;
+
+          if (secIdx === 0) {
+            doc.addPage();
+            y = marginTop;
+          } else {
+            ensureSpace(120);
+          }
+
+          sectionStartPages[sec.num] = doc.getCurrentPageInfo().pageNumber;
+
+          // Dark Navy Section Banner
+          doc.setFillColor(15, 41, 66);
+          doc.roundedRect(marginX, y, contentW, 26, 5, 5, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(11);
+          doc.setTextColor(255, 255, 255);
+          doc.text(cleanPdfText(`${sec.num}. ${sec.name}`), marginX + 12, y + 16.5);
+          doc.setFontSize(8.5);
+          doc.setTextColor(125, 211, 252);
+          const countTxt = `${secItems.length} ${secItems.length === 1 ? 'item' : 'items'}`;
+          doc.text(countTxt, marginX + contentW - 12, y + 16.5, { align: 'right' });
+          y += 32;
+
+          // SOP Intro
+          const sop = dhiGetSectionSop(sec.name);
+          if (sop && sop.intro) {
+            drawWrappedText(sop.intro, marginX + 2, contentW - 4, 8, 11, [71, 85, 105], 'normal');
+            y += 6;
+          }
+
+          // Styles & Materials
+          const smList = Array.isArray(sec.stylesMaterials) ? sec.stylesMaterials.filter(sm => sm && sm.label && sm.value) : [];
+          if (smList.length) {
+            const smLine = smList.map(sm => `${cleanPdfText(sm.label)}: ${cleanPdfText(sm.value)}`).join('   |   ');
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.2);
+            const smLines = doc.splitTextToSize(smLine, contentW - 16);
+            const smBoxH = smLines.length * 11.5 + 10;
+            ensureSpace(smBoxH + 6);
+            doc.setFillColor(248, 250, 252);
+            doc.setDrawColor(226, 232, 240);
+            doc.roundedRect(marginX, y, contentW, smBoxH, 4, 4, 'FD');
+            doc.setTextColor(30, 41, 59);
+            doc.text(smLines, marginX + 8, y + 12.5);
+            y += smBoxH + 8;
+          }
+
+          // Findings
+          secItems.forEach(f => {
+            const photos = Array.isArray(f.photos) ? f.photos : [];
+            const narr = cleanPdfText(f.narrative || '');
+            const statusTags = (f.status || 'Inspected').split(',').map(t => t.trim()).filter(Boolean);
+
+            // Keep header + at least first lines of narrative together
+            ensureSpace(56);
+
+            // Subtle top divider
+            doc.setDrawColor(f.isSummary ? 252 : 226, f.isSummary ? 211 : 232, f.isSummary ? 77 : 240);
+            doc.setLineWidth(f.isSummary ? 1.0 : 0.6);
+            doc.line(marginX, y, marginX + contentW, y);
+            doc.setLineWidth(0.5);
+            y += 8;
+
+            // Code + Status badges row
+            let bx = marginX;
+            if (f.code || f.id) {
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(8.5);
+              doc.setTextColor(100, 116, 139);
+              const codeStr = cleanPdfText(f.code || f.id);
+              doc.text(codeStr, bx, y + 9);
+              bx += doc.getTextWidth(codeStr) + 8;
+            }
+            statusTags.forEach(tag => {
+              let bg = [236, 253, 245], bd = [167, 243, 208], tc = [6, 95, 70];
+              if (tag.includes('Repair') || tag.includes('Replace')) {
+                bg = [254, 243, 199]; bd = [253, 230, 138]; tc = [120, 53, 15];
+              } else if (tag === 'Not Inspected') {
+                bg = [255, 241, 242]; bd = [254, 205, 211]; tc = [159, 18, 57];
+              } else if (tag === 'Not Present') {
+                bg = [241, 245, 249]; bd = [226, 232, 240]; tc = [71, 85, 105];
+              }
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(7.5);
+              const tw = doc.getTextWidth(tag) + 10;
+              if (bx + tw > marginX + contentW) {
+                y += 15;
+                bx = marginX;
+              }
+              doc.setFillColor(bg[0], bg[1], bg[2]);
+              doc.setDrawColor(bd[0], bd[1], bd[2]);
+              doc.roundedRect(bx, y, tw, 13, 3, 3, 'FD');
+              doc.setTextColor(tc[0], tc[1], tc[2]);
+              doc.text(tag, bx + 5, y + 9.2);
+              bx += tw + 5;
+            });
+            y += 18;
+
+            // Finding Title
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(10.5);
+            doc.setTextColor(15, 23, 42);
+            const titleLines = doc.splitTextToSize(cleanPdfText(f.title || ''), contentW);
+            titleLines.forEach(tl => {
+              ensureSpace(14);
+              doc.text(tl, marginX, y + 9);
+              y += 14;
+            });
+            y += 2;
+
+            // Narrative
+            if (narr) {
+              drawWrappedText(narr, marginX, contentW, 9.2, 13, [51, 65, 85], 'normal');
+            } else {
+              drawWrappedText(`Status: ${cleanPdfText(f.status || 'Inspected')} - no additional comments noted.`, marginX, contentW, 8.5, 12, [100, 116, 139], 'italic');
+            }
+            y += 6;
+
+            // 2-per-row Photos / Video Posters
+            if (photos.length) {
+              const colGap = 12;
+              const tileW = (contentW - colGap) / 2; // 264 pt
+              const maxImgH = 162;
+              const capH = 16;
+              const tilePad = 6;
+              const tileH = tilePad + maxImgH + 4 + capH + 4;
+
+              for (let pIdx = 0; pIdx < photos.length; pIdx += 2) {
+                ensureSpace(tileH + 8);
+                const pair = photos.slice(pIdx, pIdx + 2);
+                pair.forEach((ph, cIdx) => {
+                  const tx = marginX + cIdx * (tileW + colGap);
+                  const isVid = (ph.mediaType === 'video');
+                  const imgKey = isVid ? ph.posterUrl : ph.dataUrl;
+                  const imgObj = imgKey ? imgCache[imgKey] : null;
+
+                  doc.setFillColor(isVid ? 15 : 248, isVid ? 23 : 250, isVid ? 42 : 252);
+                  doc.setDrawColor(203, 213, 225);
+                  doc.roundedRect(tx, y, tileW, tileH, 5, 5, 'FD');
+
+                  const innerW = tileW - tilePad * 2;
+                  if (imgObj) {
+                    const ratio = Math.min(innerW / imgObj.width, maxImgH / imgObj.height);
+                    const dw = imgObj.width * ratio;
+                    const dh = imgObj.height * ratio;
+                    const dx = tx + tilePad + (innerW - dw) / 2;
+                    const dy = y + tilePad + (maxImgH - dh) / 2;
+                    doc.addImage(imgObj.dataUrl, 'JPEG', dx, dy, dw, dh);
+                  } else {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(9);
+                    doc.setTextColor(isVid ? 226 : 100, isVid ? 232 : 116, isVid ? 240 : 139);
+                    doc.text(isVid ? 'Video Clip (View in Online Report)' : 'Photo unavailable', tx + tileW / 2, y + tilePad + maxImgH / 2, { align: 'center' });
+                  }
+
+                  const rawCap = isVid
+                    ? `${cleanPdfText(ph.label || 'Video Clip')} (Video in online report)`
+                    : cleanPdfText(ph.label || `${f.code || ''} Photo ${pIdx + cIdx + 1}`.trim());
+                  doc.setFont('helvetica', isVid ? 'bold' : 'normal');
+                  doc.setFontSize(7.8);
+                  doc.setTextColor(isVid ? 226 : 71, isVid ? 232 : 85, isVid ? 240 : 105);
+                  const capLine = doc.splitTextToSize(rawCap, innerW)[0] || '';
+                  doc.text(capLine, tx + tileW / 2, y + tilePad + maxImgH + 14, { align: 'center' });
+                });
+                y += tileH + 8;
+              }
+            }
+
+            y += 6;
+          });
+
+          // SOP Footer
+          if (sop && sop.footer) {
+            drawWrappedText(sop.footer, marginX + 2, contentW - 4, 8, 11, [71, 85, 105], 'normal');
+            y += 8;
+          }
+          y += 6;
+        });
+
+        // Backfill Table of Contents page numbers
+        doc.setPage(tocPageNum);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(100, 116, 139);
+        Object.entries(tocSlotCoords).forEach(([secNum, coords]) => {
+          const pg = sectionStartPages[secNum];
+          if (pg) {
+            doc.text(`p. ${pg}`, coords.x, coords.y, { align: 'right' });
+          }
+        });
+
+        // Stamp bottom-right page numbers ("1 / 28" style, counting cover page)
+        const totalPages = doc.getNumberOfPages();
+        for (let p = 1; p <= totalPages; p++) {
+          doc.setPage(p);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.setTextColor(100, 116, 139);
+          doc.text(`${p} / ${totalPages}`, pageW - marginX, pageH - 20, { align: 'right' });
+        }
+
+        doc.save(filename);
+        protoToastMsg(`Saved ${filename}`);
+      } catch (err) {
+        console.error('PDF generation failed:', err);
+        protoToastMsg('Could not generate PDF: ' + (err.message || err));
+      } finally {
+        if (saveSummaryEl) {
+          saveSummaryEl.innerHTML = prevBtnLabel;
+          saveSummaryEl.style.pointerEvents = '';
+          saveSummaryEl.style.opacity = '';
+        }
+      }
     }
 
     function renderReportViewerHTML() {
@@ -6563,10 +7228,17 @@ function submitInspectionQuoteRequest(payload) {
               ${(protoState.role !== 'third_party' && !protoState.demoMode && (protoState.role !== 'buyer' || insp.paid)) ? `<button type="button" onclick="dhiOpenForwardModal('${insp.id}')" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Forward</button>` : ''}
               ${protoState.activeDocTab === 'main'
                 ? `<details class="relative inline-block">
-                     <summary class="list-none cursor-pointer px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition select-none">Print / Save PDF &#9662;</summary>
+                     <summary id="dhiSavePdfSummaryBtn" class="list-none cursor-pointer px-3 py-1.5 rounded-xl border border-davis-navy bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition select-none">Save PDF &#9662;</summary>
                      <div class="absolute right-0 mt-1 z-30 w-48 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5 space-y-1 text-xs">
-                       <button type="button" onclick="dhiPrintInspectionReport('full')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-800">Full Report PDF</button>
-                       <button type="button" onclick="dhiPrintInspectionReport('summary')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-800">Summary Only PDF</button>
+                       <button type="button" onclick="this.closest('details').open=false; dhiSaveInspectionPdf('full')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-800">Full Report PDF</button>
+                       <button type="button" onclick="this.closest('details').open=false; dhiSaveInspectionPdf('summary')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-800">Summary Only PDF</button>
+                     </div>
+                   </details>
+                   <details class="relative inline-block">
+                     <summary class="list-none cursor-pointer px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition select-none">Print &#9662;</summary>
+                     <div class="absolute right-0 mt-1 z-30 w-44 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5 space-y-1 text-xs">
+                       <button type="button" onclick="this.closest('details').open=false; dhiPrintInspectionReport('full')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-800">Full Report</button>
+                       <button type="button" onclick="this.closest('details').open=false; dhiPrintInspectionReport('summary')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-800">Summary Only</button>
                      </div>
                    </details>`
                 : (activeExtraDoc && (activeExtraDoc.pdfViewUrl || activeExtraDoc.pdfPreviewUrl)
