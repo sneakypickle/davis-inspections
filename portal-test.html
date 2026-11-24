@@ -2149,51 +2149,54 @@ function submitInspectionQuoteRequest(payload) {
           status: 'New'
         });
       }
-      if (typeof dhiSupabase !== 'undefined' && dhiSupabase) {
-        dhiSupabase.from('inspection_requests').insert([{
-          client_name: clientName,
-          client_role: clientRole,
-          client_email: clientEmail,
-          client_phone: clientPhone,
-          preferred_response: responsePreference,
-          property_address: propAddress,
-          property_sqft: propSqft,
-          property_year: propYear,
-          preferred_date: prefDate || 'Flexible',
-          interested_addons: addons,
-          notes: notes || 'None',
-          status: 'New'
-        }]).then(() => {}).catch(() => {});
-      }
       const btn = document.getElementById('submitQuoteBtn');
       const origText = btn.textContent;
       btn.disabled = true;
-      btn.textContent = 'Sending Request to Matt@Davis-Inspections.com...';
+      btn.textContent = 'Submitting Request...';
 
-      const DHI_EMAIL_WEBHOOK = 'https://script.google.com/macros/s/AKfycbxcx6wO02mB6rJ6H53bK-z8mI-qY2vN9O9_9cO0qU9_3o2sR7l-1j5f5n6a2w1q7x6E/exec';
-      const subject = 'New Inspection Request: ' + propAddress + ' (' + clientName + ')';
+      let submitOk = false;
+      let submitErrMsg = '';
+      if (typeof dhiSupabase !== 'undefined' && dhiSupabase) {
+        try {
+          const { data: fnData, error: fnErr } = await dhiSupabase.functions.invoke('address-lookup', {
+            body: {
+              action: 'submit_request',
+              client_name: clientName,
+              client_role: clientRole,
+              client_email: clientEmail,
+              client_phone: clientPhone,
+              preferred_response: responsePreference,
+              property_address: propAddress,
+              property_sqft: propSqft,
+              property_year: propYear,
+              property_mls: propMls || 'N/A',
+              preferred_date: prefDate || 'Flexible',
+              interested_addons: addons,
+              raw_notes: rawNotes
+            }
+          });
+          if (fnErr || !fnData || !fnData.ok) {
+            submitErrMsg = (fnData && fnData.error) || (fnErr && fnErr.message) || 'Could not submit request.';
+          } else {
+            submitOk = true;
+          }
+        } catch (ex) {
+          submitErrMsg = ex && ex.message ? ex.message : 'Network error submitting request.';
+        }
+      }
 
-      try {
-        await Promise.allSettled([
-          fetch(DHI_EMAIL_WEBHOOK, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(Object.assign({ form_type: 'inspection_quote', _subject: subject }, payload))
-          }),
-          fetch('https://formsubmit.co/ajax/Matt@Davis-Inspections.com', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify(Object.assign({ _subject: subject, _captcha: 'false', _template: 'table' }, payload))
-          })
-        ]);
-      } catch (e) {
-        // Automatic background dispatch completed
+      if (!submitOk) {
+        alertEl.textContent = (submitErrMsg || 'Could not submit right now.') + ' Please try again or call/text Matt at (719) 660-4724.';
+        alertEl.classList.remove('hidden');
+        showToast('Submission Error', 'Please try again or call/text (719) 660-4724.', true);
+        btn.disabled = false;
+        btn.textContent = origText;
+        return;
       }
 
       const successBox = document.getElementById('reqQuoteSuccessBox');
       const successText = document.getElementById('reqQuoteSuccessText');
-      successText.textContent = 'Thank you! Your inspection request for ' + propAddress + ' has been automatically emailed to Matt@Davis-Inspections.com. Matt will follow up with you shortly!';
+      successText.textContent = 'Thank you! Your inspection request for ' + propAddress + ' has been submitted, and a confirmation email has been sent to ' + clientEmail + '. Matt will follow up with you the same day.';
       successBox.classList.remove('hidden');
       btn.disabled = false;
       btn.textContent = origText;
@@ -9008,6 +9011,9 @@ function submitInspectionQuoteRequest(payload) {
       dhiAccountChannel = dhiSupabase
         .channel('account-sync-' + (session.user.id || 'user'))
         .on('postgres_changes', { event: '*', schema: 'public', table: 'inspections' }, () => {
+          dhiRefreshAccountData(session);
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'inspection_requests' }, () => {
           dhiRefreshAccountData(session);
         })
         .subscribe();
