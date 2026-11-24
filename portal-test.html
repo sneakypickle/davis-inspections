@@ -538,12 +538,13 @@
           <div class="pt-2 border-t border-slate-100 space-y-4">
             <h3 class="text-sm font-bold text-slate-900">Property Location, Size &amp; Age</h3>
             <div class="grid grid-cols-1 sm:grid-cols-6 gap-3">
-              <div class="sm:col-span-6">
+              <div class="sm:col-span-6 relative">
                 <label for="reqPropAddress" class="block text-xs font-semibold text-slate-700 mb-1">Property Street Address &amp; City <span class="text-rose-600">*</span></label>
-                <input type="text" id="reqPropAddress" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-davis-navy outline-none" />
+                <input type="text" id="reqPropAddress" autocomplete="off" oninput="dhiOnAddressAutocompleteInput('public', this.value)" onblur="setTimeout(() => dhiHideAddressSuggestions('public'), 220)" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-davis-navy outline-none" />
+                <div id="dhiAddrSug-public" class="hidden absolute left-0 right-0 top-full mt-1 z-40 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden text-xs"></div>
               </div>
               <div class="sm:col-span-2">
-                <label for="reqPropSqft" class="block text-xs font-semibold text-slate-700 mb-1">Approx. Square Footage <span class="text-rose-600">*</span></label>
+                <label for="reqPropSqft" class="block text-xs font-semibold text-slate-700 mb-1">Approximate Square Footage <span class="text-rose-600">*</span></label>
                 <input type="text" id="reqPropSqft" required placeholder="e.g., 2,400 sq ft" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-davis-navy outline-none" />
               </div>
               <div class="sm:col-span-2">
@@ -4300,14 +4301,24 @@ function submitInspectionQuoteRequest(payload) {
       const zip = p.zip || parsed.zip || '';
       const county = p.county || parsed.county || '';
       const mls = p.mls || '';
+      const yearBuilt = p.yearBuilt || '';
+      const sqft = p.sqft || '';
+      const buildingType = p.buildingType || '';
+      dhiEditCoverState = {
+        existingUrl: insp.coverPhotoUrl || '',
+        existingPath: insp.coverPhotoPath || p.coverPhotoPath || '',
+        newDataUrl: '',
+        removed: false
+      };
 
       const renderEditBody = () => {
         const calcTotal = dhiEditLineItems.reduce((s, li) => s + ((Number(li.qty) || 0) * (Number(li.unitPrice) || 0)), 0);
         document.getElementById('dhiEditInspBody').innerHTML = `
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="sm:col-span-2">
-              <label class="block font-bold text-slate-700 mb-1">Street Address *</label>
-              <input id="editInspStreet" type="text" value="${escapeHtml(street)}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+            <div class="sm:col-span-2 relative">
+              <label class="block font-bold text-slate-700 mb-1">Street Address * <span class="font-normal text-slate-400">(type to autofill)</span></label>
+              <input id="editInspStreet" type="text" autocomplete="off" value="${escapeHtml(street)}" oninput="dhiOnAddressAutocompleteInput('adminEdit', this.value)" onblur="setTimeout(() => dhiHideAddressSuggestions('adminEdit'), 220)" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+              <div id="dhiAddrSug-adminEdit" class="hidden absolute left-0 right-0 top-full mt-1 z-40 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden text-xs"></div>
             </div>
             <div>
               <label class="block font-bold text-slate-700 mb-1">City</label>
@@ -4330,6 +4341,40 @@ function submitInspectionQuoteRequest(payload) {
             <div>
               <label class="block font-bold text-slate-700 mb-1">MLS #</label>
               <input id="editInspMls" type="text" value="${escapeHtml(mls)}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">Year Built</label>
+                <input id="editInspYearBuilt" type="text" value="${escapeHtml(yearBuilt)}" placeholder="e.g., 1998" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+              </div>
+              <div>
+                <label class="block font-bold text-slate-700 mb-1">Square Footage</label>
+                <input id="editInspSqft" type="text" value="${escapeHtml(sqft)}" placeholder="e.g., 2,400" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+              </div>
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Building Type</label>
+              <input id="editInspBuildingType" type="text" value="${escapeHtml(buildingType)}" placeholder="Single Family (2 story)" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+            </div>
+            <div class="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <div id="editInspCoverPreviewWrap" class="shrink-0">
+                  ${insp.coverPhotoUrl
+                    ? `<img src="${insp.coverPhotoUrl}" alt="Cover preview" class="w-16 h-12 rounded-lg object-cover border border-slate-300" />`
+                    : `<div class="w-16 h-12 rounded-lg border border-dashed border-slate-300 bg-white flex items-center justify-center text-[10px] font-bold text-slate-400">No Photo</div>`}
+                </div>
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-slate-700">Cover Page Photo</div>
+                  <div class="text-[11px] text-slate-500 truncate">Shown on buyer portal &amp; report cover</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <label class="cursor-pointer px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">
+                  Upload / Replace
+                  <input type="file" accept="image/*" class="hidden" onchange="dhiHandleAdminCoverPhotoPick('edit', this)" />
+                </label>
+                <button type="button" id="editInspCoverRemoveBtn" onclick="dhiClearAdminCoverPhoto('edit')" class="${insp.coverPhotoUrl ? '' : 'hidden '}px-2 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">Remove</button>
+              </div>
             </div>
             <div class="sm:col-span-2">
               <label class="block font-bold text-slate-700 mb-1">Inspection Date &amp; Time</label>
@@ -4412,6 +4457,9 @@ function submitInspectionQuoteRequest(payload) {
       const zip = (document.getElementById('editInspZip')?.value || '').trim();
       const county = (document.getElementById('editInspCounty')?.value || '').trim();
       const mls = (document.getElementById('editInspMls')?.value || '').trim();
+      const yearBuilt = (document.getElementById('editInspYearBuilt')?.value || '').trim();
+      const sqft = (document.getElementById('editInspSqft')?.value || '').trim();
+      const buildingType = (document.getElementById('editInspBuildingType')?.value || '').trim();
       const dateStr = (document.getElementById('editInspDate')?.value || '').trim();
       const clientName = (document.getElementById('editInspClientName')?.value || '').trim();
       const clientEmail = (document.getElementById('editInspClientEmail')?.value || '').trim().toLowerCase();
@@ -4428,7 +4476,19 @@ function submitInspectionQuoteRequest(payload) {
         .filter(li => (li.name || '').trim())
         .map(li => ({ name: li.name.trim(), qty: 1, unitPrice: Number(li.unitPrice) || 0, price: Number((Number(li.unitPrice) || 0).toFixed(2)) }));
       const totalCents = Math.round(services.reduce((s, x) => s + (Number(x.price) || 0), 0) * 100);
-      const mergedPropInfo = { ...(insp.propertyInfo || {}), address: fullAddr, street, city, state: stateVal, zip, county, mls };
+      const mergedPropInfo = { ...(insp.propertyInfo || {}), address: fullAddr, street, city, state: stateVal, zip, county, mls, yearBuilt, sqft, buildingType };
+      let nextCoverUrl = insp.coverPhotoUrl || '';
+      if (dhiEditCoverState && dhiEditCoverState.removed) {
+        mergedPropInfo.coverPhotoPath = '';
+        mergedPropInfo.coverPhoto = '';
+        nextCoverUrl = '';
+      } else if (dhiEditCoverState && dhiEditCoverState.newDataUrl) {
+        nextCoverUrl = dhiEditCoverState.newDataUrl;
+        if (dhiIsLiveSession() && insp.id !== 'insp-demo') {
+          const uploadedPath = await dhiUploadAdminCoverPhoto(insp.id, dhiEditCoverState.newDataUrl);
+          if (uploadedPath) mergedPropInfo.coverPhotoPath = uploadedPath;
+        }
+      }
       const cSplit = dhiSplitFullName(clientName);
       const aSplit = dhiSplitFullName(agentName);
 
@@ -4462,6 +4522,8 @@ function submitInspectionQuoteRequest(payload) {
       insp.agreementRequired = !standalone;
       insp.services = services;
       insp.propertyInfo = mergedPropInfo;
+      insp.coverPhotoPath = mergedPropInfo.coverPhotoPath || '';
+      insp.coverPhotoUrl = nextCoverUrl;
       dhiRememberAddrHistory({ city, state: stateVal, county, zip });
       dhiCloseEditInspModal();
       renderProtoPortal();
@@ -5088,9 +5150,10 @@ function submitInspectionQuoteRequest(payload) {
             <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
               <!-- Left Column: Property, Schedule, Buyer & Agent -->
               <div class="xl:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-                <div class="sm:col-span-2">
-                  <label class="block font-bold text-slate-700 mb-1">Street Address *</label>
-                  <input id="protoNewStreet" type="text" value="${escapeHtml(pre.street || '')}" placeholder="1234 Maple Ridge Dr" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                <div class="sm:col-span-2 relative">
+                  <label class="block font-bold text-slate-700 mb-1">Street Address * <span class="font-normal text-slate-400">(type to autofill address &amp; home specs)</span></label>
+                  <input id="protoNewStreet" type="text" autocomplete="off" value="${escapeHtml(pre.street || '')}" oninput="dhiOnAddressAutocompleteInput('adminNew', this.value)" onblur="setTimeout(() => dhiHideAddressSuggestions('adminNew'), 220)" placeholder="1234 Maple Ridge Dr" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  <div id="dhiAddrSug-adminNew" class="hidden absolute left-0 right-0 top-full mt-1 z-40 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden text-xs"></div>
                 </div>
                 <div>
                   <label class="block font-bold text-slate-700 mb-1">ZIP (auto-fills City &amp; County)</label>
@@ -5116,6 +5179,38 @@ function submitInspectionQuoteRequest(payload) {
                   <div>
                     <label class="block font-bold text-slate-700 mb-1">MLS #</label>
                     <input id="protoNewMls" type="text" value="${escapeHtml(pre.mls || '')}" placeholder="Optional" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block font-bold text-slate-700 mb-1">Year Built</label>
+                    <input id="protoNewYearBuilt" type="text" value="${escapeHtml(pre.yearBuilt || '')}" placeholder="e.g., 1998" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  </div>
+                  <div>
+                    <label class="block font-bold text-slate-700 mb-1">Square Footage</label>
+                    <input id="protoNewSqft" type="text" value="${escapeHtml(pre.sqft || '')}" placeholder="e.g., 2,400" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  </div>
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Building Type</label>
+                  <input id="protoNewBuildingType" type="text" value="${escapeHtml(pre.buildingType || '')}" placeholder="Single Family (2 story)" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                </div>
+                <div class="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3 min-w-0">
+                    ${pre.coverPhotoDataUrl
+                      ? `<img src="${pre.coverPhotoDataUrl}" alt="Cover preview" class="w-16 h-12 rounded-lg object-cover border border-slate-300 shrink-0" />`
+                      : `<div class="w-16 h-12 rounded-lg border border-dashed border-slate-300 bg-white flex items-center justify-center text-[10px] font-bold text-slate-400 shrink-0">No Photo</div>`}
+                    <div class="min-w-0">
+                      <div class="text-xs font-bold text-slate-700">Cover Page Photo</div>
+                      <div class="text-[11px] text-slate-500 truncate">Shown on the buyer portal &amp; report cover</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <label class="cursor-pointer px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">
+                      ${pre.coverPhotoDataUrl ? 'Replace' : 'Upload Photo'}
+                      <input type="file" accept="image/*" class="hidden" onchange="dhiHandleAdminCoverPhotoPick('new', this)" />
+                    </label>
+                    ${pre.coverPhotoDataUrl ? `<button type="button" onclick="dhiClearAdminCoverPhoto('new')" class="px-2 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">Remove</button>` : ''}
                   </div>
                 </div>
                 <div>
@@ -5253,8 +5348,12 @@ function submitInspectionQuoteRequest(payload) {
       const zip = document.getElementById('protoNewZip')?.value || '';
       const county = document.getElementById('protoNewCounty')?.value || '';
       const mls = document.getElementById('protoNewMls')?.value || '';
+      const yearBuilt = document.getElementById('protoNewYearBuilt')?.value || '';
+      const sqft = document.getElementById('protoNewSqft')?.value || '';
+      const buildingType = document.getElementById('protoNewBuildingType')?.value || '';
+      const coverPhotoDataUrl = (protoState.newInspDraft && protoState.newInspDraft.coverPhotoDataUrl) || '';
       protoState.newInspDraft = {
-        street, city, state, zip, county, mls,
+        street, city, state, zip, county, mls, yearBuilt, sqft, buildingType, coverPhotoDataUrl,
         address: protoComposeAdminAddress(street, city, state, zip),
         dateOnly: document.getElementById('protoNewDateOnly')?.value || '',
         timeOnly: document.getElementById('protoNewTimeOnly')?.value || '',
@@ -5459,8 +5558,12 @@ function submitInspectionQuoteRequest(payload) {
       const zip = (document.getElementById('protoNewZip')?.value || '').trim();
       const county = (document.getElementById('protoNewCounty')?.value || '').trim();
       const mls = (document.getElementById('protoNewMls')?.value || '').trim();
+      const yearBuilt = (document.getElementById('protoNewYearBuilt')?.value || '').trim();
+      const sqft = (document.getElementById('protoNewSqft')?.value || '').trim();
+      const buildingType = (document.getElementById('protoNewBuildingType')?.value || '').trim();
+      const pendingCoverDataUrl = (protoState.newInspDraft && protoState.newInspDraft.coverPhotoDataUrl) || '';
       const addr = protoComposeAdminAddress(street, city, stateVal, zip);
-      const propInfoObj = { address: addr, street, city, state: stateVal, zip, county, mls };
+      const propInfoObj = { address: addr, street, city, state: stateVal, zip, county, mls, yearBuilt, sqft, buildingType, standardsOfPractice: 'ASHI' };
       dhiRememberAddrHistory({ city, state: stateVal, county, zip });
       const dateOnly = (document.getElementById('protoNewDateOnly')?.value || '').trim();
       const timeOnly = (document.getElementById('protoNewTimeOnly')?.value || '').trim();
@@ -5548,12 +5651,22 @@ function submitInspectionQuoteRequest(payload) {
           return;
         }
         if (inserted && inserted.id) newId = inserted.id;
+        if (pendingCoverDataUrl && newId) {
+          const uploadedPath = await dhiUploadAdminCoverPhoto(newId, pendingCoverDataUrl);
+          if (uploadedPath) {
+            propInfoObj.coverPhotoPath = uploadedPath;
+            await dhiSupabase.from('inspections').update({ property_info: propInfoObj }).eq('id', newId);
+          }
+        }
       }
 
       protoState.inspections.unshift({
         id: newId,
         isDemo: false,
         address: addr,
+        coverPhotoPath: propInfoObj.coverPhotoPath || '',
+        coverPhotoUrl: pendingCoverDataUrl || '',
+        propertyInfo: propInfoObj,
         date: dateStr,
         clientName: clientSplit.name,
         clientEmail: email.toLowerCase(),
@@ -6499,6 +6612,226 @@ function submitInspectionQuoteRequest(payload) {
         if (lower.includes(k.toLowerCase()) || k.toLowerCase().includes(lower)) return v;
       }
       return null;
+    }
+
+    // =========================================================================
+    // ADDRESS AUTOCOMPLETE (Google Places New) + PROPERTY DATA (RentCast Cache)
+    // + ADMIN COVER PHOTO UPLOAD HELPERS
+    // =========================================================================
+    let dhiEditCoverState = { existingUrl: '', existingPath: '', newDataUrl: '', removed: false };
+    const dhiAddrAutocompleteTimers = {};
+    const dhiAddrSessionTokens = {};
+    const dhiAddrPredictionsCache = {};
+
+    function dhiGetAddrSessionToken(ctxKey) {
+      if (!dhiAddrSessionTokens[ctxKey]) {
+        dhiAddrSessionTokens[ctxKey] = (window.crypto && crypto.randomUUID)
+          ? crypto.randomUUID()
+          : ('tok-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10));
+      }
+      return dhiAddrSessionTokens[ctxKey];
+    }
+
+    function dhiHideAddressSuggestions(ctxKey) {
+      const box = document.getElementById('dhiAddrSug-' + ctxKey);
+      if (box) box.classList.add('hidden');
+    }
+
+    function dhiOnAddressAutocompleteInput(ctxKey, rawVal) {
+      clearTimeout(dhiAddrAutocompleteTimers[ctxKey]);
+      const val = String(rawVal || '').trim();
+      const box = document.getElementById('dhiAddrSug-' + ctxKey);
+      if (val.length < 3) {
+        if (box) { box.innerHTML = ''; box.classList.add('hidden'); }
+        return;
+      }
+      dhiAddrAutocompleteTimers[ctxKey] = setTimeout(async () => {
+        if (!dhiSupabase) return;
+        try {
+          const sessionToken = dhiGetAddrSessionToken(ctxKey);
+          const { data, error } = await dhiSupabase.functions.invoke('address-lookup', {
+            body: { action: 'autocomplete', input: val, sessionToken }
+          });
+          if (error || !data || !data.ok || !Array.isArray(data.predictions) || !data.predictions.length) {
+            if (box) { box.innerHTML = ''; box.classList.add('hidden'); }
+            return;
+          }
+          dhiAddrPredictionsCache[ctxKey] = data.predictions;
+          if (!box) return;
+          box.innerHTML = data.predictions.map((p, idx) => `
+            <button type="button" onmousedown="event.preventDefault(); dhiSelectAddressSuggestion('${ctxKey}', ${idx})" class="w-full text-left px-3 py-2 hover:bg-sky-50 border-b border-slate-100 last:border-b-0 transition flex flex-col">
+              <span class="font-bold text-slate-900">${escapeHtml(p.mainText || p.description)}</span>
+              ${p.secondaryText ? `<span class="text-[11px] text-slate-500">${escapeHtml(p.secondaryText)}</span>` : ''}
+            </button>
+          `).join('');
+          box.classList.remove('hidden');
+        } catch (_e) {
+          if (box) box.classList.add('hidden');
+        }
+      }, 200);
+    }
+
+    async function dhiSelectAddressSuggestion(ctxKey, idx) {
+      const list = dhiAddrPredictionsCache[ctxKey] || [];
+      const pred = list[idx];
+      dhiHideAddressSuggestions(ctxKey);
+      if (!pred || !dhiSupabase) return;
+
+      const sessionToken = dhiAddrSessionTokens[ctxKey] || '';
+      delete dhiAddrSessionTokens[ctxKey];
+
+      // Immediately show selected text while fetching structured details + property specs
+      if (ctxKey === 'public') {
+        const el = document.getElementById('reqPropAddress');
+        if (el) el.value = pred.description || pred.mainText || '';
+      } else if (ctxKey === 'adminNew') {
+        const el = document.getElementById('protoNewStreet');
+        if (el) el.value = pred.mainText || pred.description || '';
+      } else if (ctxKey === 'adminEdit') {
+        const el = document.getElementById('editInspStreet');
+        if (el) el.value = pred.mainText || pred.description || '';
+      }
+
+      try {
+        const { data, error } = await dhiSupabase.functions.invoke('address-lookup', {
+          body: {
+            action: 'details',
+            placeId: pred.placeId,
+            address: pred.description,
+            sessionToken,
+            includePropertyData: true
+          }
+        });
+        if (error || !data || !data.ok) return;
+        const a = data.address || {};
+        const p = data.property || {};
+
+        if (ctxKey === 'public') {
+          const addrEl = document.getElementById('reqPropAddress');
+          const yrEl = document.getElementById('reqPropYear');
+          if (addrEl && a.formattedAddress) addrEl.value = a.formattedAddress;
+          if (yrEl && p.yearBuilt) yrEl.value = String(p.yearBuilt);
+          // Per Matt: leave Approximate Square Footage blank on the public form
+        } else if (ctxKey === 'adminNew') {
+          const setVal = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = String(v); };
+          setVal('protoNewStreet', a.street || pred.mainText);
+          setVal('protoNewCity', a.city);
+          setVal('protoNewState', a.state || 'CO');
+          setVal('protoNewZip', a.zip);
+          setVal('protoNewCounty', a.county || p.county);
+          setVal('protoNewYearBuilt', p.yearBuilt);
+          setVal('protoNewSqft', p.sqft);
+          setVal('protoNewBuildingType', p.buildingType);
+          protoSaveNewInspDraftInputs();
+          if (p.yearBuilt || p.sqft || p.buildingType) {
+            protoToastMsg('Autofilled address and property details.');
+          }
+        } else if (ctxKey === 'adminEdit') {
+          const setVal = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = String(v); };
+          setVal('editInspStreet', a.street || pred.mainText);
+          setVal('editInspCity', a.city);
+          setVal('editInspState', a.state || 'CO');
+          setVal('editInspZip', a.zip);
+          setVal('editInspCounty', a.county || p.county);
+          setVal('editInspYearBuilt', p.yearBuilt);
+          setVal('editInspSqft', p.sqft);
+          setVal('editInspBuildingType', p.buildingType);
+          if (p.yearBuilt || p.sqft || p.buildingType) {
+            protoToastMsg('Autofilled address and property details.');
+          }
+        }
+      } catch (_e) {}
+    }
+
+    function dhiCompressImageFile(file, maxDim, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Could not read image'));
+        reader.onload = () => {
+          const img = new Image();
+          img.onerror = () => reject(new Error('Invalid image file'));
+          img.onload = () => {
+            let w = img.naturalWidth || img.width;
+            let h = img.naturalHeight || img.height;
+            if (w > maxDim || h > maxDim) {
+              const ratio = Math.min(maxDim / w, maxDim / h);
+              w = Math.round(w * ratio);
+              h = Math.round(h * ratio);
+            }
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, w, h);
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(c.toDataURL('image/jpeg', quality || 0.82));
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function dhiUploadAdminCoverPhoto(inspId, dataUrl) {
+      if (!dhiSupabase || !inspId || !dataUrl) return '';
+      try {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const path = `${inspId}/photos/cover-${Date.now()}.jpg`;
+        const { error } = await dhiSupabase.storage.from('reports').upload(path, blob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
+        if (error) {
+          console.error('Cover upload error:', error);
+          protoToastMsg('Cover photo upload failed: ' + error.message);
+          return '';
+        }
+        return path;
+      } catch (e) {
+        console.error('Cover upload failed:', e);
+        return '';
+      }
+    }
+
+    async function dhiHandleAdminCoverPhotoPick(mode, inputEl) {
+      const file = inputEl && inputEl.files && inputEl.files[0];
+      if (!file) return;
+      try {
+        const dataUrl = await dhiCompressImageFile(file, 1280, 0.82);
+        if (mode === 'new') {
+          protoSaveNewInspDraftInputs();
+          protoState.newInspDraft = protoState.newInspDraft || {};
+          protoState.newInspDraft.coverPhotoDataUrl = dataUrl;
+          renderProtoPortal();
+          protoToastMsg('Cover photo attached.');
+        } else if (mode === 'edit') {
+          dhiEditCoverState.newDataUrl = dataUrl;
+          dhiEditCoverState.removed = false;
+          const wrap = document.getElementById('editInspCoverPreviewWrap');
+          if (wrap) wrap.innerHTML = `<img src="${dataUrl}" alt="Cover preview" class="w-16 h-12 rounded-lg object-cover border border-slate-300" />`;
+          const rmBtn = document.getElementById('editInspCoverRemoveBtn');
+          if (rmBtn) rmBtn.classList.remove('hidden');
+          protoToastMsg('Cover photo ready — click Save Changes.');
+        }
+      } catch (err) {
+        protoToastMsg('Could not process photo: ' + (err.message || err));
+      }
+    }
+
+    function dhiClearAdminCoverPhoto(mode) {
+      if (mode === 'new') {
+        protoSaveNewInspDraftInputs();
+        if (protoState.newInspDraft) protoState.newInspDraft.coverPhotoDataUrl = '';
+        renderProtoPortal();
+      } else if (mode === 'edit') {
+        dhiEditCoverState.newDataUrl = '';
+        dhiEditCoverState.removed = true;
+        const wrap = document.getElementById('editInspCoverPreviewWrap');
+        if (wrap) wrap.innerHTML = `<div class="w-16 h-12 rounded-lg border border-dashed border-slate-300 bg-white flex items-center justify-center text-[10px] font-bold text-slate-400">No Photo</div>`;
+        const rmBtn = document.getElementById('editInspCoverRemoveBtn');
+        if (rmBtn) rmBtn.classList.add('hidden');
+      }
     }
 
     function dhiExtractStreetAddress(fullAddr) {

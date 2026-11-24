@@ -1134,6 +1134,93 @@
       openPhotoEditor(secIdx, itemIdx, it.photos.length - 1);
     }
 
+    let fieldAddrAcTimer = null;
+    let fieldAddrSessionToken = '';
+    let fieldAddrPredictions = [];
+
+    function fieldHideAddressSuggestions() {
+      const box = document.getElementById('fieldAddrSug');
+      if (box) box.classList.add('hidden');
+    }
+
+    function fieldOnAddressAutocompleteInput(rawVal) {
+      clearTimeout(fieldAddrAcTimer);
+      const val = String(rawVal || '').trim();
+      const box = document.getElementById('fieldAddrSug');
+      if (val.length < 3 || !navigator.onLine) {
+        if (box) { box.innerHTML = ''; box.classList.add('hidden'); }
+        return;
+      }
+      fieldAddrAcTimer = setTimeout(async () => {
+        if (typeof sb === 'undefined' || !sb) return;
+        try {
+          if (!fieldAddrSessionToken) {
+            fieldAddrSessionToken = (window.crypto && crypto.randomUUID)
+              ? crypto.randomUUID()
+              : ('ftok-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9));
+          }
+          const { data, error } = await sb.functions.invoke('address-lookup', {
+            body: { action: 'autocomplete', input: val, sessionToken: fieldAddrSessionToken }
+          });
+          if (error || !data || !data.ok || !Array.isArray(data.predictions) || !data.predictions.length) {
+            if (box) { box.innerHTML = ''; box.classList.add('hidden'); }
+            return;
+          }
+          fieldAddrPredictions = data.predictions;
+          if (!box) return;
+          box.innerHTML = data.predictions.map((p, idx) => `
+            <button type="button" onmousedown="event.preventDefault(); fieldSelectAddressSuggestion(${idx})" class="w-full text-left px-3 py-2 hover:bg-sky-50 border-b border-slate-100 last:border-b-0 transition flex flex-col">
+              <span class="font-bold text-slate-900">${esc(p.mainText || p.description)}</span>
+              ${p.secondaryText ? `<span class="text-[11px] text-slate-500">${esc(p.secondaryText)}</span>` : ''}
+            </button>
+          `).join('');
+          box.classList.remove('hidden');
+        } catch (_e) {
+          if (box) box.classList.add('hidden');
+        }
+      }, 200);
+    }
+
+    async function fieldSelectAddressSuggestion(idx) {
+      const pred = fieldAddrPredictions[idx];
+      fieldHideAddressSuggestions();
+      if (!pred || typeof sb === 'undefined' || !sb || !state.draft) return;
+      const tok = fieldAddrSessionToken;
+      fieldAddrSessionToken = '';
+      try {
+        const { data, error } = await sb.functions.invoke('address-lookup', {
+          body: {
+            action: 'details',
+            placeId: pred.placeId,
+            address: pred.description,
+            sessionToken: tok,
+            includePropertyData: true
+          }
+        });
+        if (error || !data || !data.ok) return;
+        const a = data.address || {};
+        const p = data.property || {};
+        const pi = state.draft.propertyInfo || (state.draft.propertyInfo = {});
+        if (a.street || pred.mainText) pi.street = a.street || pred.mainText;
+        if (a.city) pi.city = a.city;
+        if (a.state) pi.state = a.state;
+        if (a.zip) pi.zip = a.zip;
+        if (a.county || p.county) pi.county = a.county || p.county;
+        if (p.yearBuilt) pi.yearBuilt = String(p.yearBuilt);
+        if (p.sqft) pi.sqft = String(p.sqft);
+        if (p.buildingType) pi.buildingType = String(p.buildingType);
+        const fullAddr = [pi.street, pi.city, [pi.state, pi.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+        if (fullAddr) {
+          pi.address = fullAddr;
+          state.draft.address = fullAddr;
+        }
+        state.draft.dirty = true;
+        await saveDraftLocally(true);
+        render();
+        toast('Autofilled address and property details.');
+      } catch (_e) {}
+    }
+
     function updatePropInfo(field, val) {
       if (!state.draft) return;
       state.draft.propertyInfo = state.draft.propertyInfo || {};
@@ -3504,9 +3591,10 @@
 
                   <!-- Full Address + MLS + Core Specs -->
                   <div class="lg:col-span-9 grid grid-cols-2 sm:grid-cols-6 gap-2.5">
-                    <div class="col-span-2 sm:col-span-4">
-                      <label class="block font-bold text-slate-600 mb-1">Address line</label>
-                      <input type="text" value="${esc(pi.street || '')}" oninput="updatePropInfo('street', this.value)" placeholder="1234 Maple Ridge Dr" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    <div class="col-span-2 sm:col-span-4 relative">
+                      <label class="block font-bold text-slate-600 mb-1">Address line <span class="font-normal text-slate-400">(type to autofill)</span></label>
+                      <input id="piStreetInput" type="text" autocomplete="off" value="${esc(pi.street || '')}" oninput="updatePropInfo('street', this.value); fieldOnAddressAutocompleteInput(this.value)" onblur="setTimeout(fieldHideAddressSuggestions, 220)" placeholder="1234 Maple Ridge Dr" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                      <div id="fieldAddrSug" class="hidden absolute left-0 right-0 top-full mt-1 z-40 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden text-xs"></div>
                     </div>
                     ${(() => {
                       const ao = dhiGetAddrDropdownOptions(state.inspections || []);
