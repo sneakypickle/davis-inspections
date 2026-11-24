@@ -192,6 +192,30 @@
   </div>
 
 
+
+  <!-- Video Preview & Caption Modal -->
+  <div id="videoPreviewModal" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-5 space-y-3 shadow-2xl border border-slate-200">
+      <div class="flex items-center justify-between gap-2">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Inspection Video Clip</span>
+          <h3 class="text-base font-extrabold text-slate-900">Preview &amp; Caption</h3>
+        </div>
+        <button type="button" onclick="closeVideoPreviewModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
+      </div>
+      <div class="rounded-xl overflow-hidden bg-black flex items-center justify-center">
+        <video id="videoPreviewPlayer" controls playsinline class="w-full max-h-[55vh]"></video>
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <input id="videoCaptionInput" type="text" placeholder="Video caption (e.g., Water heater knocking noise)..." class="flex-grow px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+        <div class="flex gap-2">
+          <button type="button" onclick="closeVideoPreviewModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">Close</button>
+          <button type="button" onclick="saveVideoCaption()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Save caption</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Publish Pre-Flight Warning Modal -->
   <div id="publishWarnModal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-xl w-full p-5 space-y-4 shadow-2xl border border-slate-200 max-h-[86vh] flex flex-col">
@@ -904,7 +928,8 @@
         toSign.push(chosen.propertyInfo.coverPhotoPath);
       }
       (chosen.sections || []).forEach(sec => (sec.items || []).forEach(it => (it.photos || []).forEach(p => {
-        if (p.storagePath && !p.dataUrl) toSign.push(p.storagePath);
+            if (p.storagePath && !p.dataUrl && !p.blob) toSign.push(p.storagePath);
+            if (p.posterPath && !p.posterDataUrl) toSign.push(p.posterPath);
       })));
       if (toSign.length) {
         try {
@@ -914,7 +939,8 @@
             chosen.propertyInfo.coverPhotoSignedUrl = sMap.get(chosen.propertyInfo.coverPhotoPath);
           }
           (chosen.sections || []).forEach(sec => (sec.items || []).forEach(it => (it.photos || []).forEach(p => {
-            if (p.storagePath && !p.dataUrl && sMap.has(p.storagePath)) p.signedUrl = sMap.get(p.storagePath);
+              if (p.storagePath && !p.dataUrl && !p.blob && sMap.has(p.storagePath)) p.signedUrl = sMap.get(p.storagePath);
+              if (p.posterPath && !p.posterDataUrl && sMap.has(p.posterPath)) p.posterSignedUrl = sMap.get(p.posterPath);
           })));
         } catch (e) {}
       }
@@ -1444,6 +1470,121 @@
       });
     }
 
+
+    function captureVideoPoster(blob) {
+      return new Promise((resolve) => {
+        try {
+          const url = URL.createObjectURL(blob);
+          const vid = document.createElement('video');
+          vid.muted = true;
+          vid.playsInline = true;
+          vid.preload = 'metadata';
+          vid.src = url;
+          const finish = (dataUrl) => {
+            try { URL.revokeObjectURL(url); } catch (_e) {}
+            resolve(dataUrl || '');
+          };
+          vid.onloadeddata = () => {
+            try {
+              const targetT = Math.min(0.4, (vid.duration && isFinite(vid.duration)) ? vid.duration * 0.1 : 0);
+              vid.currentTime = targetT;
+            } catch (_e) { finish(''); }
+          };
+          vid.onseeked = () => {
+            try {
+              const vw = vid.videoWidth || 640, vh = vid.videoHeight || 360;
+              const maxW = 640;
+              const scale = vw > maxW ? (maxW / vw) : 1;
+              const c = document.createElement('canvas');
+              c.width = Math.round(vw * scale);
+              c.height = Math.round(vh * scale);
+              c.getContext('2d').drawImage(vid, 0, 0, c.width, c.height);
+              finish(c.toDataURL('image/jpeg', 0.72));
+            } catch (_e) { finish(''); }
+          };
+          vid.onerror = () => finish('');
+          setTimeout(() => finish(''), 4000);
+        } catch (_e) { resolve(''); }
+      });
+    }
+
+    function getLocalVideoUrl(p) {
+      if (!p) return '';
+      if (p.signedUrl) return p.signedUrl;
+      if (p.blob && (p.blob instanceof Blob)) {
+        if (!p._objectUrl) p._objectUrl = URL.createObjectURL(p.blob);
+        return p._objectUrl;
+      }
+      return p.dataUrl || '';
+    }
+
+    function addVideoToItem(secIdx, itemIdx) {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'video/mp4,video/quicktime,video/webm,video/*';
+      inp.onchange = async () => {
+        const file = inp.files && inp.files[0];
+        if (!file) return;
+        const maxBytes = 45 * 1024 * 1024;
+        if (file.size > maxBytes) {
+          toast('Video is ' + (file.size / (1024 * 1024)).toFixed(1) + ' MB. Keep clips under 45 MB (10–20 sec at 1080p or lower) while on Supabase Free tier.');
+          return;
+        }
+        toast('Adding video clip...');
+        const posterDataUrl = await captureVideoPoster(file);
+        const it = state.draft.sections[secIdx].items[itemIdx];
+        it.photos = it.photos || [];
+        it.photos.push({
+          id: 'vid-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+          mediaType: 'video',
+          label: it.title + ' (Video)',
+          mimeType: file.type || 'video/mp4',
+          blob: file,
+          posterDataUrl,
+          storagePath: '',
+          posterPath: ''
+        });
+        await saveDraftLocally(true);
+        render();
+        toast('Video clip attached locally (' + (file.size / (1024 * 1024)).toFixed(1) + ' MB).');
+      };
+      inp.click();
+    }
+
+    let videoPreviewCtx = null;
+    function openVideoPreviewModal(secIdx, itemIdx, photoIdx) {
+      const p = state.draft.sections[secIdx]?.items[itemIdx]?.photos[photoIdx];
+      if (!p) return;
+      videoPreviewCtx = { secIdx, itemIdx, photoIdx };
+      const player = document.getElementById('videoPreviewPlayer');
+      const cap = document.getElementById('videoCaptionInput');
+      if (player) {
+        player.src = getLocalVideoUrl(p);
+        if (p.posterDataUrl || p.posterSignedUrl) player.poster = p.posterDataUrl || p.posterSignedUrl;
+      }
+      if (cap) cap.value = p.label || '';
+      document.getElementById('videoPreviewModal')?.classList.remove('hidden');
+    }
+
+    function closeVideoPreviewModal() {
+      const player = document.getElementById('videoPreviewPlayer');
+      if (player) { player.pause(); player.removeAttribute('src'); player.load(); }
+      document.getElementById('videoPreviewModal')?.classList.add('hidden');
+      videoPreviewCtx = null;
+    }
+
+    async function saveVideoCaption() {
+      if (!videoPreviewCtx) return;
+      const p = state.draft.sections[videoPreviewCtx.secIdx]?.items[videoPreviewCtx.itemIdx]?.photos[videoPreviewCtx.photoIdx];
+      if (p) {
+        p.label = (document.getElementById('videoCaptionInput')?.value || '').trim() || p.label;
+        await saveDraftLocally(true);
+        render();
+      }
+      closeVideoPreviewModal();
+      toast('Video caption saved.');
+    }
+
     function addPhotosToItem(secIdx, itemIdx, useCamera) {
       const inp = document.createElement('input');
       inp.type = 'file';
@@ -1535,7 +1676,7 @@
         });
         // Attach up to 4 item photos visually for Gemini
         const images = [];
-        for (const p of (it.photos || []).slice(0, 4)) {
+        for (const p of (it.photos || []).filter(x => x && x.mediaType !== 'video').slice(0, 4)) {
           const src = p.dataUrl || p.signedUrl;
           if (!src) continue;
           try {
@@ -2827,19 +2968,37 @@
         // 1. Upload any photos that have a local dataUrl without an up-to-date storagePath
         const pendingPhotos = [];
         state.draft.sections.forEach(sec => sec.items.forEach(it => (it.photos || []).forEach(p => {
-          if (p.dataUrl && !p.storagePath) pendingPhotos.push(p);
+          if (p.mediaType === 'video') {
+            if (p.blob && !p.storagePath) pendingPhotos.push(p);
+          } else if (p.dataUrl && !p.storagePath) {
+            pendingPhotos.push(p);
+          }
         })));
 
         if (pendingPhotos.length) {
-          toast(`Uploading ${pendingPhotos.length} photos...`);
-          const BATCH = 5;
+          toast(`Uploading ${pendingPhotos.length} media item(s)...`);
+          const BATCH = 4;
           for (let i = 0; i < pendingPhotos.length; i += BATCH) {
             await Promise.all(pendingPhotos.slice(i, i + BATCH).map(async (p) => {
-              const blob = dataUrlToBlob(p.dataUrl);
-              const path = `${inspId}/photos/${p.id}.jpg`;
-              const { error } = await sb.storage.from('reports').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
-              if (error) throw error;
-              p.storagePath = path;
+              if (p.mediaType === 'video') {
+                const ext = (p.mimeType && p.mimeType.includes('webm')) ? 'webm' : ((p.mimeType && p.mimeType.includes('quicktime')) ? 'mov' : 'mp4');
+                const vPath = `${inspId}/videos/${p.id}.${ext}`;
+                const { error } = await sb.storage.from('reports').upload(vPath, p.blob, { contentType: p.mimeType || 'video/mp4', upsert: true });
+                if (error) throw error;
+                p.storagePath = vPath;
+                if (p.posterDataUrl && !p.posterPath) {
+                  const pBlob = dataUrlToBlob(p.posterDataUrl);
+                  const pPath = `${inspId}/videos/${p.id}-poster.jpg`;
+                  const { error: pErr } = await sb.storage.from('reports').upload(pPath, pBlob, { contentType: 'image/jpeg', upsert: true });
+                  if (!pErr) p.posterPath = pPath;
+                }
+              } else {
+                const blob = dataUrlToBlob(p.dataUrl);
+                const path = `${inspId}/photos/${p.id}.jpg`;
+                const { error } = await sb.storage.from('reports').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+                if (error) throw error;
+                p.storagePath = path;
+              }
             }));
           }
         }
@@ -2857,7 +3016,7 @@
             items: sec.items.map(it => ({
               id: it.id, code: it.code, title: it.title, statuses: getItemStatuses(it), status: formatItemStatuses(it), isSummary: !!it.isSummary,
               roughNotes: it.roughNotes || '', narrative: it.narrative || '',
-              photos: (it.photos || []).map(p => ({ id: p.id, label: p.label, storagePath: p.storagePath || '' }))
+              photos: (it.photos || []).map(p => ({ id: p.id, mediaType: p.mediaType || 'image', label: p.label, storagePath: p.storagePath || '', posterPath: p.posterPath || '', mimeType: p.mimeType || '' }))
             }))
           }))
         };
@@ -2904,7 +3063,7 @@
           const rows = [];
           state.draft.sections.forEach(sec => {
             sec.items.forEach(it => {
-              const photoArr = (it.photos || []).filter(p => p.storagePath).map(p => ({ label: p.label || it.title, path: p.storagePath }));
+              const photoArr = (it.photos || []).filter(p => p.storagePath).map(p => ({ mediaType: p.mediaType || 'image', label: p.label || it.title, path: p.storagePath, posterPath: p.posterPath || '' }));
               const sevText = formatItemStatuses(it);
               rows.push({
                 inspection_id: inspId,
@@ -3182,7 +3341,24 @@
           return `<button type="button" onclick="toggleItemStatus(${state.activeSecIdx}, ${itemIdx}, '${r}')" class="px-2.5 py-1.5 rounded-lg border text-xs font-extrabold transition ${cls}">${r}</button>`;
         }).join('');
 
-        const photosHTML = (it.photos || []).map((p, pIdx) => `
+        const photosHTML = (it.photos || []).map((p, pIdx) => {
+          if (p.mediaType === 'video') {
+            const poster = p.posterDataUrl || p.posterSignedUrl || '';
+            return `
+              <div class="relative group w-24 shrink-0 space-y-1">
+                <div onclick="openVideoPreviewModal(${state.activeSecIdx}, ${itemIdx}, ${pIdx})" class="relative w-24 h-24 rounded-xl border border-slate-400 cursor-pointer bg-slate-900 overflow-hidden flex items-center justify-center" title="Click to play video or edit caption">
+                  ${poster ? `<img src="${poster}" class="w-full h-full object-cover opacity-80" />` : ''}
+                  <span class="absolute inset-0 flex items-center justify-center"><span class="w-8 h-8 rounded-full bg-white/90 text-slate-900 flex items-center justify-center text-xs font-extrabold shadow">&#9654;</span></span>
+                  <span class="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-slate-900/85 text-white text-[9px] font-extrabold tracking-wide">VIDEO</span>
+                </div>
+                <div class="flex items-center justify-between gap-0.5 text-[10px]">
+                  <button type="button" onclick="movePhoto(${state.activeSecIdx}, ${itemIdx}, ${pIdx}, -1)" class="px-1 py-0.5 rounded bg-slate-100 hover:bg-slate-200 font-bold">&larr;</button>
+                  <button type="button" onclick="openVideoPreviewModal(${state.activeSecIdx}, ${itemIdx}, ${pIdx})" class="px-1.5 py-0.5 rounded bg-sky-100 text-davis-navy font-bold">Play</button>
+                  <button type="button" onclick="removePhoto(${state.activeSecIdx}, ${itemIdx}, ${pIdx})" class="px-1 py-0.5 rounded bg-rose-100 text-rose-700 font-bold">&times;</button>
+                </div>
+              </div>`;
+          }
+          return `
           <div class="relative group w-24 shrink-0 space-y-1">
             <img src="${p.dataUrl || p.signedUrl || ''}" onclick="openPhotoEditor(${state.activeSecIdx}, ${itemIdx}, ${pIdx})" class="w-24 h-24 object-cover rounded-xl border border-slate-300 cursor-pointer bg-slate-100" title="Click to annotate / edit caption" />
             <div class="flex items-center justify-between gap-0.5 text-[10px]">
@@ -3190,8 +3366,8 @@
               <button type="button" onclick="openPhotoEditor(${state.activeSecIdx}, ${itemIdx}, ${pIdx})" class="px-1.5 py-0.5 rounded bg-sky-100 text-davis-navy font-bold">Edit</button>
               <button type="button" onclick="removePhoto(${state.activeSecIdx}, ${itemIdx}, ${pIdx})" class="px-1 py-0.5 rounded bg-rose-100 text-rose-700 font-bold">&times;</button>
             </div>
-          </div>
-        `).join('');
+          </div>`;
+        }).join('');
 
         const isBusy = state.aiBusyItemId === it.id;
         return `
@@ -3230,6 +3406,10 @@
               <button type="button" onclick="addPhotosToItem(${state.activeSecIdx}, ${itemIdx}, false)" class="w-24 h-24 shrink-0 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100 flex flex-col items-center justify-center text-slate-600 text-[11px] font-bold gap-1">
                 <span>+ Gallery</span>
               </button>
+              <button type="button" onclick="addVideoToItem(${state.activeSecIdx}, ${itemIdx})" class="w-24 h-24 shrink-0 rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/60 hover:bg-indigo-100 flex flex-col items-center justify-center text-indigo-800 text-[11px] font-bold gap-1">
+                <span>+ Video</span>
+                <span class="text-[9px] font-semibold opacity-75">10-20s clip</span>
+              </button>
               ${photosHTML}
             </div>
 
@@ -3240,7 +3420,7 @@
                   <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Field notes (for AI)</label>
                   <button type="button" onclick="generateAINarrative(${state.activeSecIdx}, ${itemIdx})" ${isBusy ? 'disabled' : ''} class="px-3 py-1 rounded-lg bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-[11px] font-bold transition">${isBusy ? 'Rewriting...' : 'Rewrite with AI'}</button>
                 </div>
-                <textarea rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'roughNotes', this.value)" placeholder="Quick field notes (e.g., east gutter downspout discharging onto driveway)..." class="w-full p-2.5 rounded-xl border border-slate-300 text-xs leading-relaxed">${esc(it.roughNotes || '')}</textarea>
+                <textarea data-pair-ta="item-${state.activeSecIdx}-${itemIdx}" rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'roughNotes', this.value)" placeholder="Quick field notes (e.g., east gutter downspout discharging onto driveway)..." class="w-full p-2.5 rounded-xl border border-slate-300 text-xs leading-relaxed resize-y">${esc(it.roughNotes || '')}</textarea>
               </div>
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between gap-1">
@@ -3250,7 +3430,7 @@
                     <button type="button" onclick="saveNarrativeToLibrary(${state.activeSecIdx}, ${itemIdx})" class="px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold">+ Save to library</button>
                   </div>
                 </div>
-                <textarea rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'narrative', this.value)" placeholder="Final 3-sentence narrative (edit freely or click Rewrite with AI / Library)..." class="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50/50 text-xs leading-relaxed">${esc(it.narrative || '')}</textarea>
+                <textarea data-pair-ta="item-${state.activeSecIdx}-${itemIdx}" rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'narrative', this.value)" placeholder="Final 3-sentence narrative (edit freely or click Rewrite with AI / Library)..." class="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50/50 text-xs leading-relaxed resize-y">${esc(it.narrative || '')}</textarea>
               </div>
             </div>
           </div>
@@ -3549,6 +3729,36 @@
           </div>
         </div>
       `;
+      bindPairedTextareaResize();
+    }
+
+
+    let dhiTaResizeObserver = null;
+    function bindPairedTextareaResize() {
+      if (typeof ResizeObserver === 'undefined') return;
+      if (dhiTaResizeObserver) dhiTaResizeObserver.disconnect();
+      let syncing = false;
+      dhiTaResizeObserver = new ResizeObserver((entries) => {
+        if (syncing) return;
+        syncing = true;
+        try {
+          for (const entry of entries) {
+            const el = entry.target;
+            const key = el.getAttribute('data-pair-ta');
+            if (!key) continue;
+            const h = el.offsetHeight;
+            if (!h) continue;
+            document.querySelectorAll(`textarea[data-pair-ta="${key}"]`).forEach(peer => {
+              if (peer !== el && Math.abs(peer.offsetHeight - h) > 2) {
+                peer.style.height = h + 'px';
+              }
+            });
+          }
+        } finally {
+          requestAnimationFrame(() => { syncing = false; });
+        }
+      });
+      document.querySelectorAll('textarea[data-pair-ta]').forEach(ta => dhiTaResizeObserver.observe(ta));
     }
 
     dhiUpdateOnlineIndicator();
