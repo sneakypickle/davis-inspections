@@ -114,7 +114,7 @@
         <div>
           <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Crash Recovery (Every 2 Minutes)</span>
           <h3 class="text-base font-extrabold text-slate-900">Local phone backups</h3>
-          <p class="text-xs text-slate-500">Snapshots are saved automatically to IndexedDB every 2 minutes while editing an inspection.</p>
+          <p class="text-xs text-slate-500">Up to 5 rolling snapshots per inspection are saved automatically to IndexedDB every 2 minutes while editing.</p>
         </div>
         <button type="button" onclick="closeBackupsModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
       </div>
@@ -390,11 +390,11 @@
         draft: JSON.parse(JSON.stringify(state.draft))
       };
       await idbPut('backups', snap);
-      // Prune to keep latest 20 snapshots per inspection
+      // Prune to keep latest 5 snapshots per inspection
       const all = (await idbGetAll('backups'))
         .filter(b => b.inspectionId === state.draft.inspectionId)
         .sort((a, b) => b.savedAt.localeCompare(a.savedAt));
-      for (const old of all.slice(20)) {
+      for (const old of all.slice(5)) {
         await idbDelete('backups', old.backupId);
       }
       const badge = document.getElementById('hdrBackupBadge');
