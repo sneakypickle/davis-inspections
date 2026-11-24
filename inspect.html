@@ -21,6 +21,7 @@
     };
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
     body { font-family: Inter, system-ui, -apple-system, sans-serif; background: #F4F7FA; color: #0F172A; -webkit-tap-highlight-color: transparent; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -278,6 +279,9 @@
       dragPhotoTrayId: null, // { inspectionId, address, propertyInfo, sections: [{ num, name, stylesMaterials: [{label, value, options}], items: [{ id, code, title, status, isSummary, roughNotes, narrative, photos: [{ id, label, dataUrl, storagePath }] }] }], updatedAt, dirty }
       activeSecIdx: 0,
       showPropInfo: true,
+      showNpma33: false,
+      npmaOpenPickerRow: '',
+      npmaBusy: false,
       showSM: true,
       globalInstructions: DEFAULT_AI_INSTRUCTIONS,
       aiModel: 'gemini-4-hydrogen',
@@ -901,6 +905,7 @@
         templateName: tpl.name,
         address: insp.address || '',
         propertyInfo: pInfo,
+        npma33: (basePInfo && basePInfo.npma33) ? basePInfo.npma33 : null,
         contacts,
         sections: coreSections,
         updatedAt: new Date().toISOString(),
@@ -1219,6 +1224,731 @@
         render();
         toast('Autofilled address and property details.');
       } catch (_e) {}
+    }
+
+    // =========================================================================
+    // NPMA-33 (7/01/19) WOOD DESTROYING INSECT INSPECTION REPORT
+    // =========================================================================
+    const DHI_DEFAULT_NPMA_SIGNATURE = 'data:image/png;base64,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';
+
+    const DHI_NPMA_STRUCTURES = ['Home', 'Detached Garage', 'Shed', 'Barn'];
+
+    const DHI_NPMA_SEC4_AREAS = [
+      { cb: 'cbIV1', text: 'textIVBasement', label: 'Basement' },
+      { cb: 'cbIV2', text: 'textIVCrawlspace', label: 'Crawlspace' },
+      { cb: 'cbIV3', text: 'textIVMainLevel', label: 'Main Level' },
+      { cb: 'cbIV4', text: 'textIVAttic', label: 'Attic' },
+      { cb: 'cbIV5', text: 'textIVGarage', label: 'Garage' },
+      { cb: 'cbIV6', text: 'textIVExterior', label: 'Exterior' },
+      { cb: 'cbIV7', text: 'textIVPorch', label: 'Porch' },
+      { cb: 'cbIV8', text: 'textIVAddition', label: 'Addition' },
+      { cb: 'cbIV9', text: 'textIVOther', label: 'Other' }
+    ];
+
+    const DHI_NPMA_SEC4_KEYS = [
+      [1, 'Fixed ceiling'],
+      [2, 'Suspended ceiling'],
+      [3, 'Fixed wall covering'],
+      [4, 'Floor covering'],
+      [5, 'Insulation'],
+      [6, 'Cabinets or shelving'],
+      [7, 'Stored items'],
+      [8, 'Furnishings'],
+      [9, 'Appliances'],
+      [10, 'No access or entry'],
+      [11, 'Limited access'],
+      [12, 'No access beneath'],
+      [13, 'Only visual access'],
+      [14, 'Cluttered condition'],
+      [15, 'Standing water'],
+      [16, 'Dense vegetation'],
+      [17, 'Exterior siding'],
+      [18, 'Window well covers'],
+      [19, 'Wood pile'],
+      [20, 'Snow'],
+      [21, 'Unsafe conditions'],
+      [22, 'Rigid foam board'],
+      [23, 'Synthetic stucco'],
+      [24, 'Duct work, wiring, and/or plumbing'],
+      [25, 'Spray foam insulation'],
+      [26, 'Equipment']
+    ];
+
+    function formatNpmaDateString(rawDate) {
+      if (rawDate) {
+        const d = new Date(String(rawDate).replace(/\s+at\s+/i, ' '));
+        if (!isNaN(d.getTime())) {
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          const yyyy = d.getFullYear();
+          return `${mm}/${dd}/${yyyy}`;
+        }
+      }
+      const now = new Date();
+      return `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${now.getFullYear()}`;
+    }
+
+    function getOrInitNpma33() {
+      if (!state.draft) return null;
+      const pi = state.draft.propertyInfo || {};
+      const activeInsp = (state.inspections || []).find(x => x.id === state.draft.inspectionId) || {};
+      const fullAddr = pi.address || [pi.street, pi.city, [pi.state, pi.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ') || state.draft.address || '';
+      const defDate = formatNpmaDateString(activeInsp.inspection_date || '');
+
+      if (!state.draft.npma33 || typeof state.draft.npma33 !== 'object') {
+        state.draft.npma33 = {
+          enabled: true,
+          taICompany: 'Davis Home Inspections, LLC\n(719) 660-4724\nwww.davis-inspections.com',
+          textIBusinessLicense: 'N/A',
+          dateIInspection: defDate,
+          taIPropertyAddress: fullAddr,
+          textIInspectorName: 'Matt Davis',
+          textIInspectorLicense: 'InternachiEDU-0002-367075',
+          signatureDataUrl: DHI_DEFAULT_NPMA_SIGNATURE,
+          structuresSelected: ['Home'],
+          structuresOther: '',
+          cbIIa: true,
+          cbIIb: false,
+          cbIIb1: false,
+          textIIb1: '',
+          cbIIb2: false,
+          textIIb2: '',
+          cbIIb3: false,
+          textIIb3: '',
+          cbIII1: true,
+          textIIINoTreatment: '',
+          cbIII2: false,
+          taIIIRecommendTreatment: '',
+          cbIV1: false, textIVBasement: '',
+          cbIV2: false, textIVCrawlspace: '',
+          cbIV3: false, textIVMainLevel: '',
+          cbIV4: false, textIVAttic: '',
+          cbIV5: false, textIVGarage: '',
+          cbIV6: false, textIVExterior: '',
+          cbIV7: false, textIVPorch: '',
+          cbIV8: false, textIVAddition: '',
+          cbIV9: false, textIVOther: '',
+          taVComments: '',
+          textVAttachments: '',
+          photos: []
+        };
+      } else {
+        const n = state.draft.npma33;
+        if (!n.taIPropertyAddress && fullAddr) n.taIPropertyAddress = fullAddr;
+        if (!n.dateIInspection) n.dateIInspection = defDate;
+        if (!n.signatureDataUrl) n.signatureDataUrl = DHI_DEFAULT_NPMA_SIGNATURE;
+        if (!Array.isArray(n.structuresSelected)) n.structuresSelected = ['Home'];
+        if (!Array.isArray(n.photos)) n.photos = [];
+      }
+      return state.draft.npma33;
+    }
+
+    function toggleNpma33Panel() {
+      if (!state.draft) return;
+      getOrInitNpma33();
+      state.showNpma33 = !state.showNpma33;
+      if (state.showNpma33 && state.draft.npma33) {
+        state.draft.npma33.enabled = true;
+      }
+      render();
+    }
+
+    function updateNpmaField(key, val, shouldRender) {
+      const n = getOrInitNpma33();
+      if (!n) return;
+      n.enabled = true;
+      n[key] = val;
+      if (key === 'cbIIa' && val) {
+        n.cbIIb = false;
+      } else if (key === 'cbIIb' && val) {
+        n.cbIIa = false;
+      } else if ((key === 'cbIIb1' || key === 'cbIIb2' || key === 'cbIIb3') && val) {
+        n.cbIIb = true;
+        n.cbIIa = false;
+      } else if (key === 'cbIII1' && val) {
+        n.cbIII2 = false;
+      } else if (key === 'cbIII2' && val) {
+        n.cbIII1 = false;
+      }
+      // Auto-check Section IV checkbox when typing into its text box
+      const sec4Match = DHI_NPMA_SEC4_AREAS.find(a => a.text === key);
+      if (sec4Match) {
+        n[sec4Match.cb] = Boolean(String(val || '').trim());
+      }
+      state.draft.dirty = true;
+      saveDraftLocally(true);
+      if (shouldRender) render();
+    }
+
+    function toggleNpmaStructure(name) {
+      const n = getOrInitNpma33();
+      if (!n) return;
+      const list = Array.isArray(n.structuresSelected) ? n.structuresSelected.slice() : [];
+      const idx = list.indexOf(name);
+      if (idx >= 0) list.splice(idx, 1);
+      else list.push(name);
+      n.structuresSelected = list;
+      state.draft.dirty = true;
+      saveDraftLocally(true);
+      render();
+    }
+
+    function getNpmaStructuresText(n) {
+      const parts = (Array.isArray(n.structuresSelected) ? n.structuresSelected : []).slice();
+      if (n.structuresOther && String(n.structuresOther).trim()) {
+        parts.push(String(n.structuresOther).trim());
+      }
+      return parts.join(', ');
+    }
+
+    function parseNpmaKeyNumbers(str) {
+      const raw = String(str || '').trim();
+      if (!raw) return { nums: [], extras: [] };
+      const tokens = raw.split(/[-,\s]+/).map(t => t.trim()).filter(Boolean);
+      const nums = [];
+      const extras = [];
+      tokens.forEach(t => {
+        const num = Number(t);
+        if (/^\d+$/.test(t) && num >= 1 && num <= 26) {
+          if (!nums.includes(num)) nums.push(num);
+        } else {
+          extras.push(t);
+        }
+      });
+      nums.sort((a, b) => a - b);
+      return { nums, extras };
+    }
+
+    function toggleNpmaSec4Key(textKey, cbKey, codeNum) {
+      const n = getOrInitNpma33();
+      if (!n) return;
+      const parsed = parseNpmaKeyNumbers(n[textKey] || '');
+      const idx = parsed.nums.indexOf(codeNum);
+      if (idx >= 0) parsed.nums.splice(idx, 1);
+      else parsed.nums.push(codeNum);
+      parsed.nums.sort((a, b) => a - b);
+      const numStr = parsed.nums.join('-');
+      const extraStr = parsed.extras.join(' ');
+      const combined = [numStr, extraStr].filter(Boolean).join(' ').trim();
+      n[textKey] = combined;
+      n[cbKey] = Boolean(combined);
+      state.draft.dirty = true;
+      saveDraftLocally(true);
+      render();
+    }
+
+    function clearNpmaSec4Row(textKey, cbKey) {
+      const n = getOrInitNpma33();
+      if (!n) return;
+      n[textKey] = '';
+      n[cbKey] = false;
+      state.draft.dirty = true;
+      saveDraftLocally(true);
+      render();
+    }
+
+    function handleNpmaSignaturePick(inputEl) {
+      const file = inputEl && inputEl.files && inputEl.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const n = getOrInitNpma33();
+        if (!n) return;
+        n.signatureDataUrl = reader.result;
+        state.draft.dirty = true;
+        saveDraftLocally(true);
+        render();
+        toast('Inspector signature updated for NPMA-33.');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function handleNpmaPhotoAdd(inputEl) {
+      const files = Array.from((inputEl && inputEl.files) || []);
+      if (!files.length) return;
+      const n = getOrInitNpma33();
+      if (!n) return;
+      n.photos = Array.isArray(n.photos) ? n.photos : [];
+      for (const file of files) {
+        if (n.photos.length >= 6) {
+          toast('NPMA-33 Picture Page supports up to 6 photos.');
+          break;
+        }
+        try {
+          const dataUrl = await compressImageFile(file);
+          n.photos.push({ dataUrl, label: '' });
+        } catch (_e) {}
+      }
+      if (n.photos.length && !String(n.textVAttachments || '').trim()) {
+        n.textVAttachments = 'Photo Page';
+      }
+      state.draft.dirty = true;
+      await saveDraftLocally(true);
+      render();
+    }
+
+    function updateNpmaPhotoLabel(idx, val) {
+      const n = getOrInitNpma33();
+      if (!n || !n.photos || !n.photos[idx]) return;
+      n.photos[idx].label = val;
+      state.draft.dirty = true;
+      saveDraftLocally(true);
+    }
+
+    function removeNpmaPhoto(idx) {
+      const n = getOrInitNpma33();
+      if (!n || !n.photos) return;
+      n.photos.splice(idx, 1);
+      if (!n.photos.length && n.textVAttachments === 'Photo Page') {
+        n.textVAttachments = '';
+      }
+      state.draft.dirty = true;
+      saveDraftLocally(true);
+      render();
+    }
+
+    async function buildNpma33PdfBytes() {
+      if (!window.PDFLib) {
+        throw new Error('PDF library is still loading. Please try again in a moment.');
+      }
+      const n = getOrInitNpma33();
+      if (!n) throw new Error('No active inspection draft.');
+
+      const hasPhotos = Array.isArray(n.photos) && n.photos.length > 0;
+      const formUrl = hasPhotos
+        ? './forms/NPMA-33-Revised-2019-Picture-Page.pdf'
+        : './forms/NPMA-33-Revised-2019.pdf';
+
+      const resp = await fetch(formUrl);
+      if (!resp.ok) {
+        throw new Error(`Could not load blank NPMA-33 PDF at ${formUrl}. Make sure the forms/ folder is uploaded to GitHub.`);
+      }
+      const tplBytes = await resp.arrayBuffer();
+      const { PDFDocument } = window.PDFLib;
+      const pdfDoc = await PDFDocument.load(tplBytes);
+      const form = pdfDoc.getForm();
+
+      const setTxt = (fieldName, val) => {
+        try {
+          const f = form.getTextField(fieldName);
+          f.setText(String(val || ''));
+        } catch (_e) {}
+      };
+      const setChk = (fieldName, checked) => {
+        try {
+          const f = form.getCheckBox(fieldName);
+          if (checked) f.check();
+          else f.uncheck();
+        } catch (_e) {}
+      };
+
+      // Section I
+      setTxt('taICompany', n.taICompany || '');
+      setTxt('textIBusinessLicense', n.textIBusinessLicense || 'N/A');
+      setTxt('dateIInspection', n.dateIInspection || '');
+      setTxt('taIPropertyAddress', n.taIPropertyAddress || '');
+      setTxt('textIInspectorName', n.textIInspectorName || 'Matt Davis');
+      setTxt('textIInspectorLicense', n.textIInspectorLicense || 'InternachiEDU-0002-367075');
+      setTxt('textIStructure', getNpmaStructuresText(n));
+      setTxt('Signature1', '');
+      setTxt('CustSig', '');
+
+      // Section II
+      setChk('cbIIa', !!n.cbIIa);
+      setChk('cbIIb', !!n.cbIIb);
+      setChk('cbIIb1', !!n.cbIIb1);
+      setTxt('textIIb1', n.textIIb1 || '');
+      setChk('cbIIb2', !!n.cbIIb2);
+      setTxt('textIIb2', n.textIIb2 || '');
+      setChk('cbIIb3', !!n.cbIIb3);
+      setTxt('textIIb3', n.textIIb3 || '');
+
+      // Section III
+      setChk('cbIII1', !!n.cbIII1);
+      setTxt('textIIINoTreatment', n.textIIINoTreatment || '');
+      setChk('cbIII2', !!n.cbIII2);
+      setTxt('taIIIRecommendTreatment', n.taIIIRecommendTreatment || '');
+
+      // Section IV
+      DHI_NPMA_SEC4_AREAS.forEach(a => {
+        setChk(a.cb, !!n[a.cb]);
+        setTxt(a.text, n[a.text] || '');
+      });
+
+      // Section V
+      setTxt('taVComments', n.taVComments || '');
+      const attachVal = String(n.textVAttachments || '').trim() || (hasPhotos ? 'Photo Page' : '');
+      setTxt('textVAttachments', attachVal);
+
+      // Picture Page Labels (Page 3)
+      if (hasPhotos) {
+        for (let i = 0; i < 6; i++) {
+          const ph = n.photos[i];
+          setTxt(`Label${i + 1}`, ph ? (ph.label || `Photo ${i + 1}`) : '');
+          setTxt(`Image${i + 1}`, '');
+        }
+      }
+
+      // Flatten AcroForm fields so text renders cleanly everywhere & cannot be accidentally altered
+      form.flatten();
+
+      // Stamp Matt's signature image cleanly inside Signature1 box: rect=[154.0, 643.6, 276.3, 664.5]
+      const page1 = pdfDoc.getPages()[0];
+      if (n.signatureDataUrl) {
+        try {
+          const sigRes = await fetch(n.signatureDataUrl);
+          const sigBuf = await sigRes.arrayBuffer();
+          const isPng = n.signatureDataUrl.startsWith('data:image/png');
+          const sigImg = isPng ? await pdfDoc.embedPng(sigBuf) : await pdfDoc.embedJpg(sigBuf);
+          const boxX = 155, boxY = 640, boxW = 118, boxH = 24;
+          const scale = Math.min(boxW / sigImg.width, boxH / sigImg.height);
+          const dw = sigImg.width * scale;
+          const dh = sigImg.height * scale;
+          page1.drawImage(sigImg, {
+            x: boxX + (boxW - dw) / 2,
+            y: boxY + (boxH - dh) / 2,
+            width: dw,
+            height: dh
+          });
+        } catch (sigErr) {
+          console.warn('Signature embed skipped:', sigErr);
+        }
+      }
+
+      // Draw up to 6 photos cleanly on Page 3 beneath Label1..Label6
+      if (hasPhotos && pdfDoc.getPages().length >= 3) {
+        const page3 = pdfDoc.getPages()[2];
+        const slots = [
+          { x: 48, y: 504, w: 258, h: 206 },
+          { x: 320, y: 504, w: 258, h: 206 },
+          { x: 48, y: 266, w: 258, h: 206 },
+          { x: 320, y: 266, w: 258, h: 206 },
+          { x: 48, y: 28, w: 258, h: 206 },
+          { x: 320, y: 28, w: 258, h: 206 }
+        ];
+        for (let i = 0; i < Math.min(6, n.photos.length); i++) {
+          const ph = n.photos[i];
+          if (!ph || !ph.dataUrl) continue;
+          try {
+            const pRes = await fetch(ph.dataUrl);
+            const pBuf = await pRes.arrayBuffer();
+            const isPng = ph.dataUrl.startsWith('data:image/png');
+            const pImg = isPng ? await pdfDoc.embedPng(pBuf) : await pdfDoc.embedJpg(pBuf);
+            const sl = slots[i];
+            const ratio = Math.min(sl.w / pImg.width, sl.h / pImg.height);
+            const dw = pImg.width * ratio;
+            const dh = pImg.height * ratio;
+            page3.drawImage(pImg, {
+              x: sl.x + (sl.w - dw) / 2,
+              y: sl.y + (sl.h - dh) / 2,
+              width: dw,
+              height: dh
+            });
+          } catch (imgErr) {
+            console.warn('NPMA photo embed error:', imgErr);
+          }
+        }
+      }
+
+      return await pdfDoc.save();
+    }
+
+    function getNpmaPdfFilename() {
+      const pi = (state.draft && state.draft.propertyInfo) || {};
+      const raw = pi.street || (state.draft && state.draft.address ? state.draft.address.split(',')[0] : 'Property');
+      const clean = String(raw || 'Property').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim() || 'Property';
+      return `${clean} - NPMA-33 WDI Report.pdf`;
+    }
+
+    async function downloadNpma33Pdf() {
+      state.npmaBusy = true;
+      render();
+      try {
+        const pdfBytes = await buildNpma33PdfBytes();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = getNpmaPdfFilename();
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        toast('Saved ' + getNpmaPdfFilename());
+      } catch (err) {
+        console.error(err);
+        toast('NPMA-33 PDF error: ' + (err.message || err));
+      } finally {
+        state.npmaBusy = false;
+        render();
+      }
+    }
+
+    async function publishNpma33ToPortal() {
+      if (!state.draft || !state.draft.inspectionId) {
+        toast('Open an inspection first.');
+        return;
+      }
+      if (!navigator.onLine || typeof sb === 'undefined' || !sb) {
+        toast('You must be online to publish the NPMA-33 PDF to the portal.');
+        return;
+      }
+      state.npmaBusy = true;
+      render();
+      try {
+        const pdfBytes = await buildNpma33PdfBytes();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const inspId = state.draft.inspectionId;
+        const storagePath = `${inspId}/docs/npma33-${Date.now()}.pdf`;
+        const { error: upErr } = await sb.storage.from('reports').upload(storagePath, blob, {
+          contentType: 'application/pdf',
+          upsert: true
+        });
+        if (upErr) throw upErr;
+
+        const docTitle = 'Termite / WDI Report (NPMA-33)';
+        const { data: existing } = await sb
+          .from('inspection_documents')
+          .select('id')
+          .eq('inspection_id', inspId)
+          .eq('title', docTitle)
+          .maybeSingle();
+
+        if (existing && existing.id) {
+          const { error: updErr } = await sb.from('inspection_documents').update({
+            storage_path: storagePath,
+            summary: 'Official Form NPMA-33 (7/01/19) generated in DHI Field'
+          }).eq('id', existing.id);
+          if (updErr) throw updErr;
+        } else {
+          const { error: insErr } = await sb.from('inspection_documents').insert({
+            inspection_id: inspId,
+            doc_type: 'specialty_pdf',
+            title: docTitle,
+            storage_path: storagePath,
+            summary: 'Official Form NPMA-33 (7/01/19) generated in DHI Field'
+          });
+          if (insErr) throw insErr;
+        }
+        await saveDraftLocally(true);
+        toast('Published NPMA-33 PDF to the customer portal!');
+      } catch (err) {
+        console.error(err);
+        toast('Publish NPMA-33 failed: ' + (err.message || err));
+      } finally {
+        state.npmaBusy = false;
+        render();
+      }
+    }
+
+    function renderNpma33PanelHTML() {
+      const n = getOrInitNpma33();
+      if (!n) return '';
+      const structPreview = getNpmaStructuresText(n);
+      const sec4RowsHTML = DHI_NPMA_SEC4_AREAS.map(a => {
+        const val = n[a.text] || '';
+        const isChecked = !!n[a.cb];
+        const isPickerOpen = state.npmaOpenPickerRow === a.text;
+        const selectedNums = parseNpmaKeyNumbers(val).nums;
+        return `
+          <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-2.5 space-y-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="inline-flex items-center gap-2 min-w-[115px] cursor-pointer font-bold text-slate-800">
+                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="updateNpmaField('${a.cb}', this.checked, true)" class="rounded border-slate-300 text-indigo-600" />
+                <span>${a.label}</span>
+              </label>
+              <input type="text" value="${esc(val)}" oninput="updateNpmaField('${a.text}', this.value, false)" placeholder="e.g., 1-3-4-7-8 or type notes" class="flex-1 min-w-[180px] px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+              <button type="button" onclick="state.npmaOpenPickerRow = (state.npmaOpenPickerRow === '${a.text}' ? '' : '${a.text}'); render();" class="px-2.5 py-1.5 rounded-lg border text-[11px] font-bold transition ${isPickerOpen ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-300 hover:border-indigo-500 text-slate-700'}">${isPickerOpen ? 'Done' : 'Pick #s'}</button>
+              ${val || isChecked ? `<button type="button" onclick="clearNpmaSec4Row('${a.text}', '${a.cb}')" class="px-2 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-[11px] font-bold">Clear</button>` : ''}
+            </div>
+            ${isPickerOpen ? `
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5 pt-1.5 border-t border-slate-200">
+                ${DHI_NPMA_SEC4_KEYS.map(([num, desc]) => {
+                  const active = selectedNums.includes(num);
+                  return `<button type="button" onclick="toggleNpmaSec4Key('${a.text}', '${a.cb}', ${num})" class="text-left px-2 py-1.5 rounded-lg border text-[11px] transition ${active ? 'bg-indigo-600 border-indigo-600 text-white font-bold' : 'bg-white border-slate-200 hover:border-indigo-400 text-slate-700'}"><span class="font-mono font-bold mr-1">${num}.</span>${esc(desc)}</button>`;
+                }).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+
+      const photosHTML = (n.photos || []).map((ph, idx) => `
+        <div class="rounded-xl border border-slate-200 bg-white p-2 space-y-1.5">
+          <div class="relative">
+            <img src="${ph.dataUrl}" class="w-full h-36 object-contain rounded-lg bg-slate-100" />
+            <button type="button" onclick="removeNpmaPhoto(${idx})" class="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-lg bg-slate-900/80 text-white text-[10px] font-bold">Remove</button>
+          </div>
+          <input type="text" value="${esc(ph.label || '')}" oninput="updateNpmaPhotoLabel(${idx}, this.value)" placeholder="Caption for Photo ${idx + 1}" class="w-full px-2 py-1 rounded-lg border border-slate-300 text-xs" />
+        </div>
+      `).join('');
+
+      return `
+        <div class="bg-white rounded-2xl border-2 border-indigo-300 shadow-sm overflow-hidden">
+          <div class="px-4 py-3 bg-indigo-950 text-white flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div class="text-[10px] font-bold uppercase tracking-wider text-indigo-300">Official Form NPMA-33 (7/01/19)</div>
+              <h3 class="text-sm font-extrabold">Wood Destroying Insect Inspection Report (Termite / WDI)</h3>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="downloadNpma33Pdf()" ${state.npmaBusy ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg bg-white text-indigo-950 hover:bg-indigo-50 disabled:opacity-60 text-xs font-extrabold transition">${state.npmaBusy ? 'Building PDF...' : 'Save NPMA-33 PDF'}</button>
+              <button type="button" onclick="publishNpma33ToPortal()" ${state.npmaBusy ? 'disabled' : ''} class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 text-white text-xs font-extrabold transition">Publish NPMA-33 to Portal</button>
+              <button type="button" onclick="state.showNpma33=false; render();" class="px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold">Hide</button>
+            </div>
+          </div>
+
+          <div class="p-4 space-y-5 text-xs">
+            <!-- Section I -->
+            <div class="space-y-3">
+              <div class="text-xs font-extrabold uppercase tracking-wider text-indigo-900 border-b border-slate-200 pb-1">Section I. General Information</div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Inspection Company, Phone &amp; Website</label>
+                  <textarea rows="3" oninput="updateNpmaField('taICompany', this.value, false)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs">${esc(n.taICompany || '')}</textarea>
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Address of Property Inspected</label>
+                  <textarea rows="3" oninput="updateNpmaField('taIPropertyAddress', this.value, false)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs">${esc(n.taIPropertyAddress || '')}</textarea>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Company's Pest Control Business Lic. No.</label>
+                  <input type="text" value="${esc(n.textIBusinessLicense || '')}" oninput="updateNpmaField('textIBusinessLicense', this.value, false)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Date of Inspection</label>
+                  <input type="text" value="${esc(n.dateIInspection || '')}" oninput="updateNpmaField('dateIInspection', this.value, false)" placeholder="MM/DD/YYYY" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Inspector's Name</label>
+                  <input type="text" value="${esc(n.textIInspectorName || '')}" oninput="updateNpmaField('textIInspectorName', this.value, false)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Inspector's Certification / Lic. #</label>
+                  <input type="text" value="${esc(n.textIInspectorLicense || '')}" oninput="updateNpmaField('textIInspectorLicense', this.value, false)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                </div>
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Inspector's Signature (stamped on PDF)</label>
+                  <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-1.5">
+                    ${n.signatureDataUrl ? `<img src="${n.signatureDataUrl}" alt="Signature" class="h-8 max-w-[140px] object-contain" />` : '<span class="text-slate-400">No signature</span>'}
+                    <label class="ml-auto cursor-pointer px-2 py-1 rounded bg-white border border-slate-300 hover:border-indigo-500 text-[11px] font-bold text-slate-700">
+                      Replace
+                      <input type="file" accept="image/*" class="hidden" onchange="handleNpmaSignaturePick(this)" />
+                    </label>
+                  </div>
+                </div>
+                <div class="space-y-1.5">
+                  <label class="block font-bold text-slate-700">Structure(s) Inspected <span class="font-normal text-slate-400">(${esc(structPreview || 'None')})</span></label>
+                  <div class="flex flex-wrap gap-1.5">
+                    ${DHI_NPMA_STRUCTURES.map(st => {
+                      const on = (n.structuresSelected || []).includes(st);
+                      return `<button type="button" onclick="toggleNpmaStructure('${st}')" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition ${on ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-300 text-slate-700 hover:border-indigo-400'}">${st}</button>`;
+                    }).join('')}
+                  </div>
+                  <input type="text" value="${esc(n.structuresOther || '')}" oninput="updateNpmaField('structuresOther', this.value, false)" placeholder="Other structure(s)..." class="w-full px-2.5 py-1 rounded-lg border border-slate-300 text-xs" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Section II -->
+            <div class="space-y-2.5">
+              <div class="text-xs font-extrabold uppercase tracking-wider text-indigo-900 border-b border-slate-200 pb-1">Section II. Inspection Findings</div>
+              <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
+                <input type="checkbox" ${n.cbIIa ? 'checked' : ''} onchange="updateNpmaField('cbIIa', this.checked, true)" class="rounded border-slate-300 text-indigo-600" />
+                <span>A. No visible evidence of wood destroying insects was observed.</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
+                <input type="checkbox" ${n.cbIIb ? 'checked' : ''} onchange="updateNpmaField('cbIIb', this.checked, true)" class="rounded border-slate-300 text-indigo-600" />
+                <span>B. Visible evidence of wood destroying insects was observed as follows:</span>
+              </label>
+              ${n.cbIIb ? `
+                <div class="pl-5 space-y-2.5 border-l-2 border-amber-300">
+                  <div class="space-y-1">
+                    <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+                      <input type="checkbox" ${n.cbIIb1 ? 'checked' : ''} onchange="updateNpmaField('cbIIb1', this.checked, true)" class="rounded border-slate-300 text-indigo-600" />
+                      <span>1. Live insects (description and location):</span>
+                    </label>
+                    <input type="text" value="${esc(n.textIIb1 || '')}" oninput="updateNpmaField('textIIb1', this.value, false)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                  </div>
+                  <div class="space-y-1">
+                    <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+                      <input type="checkbox" ${n.cbIIb2 ? 'checked' : ''} onchange="updateNpmaField('cbIIb2', this.checked, true)" class="rounded border-slate-300 text-indigo-600" />
+                      <span>2. Dead insects, insect parts, frass, shelter tubes, exit holes, or staining (description and location):</span>
+                    </label>
+                    <textarea rows="2" oninput="updateNpmaField('textIIb2', this.value, false)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs">${esc(n.textIIb2 || '')}</textarea>
+                  </div>
+                  <div class="space-y-1">
+                    <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+                      <input type="checkbox" ${n.cbIIb3 ? 'checked' : ''} onchange="updateNpmaField('cbIIb3', this.checked, true)" class="rounded border-slate-300 text-indigo-600" />
+                      <span>3. Visible damage from wood destroying insects (description and location):</span>
+                    </label>
+                    <textarea rows="3" oninput="updateNpmaField('textIIb3', this.value, false)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs">${esc(n.textIIb3 || '')}</textarea>
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+
+            <!-- Section III -->
+            <div class="space-y-2.5">
+              <div class="text-xs font-extrabold uppercase tracking-wider text-indigo-900 border-b border-slate-200 pb-1">Section III. Recommendations</div>
+              <div class="space-y-1">
+                <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
+                  <input type="checkbox" ${n.cbIII1 ? 'checked' : ''} onchange="updateNpmaField('cbIII1', this.checked, true)" class="rounded border-slate-300 text-indigo-600" />
+                  <span>No action and/or treatment recommended: (Explain if Box B in Section II is checked)</span>
+                </label>
+                <input type="text" value="${esc(n.textIIINoTreatment || '')}" oninput="updateNpmaField('textIIINoTreatment', this.value, false)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+              </div>
+              <div class="space-y-1">
+                <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-800">
+                  <input type="checkbox" ${n.cbIII2 ? 'checked' : ''} onchange="updateNpmaField('cbIII2', this.checked, true)" class="rounded border-slate-300 text-indigo-600" />
+                  <span>Recommend action(s) and/or treatment(s) for the control of:</span>
+                </label>
+                <textarea rows="2" oninput="updateNpmaField('taIIIRecommendTreatment', this.value, false)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs">${esc(n.taIIIRecommendTreatment || '')}</textarea>
+              </div>
+            </div>
+
+            <!-- Section IV -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between border-b border-slate-200 pb-1">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-indigo-900">Section IV. Obstructions and Inaccessible Areas</span>
+                <span class="text-[11px] text-slate-500">Tap "Pick #s" on any row to insert 1-2-3-4-5 key codes</span>
+              </div>
+              <div class="space-y-1.5">${sec4RowsHTML}</div>
+            </div>
+
+            <!-- Section V + Optional Picture Page -->
+            <div class="space-y-3">
+              <div class="text-xs font-extrabold uppercase tracking-wider text-indigo-900 border-b border-slate-200 pb-1">Section V. Additional Comments, Attachments &amp; Optional Pictures</div>
+              <textarea rows="3" oninput="updateNpmaField('taVComments', this.value, false)" placeholder="Additional comments..." class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs">${esc(n.taVComments || '')}</textarea>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Attachments</label>
+                  <input type="text" value="${esc(n.textVAttachments || '')}" oninput="updateNpmaField('textVAttachments', this.value, false)" placeholder="Leave blank unless attaching photos or documents" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                </div>
+                <div class="flex flex-wrap items-center justify-end gap-2">
+                  <label class="cursor-pointer px-3 py-2 rounded-lg border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 text-xs font-bold transition">
+                    + Add WDI Photos (${(n.photos || []).length}/6)
+                    <input type="file" accept="image/*" multiple class="hidden" onchange="handleNpmaPhotoAdd(this)" />
+                  </label>
+                  <span class="text-[11px] text-slate-500">${(n.photos || []).length ? 'Outputs 3-page PDF with Picture Page' : 'Outputs standard 2-page PDF'}</span>
+                </div>
+              </div>
+              ${(n.photos || []).length ? `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${photosHTML}</div>` : ''}
+            </div>
+
+            <div class="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
+              <span class="text-[11px] text-slate-500">Buyer &amp; Seller signature lines remain blank on the PDF for closing.</span>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="downloadNpma33Pdf()" ${state.npmaBusy ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl border border-indigo-600 bg-white hover:bg-indigo-50 text-indigo-900 text-xs font-extrabold transition">Save NPMA-33 PDF</button>
+                <button type="button" onclick="publishNpma33ToPortal()" ${state.npmaBusy ? 'disabled' : ''} class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold transition">Publish NPMA-33 to Portal</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     function updatePropInfo(field, val) {
@@ -3044,6 +3774,13 @@
         const inspId = state.draft.inspectionId;
         // 0. Upload cover photo if present locally without storagePath
         const piObj = state.draft.propertyInfo || {};
+        if (state.draft.npma33) {
+          piObj.npma33 = {
+            ...state.draft.npma33,
+            // Store lightweight metadata; keep photos locally in IndexedDB unless published to PDF
+            photos: (state.draft.npma33.photos || []).map(ph => ({ label: ph.label || '', dataUrl: ph.dataUrl || '' }))
+          };
+        }
         if (piObj.coverPhoto && !piObj.coverPhotoPath) {
           const cBlob = dataUrlToBlob(piObj.coverPhoto);
           const cPath = `${inspId}/photos/cover-${Date.now()}.jpg`;
@@ -3539,6 +4276,7 @@
             <div class="flex flex-wrap items-center gap-2">
               <button type="button" onclick="runWholeHomeAITask()" ${state.taskRunning ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold transition">${state.taskRunning ? esc(state.taskProgressText || 'Running AI task...') : `Run AI task (${countPendingAITaskItems()} pending)`}</button>
               <button type="button" onclick="state.showPhotoTray=!state.showPhotoTray; render();" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.showPhotoTray ? 'bg-sky-600 border-sky-600 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">Photo tray (${state.photoTray.length})</button>
+              <button type="button" onclick="toggleNpma33Panel()" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.showNpma33 ? 'bg-indigo-600 border-indigo-600 text-white' : (state.draft && state.draft.npma33 && state.draft.npma33.enabled ? 'bg-indigo-50 border-indigo-300 text-indigo-800 hover:border-indigo-500' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700')}">NPMA-33 (WDI)${state.draft && state.draft.npma33 && state.draft.npma33.enabled ? ' ✓' : ''}</button>
               <button type="button" onclick="toggleEditTemplateMode()" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.editTemplateMode ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">${state.editTemplateMode ? 'Editing template' : 'Edit template'}</button>
               <button type="button" onclick="saveDraftLocally(false)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-xs font-bold text-slate-700">Save locally</button>
               <button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-bold">${state.uploading ? 'Uploading...' : 'Upload draft to cloud'}</button>
@@ -3561,6 +4299,8 @@
               </div>
             </div>
           ` : ''}
+
+          ${state.showNpma33 ? renderNpma33PanelHTML() : ''}
 
           <!-- Property Info Card (Full Address, MLS, Cover Photo, Building Type, In Attendance) -->
           <div class="bg-white rounded-2xl border border-slate-300 shadow-sm overflow-hidden">
