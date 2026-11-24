@@ -789,7 +789,7 @@
           <!-- Sample 1: Home Inspection Report -->
           <div class="p-5 rounded-2xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between space-y-4">
             <div>
-              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-davis-light text-davis-navy">58-Page PDF Sample</span>
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-davis-light text-davis-navy">29-Page PDF Sample</span>
               <h3 class="text-base font-bold text-slate-900 mt-2">1. Residential Home Inspection Report</h3>
               <p class="text-xs text-slate-600 mt-1 leading-relaxed">
                 Full inspection report featuring high-resolution photos, defect evaluations, and a complete General Summary.
@@ -797,7 +797,7 @@
             </div>
             <div class="pt-3 border-t border-slate-200/80 flex items-center justify-between">
               <span class="text-[11px] font-semibold text-emerald-700">✓ Sample PDF Attached</span>
-              <a href="https://drive.google.com/file/d/13M_sj7Eje0302obfXO3sxdyONe1jbBQX/view?usp=drivesdk" target="_blank" rel="noopener noreferrer" id="sampleHomePdfBtn" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition inline-flex items-center gap-1.5">
+              <a href="./samples/sample-home-inspection.pdf" target="_blank" rel="noopener noreferrer" id="sampleHomePdfBtn" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition inline-flex items-center gap-1.5">
                 <span>View Sample Home Report (PDF)</span>
                 <span>↗</span>
               </a>
@@ -815,7 +815,7 @@
             </div>
             <div class="pt-3 border-t border-slate-200/80 flex items-center justify-between">
               <span class="text-[11px] font-semibold text-emerald-700">✓ Sample PDF Attached</span>
-              <a href="https://drive.google.com/file/d/1P-THodL0JXzI2b8foGqaLDEeA5wzz8YW/view?usp=drivesdk" target="_blank" rel="noopener noreferrer" id="sampleRadonPdfBtn" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition inline-flex items-center gap-1.5">
+              <a href="./samples/sample-radon.pdf" target="_blank" rel="noopener noreferrer" id="sampleRadonPdfBtn" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition inline-flex items-center gap-1.5">
                 <span>View Sample Radon Report (PDF)</span>
                 <span>↗</span>
               </a>
@@ -833,7 +833,7 @@
             </div>
             <div class="pt-3 border-t border-slate-200/80 flex items-center justify-between">
               <span class="text-[11px] font-semibold text-emerald-700">✓ Sample PDF Attached</span>
-              <a href="https://drive.google.com/file/d/1e9VM53SI87UQDwar2vq_urLkuGfDsVyJ/view?usp=drivesdk" target="_blank" rel="noopener noreferrer" id="sampleSewerPdfBtn" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition inline-flex items-center gap-1.5">
+              <a href="./samples/sample-sewer-scope.pdf" target="_blank" rel="noopener noreferrer" id="sampleSewerPdfBtn" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition inline-flex items-center gap-1.5">
                 <span>View Sample Sewer Report (PDF)</span>
                 <span>↗</span>
               </a>
@@ -851,7 +851,7 @@
             </div>
             <div class="pt-3 border-t border-slate-200/80 flex items-center justify-between">
               <span class="text-[11px] font-semibold text-emerald-700">✓ Sample PDF Attached</span>
-              <a href="https://drive.google.com/file/d/15zngbpQwXiiOUkKC_zyUU4ckycn7TGdn/view?usp=drivesdk" target="_blank" rel="noopener noreferrer" id="sampleTermitePdfBtn" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition inline-flex items-center gap-1.5">
+              <a href="./samples/sample-termite.pdf" target="_blank" rel="noopener noreferrer" id="sampleTermitePdfBtn" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition inline-flex items-center gap-1.5">
                 <span>View Sample Termite Report (PDF)</span>
                 <span>↗</span>
               </a>
@@ -2761,8 +2761,8 @@ function submitInspectionQuoteRequest(payload) {
           extraDocs: [
 {
               id: 'doc-sewer-demo',
-              pdfPreviewUrl: 'https://drive.google.com/file/d/1e9VM53SI87UQDwar2vq_urLkuGfDsVyJ/preview',
-              pdfViewUrl: 'https://drive.google.com/file/d/1e9VM53SI87UQDwar2vq_urLkuGfDsVyJ/view?usp=drivesdk',
+              pdfPreviewUrl: './samples/sample-sewer-scope.pdf',
+              pdfViewUrl: './samples/sample-sewer-scope.pdf',
               title: 'Sewer Scope Report',
               badge: 'PDF • 3 Pages',
               summary: 'Main sewer line camera inspection from basement cleanout to city tap (74 ft). Minor root intrusion noted at 52 ft clay joint.',
@@ -2773,8 +2773,8 @@ function submitInspectionQuoteRequest(payload) {
             },
             {
               id: 'doc-radon-demo',
-              pdfPreviewUrl: 'https://drive.google.com/file/d/1P-THodL0JXzI2b8foGqaLDEeA5wzz8YW/preview',
-              pdfViewUrl: 'https://drive.google.com/file/d/1P-THodL0JXzI2b8foGqaLDEeA5wzz8YW/view?usp=drivesdk',
+              pdfPreviewUrl: './samples/sample-radon.pdf',
+              pdfViewUrl: './samples/sample-radon.pdf',
               title: '48-Hour Radon Report',
               badge: 'PDF • 2 Pages',
               summary: 'Continuous radon monitor test placed in lowest livable level. 48-hour average: 5.4 pCi/L (above EPA 4.0 pCi/L action level).',
@@ -2785,8 +2785,8 @@ function submitInspectionQuoteRequest(payload) {
             },
             {
               id: 'doc-termite-demo',
-              pdfPreviewUrl: 'https://drive.google.com/file/d/15zngbpQwXiiOUkKC_zyUU4ckycn7TGdn/preview',
-              pdfViewUrl: 'https://drive.google.com/file/d/15zngbpQwXiiOUkKC_zyUU4ckycn7TGdn/view?usp=drivesdk',
+              pdfPreviewUrl: './samples/sample-termite.pdf',
+              pdfViewUrl: './samples/sample-termite.pdf',
               title: 'Termite / NPMA-33',
               badge: 'PDF • 2 Pages',
               summary: 'Wood-destroying insect inspection completed. No visible evidence of active subterranean termite or carpenter ant infestation.',
@@ -2821,8 +2821,8 @@ function submitInspectionQuoteRequest(payload) {
           extraDocs: [
             {
               id: 'doc-sewer-6340',
-              pdfPreviewUrl: 'https://drive.google.com/file/d/1e9VM53SI87UQDwar2vq_urLkuGfDsVyJ/preview',
-              pdfViewUrl: 'https://drive.google.com/file/d/1e9VM53SI87UQDwar2vq_urLkuGfDsVyJ/view?usp=drivesdk',
+              pdfPreviewUrl: './samples/sample-sewer-scope.pdf',
+              pdfViewUrl: './samples/sample-sewer-scope.pdf',
               title: 'Sewer Scope Report',
               badge: 'PDF • 3 Pages',
               summary: 'Main sewer line camera inspection from basement cleanout to city tap (74 ft). Minor root intrusion noted at 52 ft clay joint.',
@@ -2833,8 +2833,8 @@ function submitInspectionQuoteRequest(payload) {
             },
             {
               id: 'doc-radon-6340',
-              pdfPreviewUrl: 'https://drive.google.com/file/d/1P-THodL0JXzI2b8foGqaLDEeA5wzz8YW/preview',
-              pdfViewUrl: 'https://drive.google.com/file/d/1P-THodL0JXzI2b8foGqaLDEeA5wzz8YW/view?usp=drivesdk',
+              pdfPreviewUrl: './samples/sample-radon.pdf',
+              pdfViewUrl: './samples/sample-radon.pdf',
               title: '48-Hour Radon Report',
               badge: 'PDF • 2 Pages',
               summary: 'Continuous radon monitor test placed in lowest livable level. 48-hour average: 5.4 pCi/L (above EPA 4.0 pCi/L action level).',
@@ -2845,8 +2845,8 @@ function submitInspectionQuoteRequest(payload) {
             },
             {
               id: 'doc-termite-6340',
-              pdfPreviewUrl: 'https://drive.google.com/file/d/15zngbpQwXiiOUkKC_zyUU4ckycn7TGdn/preview',
-              pdfViewUrl: 'https://drive.google.com/file/d/15zngbpQwXiiOUkKC_zyUU4ckycn7TGdn/view?usp=drivesdk',
+              pdfPreviewUrl: './samples/sample-termite.pdf',
+              pdfViewUrl: './samples/sample-termite.pdf',
               title: 'Termite / NPMA-33',
               badge: 'PDF • 2 Pages',
               summary: 'Wood-destroying insect inspection completed. No visible evidence of active subterranean termite or carpenter ant infestation.',
@@ -9045,6 +9045,14 @@ function submitInspectionQuoteRequest(payload) {
           return;
         }
         if (session && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
+          const prevUserId = (protoState.authUser && protoState.authUser.id) ? protoState.authUser.id : null;
+          const isSameUser = Boolean(prevUserId && session.user && prevUserId === session.user.id);
+          if (isSameUser) {
+            // Tab focus / background token refresh for the already-signed-in user:
+            // silently keep the fresh session without hijacking the active page, modal, or Demo Mode.
+            protoState.authUser = session.user;
+            return;
+          }
           if (event === 'SIGNED_IN' || hasAuthRedirect) navigatePage('portal', false);
           dhiApplyAuthSession(session);
         }
