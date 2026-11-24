@@ -1209,8 +1209,9 @@
         if (a.street || pred.mainText) pi.street = a.street || pred.mainText;
         if (a.city) pi.city = a.city;
         if (a.state) pi.state = a.state;
-        if (a.zip) pi.zip = a.zip;
+        if (a.zip) pi.zip = String(a.zip).replace(/\D/g, '').slice(0, 5);
         if (a.county || p.county) pi.county = a.county || p.county;
+        if (p.mlsNumber) pi.mls = String(p.mlsNumber);
         if (p.yearBuilt) pi.yearBuilt = String(p.yearBuilt);
         if (p.sqft) pi.sqft = String(p.sqft);
         if (p.buildingType) pi.buildingType = String(p.buildingType);

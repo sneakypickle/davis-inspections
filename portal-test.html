@@ -544,15 +544,19 @@
                 <input type="text" id="reqPropAddress" autocomplete="off" oninput="dhiOnAddressAutocompleteInput('public', this.value)" onblur="setTimeout(() => dhiHideAddressSuggestions('public'), 220)" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-davis-navy outline-none" />
                 <div id="dhiAddrSug-public" class="hidden absolute left-0 right-0 top-full mt-1 z-40 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden text-xs"></div>
               </div>
-              <div class="sm:col-span-2">
+              <div class="sm:col-span-3">
                 <label for="reqPropSqft" class="block text-xs font-semibold text-slate-700 mb-1">Approximate Square Footage <span class="text-rose-600">*</span></label>
                 <input type="text" id="reqPropSqft" required placeholder="e.g., 2,400 sq ft" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-davis-navy outline-none" />
               </div>
-              <div class="sm:col-span-2">
+              <div class="sm:col-span-3">
                 <label for="reqPropYear" class="block text-xs font-semibold text-slate-700 mb-1">Year Built (Age) <span class="text-rose-600">*</span></label>
                 <input type="text" id="reqPropYear" required placeholder="e.g., 1998" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-davis-navy outline-none" />
               </div>
-              <div class="sm:col-span-2">
+              <div class="sm:col-span-3">
+                <label for="reqPropMls" class="block text-xs font-semibold text-slate-700 mb-1">MLS #</label>
+                <input type="text" id="reqPropMls" placeholder="Optional or N/A" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-davis-navy outline-none" />
+              </div>
+              <div class="sm:col-span-3">
                 <label for="reqPreferredDate" class="block text-xs font-semibold text-slate-700 mb-1">Preferred Date / Window</label>
                 <input type="text" id="reqPreferredDate" placeholder="e.g., Next Tuesday AM" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-davis-navy outline-none" />
               </div>
@@ -2093,8 +2097,10 @@ function submitInspectionQuoteRequest(payload) {
       const propAddress = document.getElementById('reqPropAddress').value.trim();
       const propSqft = document.getElementById('reqPropSqft').value.trim();
       const propYear = document.getElementById('reqPropYear').value.trim();
+      const propMls = (document.getElementById('reqPropMls')?.value || '').trim();
       const prefDate = document.getElementById('reqPreferredDate').value.trim();
-      const notes = document.getElementById('reqNotes').value.trim();
+      const rawNotes = document.getElementById('reqNotes').value.trim();
+      const notes = [propMls ? ('MLS #: ' + propMls) : '', rawNotes].filter(Boolean).join(' | ');
 
       const addons = [];
       if (document.getElementById('reqAddonSewer').checked) addons.push('Sewer Scope ($145)');
@@ -4369,12 +4375,15 @@ function submitInspectionQuoteRequest(payload) {
                   <div class="text-[11px] text-slate-500 truncate">Shown on buyer portal &amp; report cover</div>
                 </div>
               </div>
-              <div class="flex items-center gap-1.5 shrink-0">
-                <label class="cursor-pointer px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">
-                  Upload / Replace
-                  <input type="file" accept="image/*" class="hidden" onchange="dhiHandleAdminCoverPhotoPick('edit', this)" />
-                </label>
-                <button type="button" id="editInspCoverRemoveBtn" onclick="dhiClearAdminCoverPhoto('edit')" class="${insp.coverPhotoUrl ? '' : 'hidden '}px-2 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">Remove</button>
+              <div class="flex flex-col items-end gap-1.5 shrink-0">
+                <button type="button" id="dhiSvBtn-edit" onclick="dhiGrabStreetViewCover('edit')" class="px-2.5 py-1.5 rounded-lg border border-sky-300 bg-sky-50 hover:border-davis-navy text-davis-navy text-xs font-bold transition">Grab Street View</button>
+                <div class="flex items-center gap-1.5">
+                  <label class="cursor-pointer px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">
+                    Upload / Replace
+                    <input type="file" accept="image/*" class="hidden" onchange="dhiHandleAdminCoverPhotoPick('edit', this)" />
+                  </label>
+                  <button type="button" id="editInspCoverRemoveBtn" onclick="dhiClearAdminCoverPhoto('edit')" class="${insp.coverPhotoUrl ? '' : 'hidden '}px-2 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">Remove</button>
+                </div>
               </div>
             </div>
             <div class="sm:col-span-2">
@@ -4733,16 +4742,22 @@ function submitInspectionQuoteRequest(payload) {
       const agentsList = protoState.agents || [];
       const customersList = protoState.customers || [];
 
+      const reqTotal = (protoState.requests || []).length;
       const tabBtns = [
         { id: 'scheduled', label: `Scheduled Inspections (${scheduledInspections.length})` },
         { id: 'reports', label: `Inspection Reports (${releasedReports.length})` },
-        { id: 'requests', label: `Requests (${(protoState.requests || []).length})` },
+        { id: 'requests', label: `Requests (${reqTotal})`, highlight: (newReqCount > 0 || reqTotal > 0) },
         { id: 'agents', label: `Agents (${agentsList.length})` },
-        { id: 'customers', label: `Customers (${customersList.length})` },
-        { id: 'new', label: '+ New Inspection' }
-      ].map(t => `
-        <button type="button" onclick="protoState.adminTab='${t.id}'; renderProtoPortal();" class="px-3.5 py-2 rounded-xl text-xs font-bold transition ${protoState.adminTab === t.id ? 'bg-davis-navy text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-700 hover:border-davis-navy'}">${t.label}</button>
-      `).join('');
+        { id: 'customers', label: `Customers (${customersList.length})` }
+      ].map(t => {
+        const active = protoState.adminTab === t.id;
+        const cls = active
+          ? 'bg-davis-navy text-white shadow-sm'
+          : (t.highlight
+              ? 'bg-amber-50 border border-amber-300 text-amber-900 hover:border-amber-500'
+              : 'bg-white border border-slate-200 text-slate-700 hover:border-davis-navy');
+        return `<button type="button" onclick="protoState.adminTab='${t.id}'; renderProtoPortal();" class="px-3.5 py-2 rounded-xl text-xs font-bold transition ${cls}">${t.label}</button>`;
+      }).join('');
 
       const renderInspTableRows = (list, isScheduled = false) => list.map(insp => {
         const total = insp ? protoTotal(insp) : 0;
@@ -4769,7 +4784,8 @@ function submitInspectionQuoteRequest(payload) {
                 <div class="min-w-0 space-y-1">
                   <div class="font-extrabold text-slate-900 text-base leading-snug">${escapeHtml(insp.address)}</div>
                   <div class="text-xs font-semibold text-slate-500">${escapeHtml(insp.date || '')}</div>
-                  <div class="flex flex-col items-start gap-1.5 pt-1">
+                  <div class="flex flex-wrap items-start gap-4 pt-1">
+                    <div class="flex flex-col items-start gap-1.5">
                     <a href="${permitInfo.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-[11px] font-bold transition">${escapeHtml(permitInfo.label)} &nearr;</a>
                     <details class="relative inline-block">
                       <summary class="list-none cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-200 bg-white hover:border-davis-navy text-slate-600 text-[11px] font-semibold select-none">
@@ -4788,6 +4804,10 @@ function submitInspectionQuoteRequest(payload) {
                         </label>
                       </div>
                     </details>
+                    </div>
+                    <div class="pl-4 border-l border-slate-200 pt-0.5">
+                      <button type="button" onclick="dhiOpenForwardModal('${insp.id}')" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 hover:text-davis-navy text-slate-800 text-[11px] font-bold transition">Forward Report</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -5214,12 +5234,15 @@ function submitInspectionQuoteRequest(payload) {
                       <div class="text-[11px] text-slate-500 truncate">Shown on the buyer portal &amp; report cover</div>
                     </div>
                   </div>
-                  <div class="flex items-center gap-1.5 shrink-0">
-                    <label class="cursor-pointer px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">
-                      ${pre.coverPhotoDataUrl ? 'Replace' : 'Upload Photo'}
-                      <input type="file" accept="image/*" class="hidden" onchange="dhiHandleAdminCoverPhotoPick('new', this)" />
-                    </label>
-                    ${pre.coverPhotoDataUrl ? `<button type="button" onclick="dhiClearAdminCoverPhoto('new')" class="px-2 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">Remove</button>` : ''}
+                  <div class="flex flex-col items-end gap-1.5 shrink-0">
+                    <button type="button" id="dhiSvBtn-new" onclick="dhiGrabStreetViewCover('new')" class="px-2.5 py-1.5 rounded-lg border border-sky-300 bg-sky-50 hover:border-davis-navy text-davis-navy text-xs font-bold transition">Grab Street View</button>
+                    <div class="flex items-center gap-1.5">
+                      <label class="cursor-pointer px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">
+                        ${pre.coverPhotoDataUrl ? 'Replace' : 'Upload Photo'}
+                        <input type="file" accept="image/*" class="hidden" onchange="dhiHandleAdminCoverPhotoPick('new', this)" />
+                      </label>
+                      ${pre.coverPhotoDataUrl ? `<button type="button" onclick="dhiClearAdminCoverPhoto('new')" class="px-2 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">Remove</button>` : ''}
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -5311,14 +5334,19 @@ function submitInspectionQuoteRequest(payload) {
 
       return `
         <div class="space-y-5">
-          <div class="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
-            <div class="flex flex-wrap items-center gap-2">
-              ${tabBtns}
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2.5">
+              <div class="flex flex-wrap items-center gap-2">
+                ${tabBtns}
+              </div>
+              <button type="button" onclick="protoState.adminTab='new'; renderProtoPortal();" class="px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-sm ${protoState.adminTab === 'new' ? 'bg-emerald-700 text-white ring-2 ring-emerald-300' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}">+ New Inspection</button>
             </div>
-            <div class="flex items-center gap-2">
-              <a href="./inspect.html" class="px-3 py-1.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold transition">Field &amp; Report App &rarr;</a>
-              <span class="text-[11px] font-semibold text-slate-500 hidden sm:inline">${escapeHtml(protoState.authUser?.email || 'Matt@Davis-Inspections.com')}</span>
-              <button type="button" onclick="dhiSignOut()" class="px-3 py-1.5 rounded-xl border border-slate-300 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-xs font-bold transition">Sign Out</button>
+            <div class="flex flex-wrap items-center justify-between gap-2.5 pt-2.5 border-t border-slate-100">
+              <a href="./inspect.html" class="px-3.5 py-1.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold transition">Field &amp; Report App &rarr;</a>
+              <div class="flex items-center gap-2.5 ml-auto">
+                <span class="text-xs font-semibold text-slate-500">${escapeHtml(protoState.authUser?.email || 'Matt@Davis-Inspections.com')}</span>
+                <button type="button" onclick="dhiSignOut()" class="px-3.5 py-1.5 rounded-xl border border-slate-300 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-xs font-bold transition">Sign Out</button>
+              </div>
             </div>
           </div>
           ${bodyHTML}
@@ -6793,38 +6821,48 @@ function submitInspectionQuoteRequest(payload) {
         const a = data.address || {};
         const p = data.property || {};
 
+        const zip5 = String(a.zip || '').replace(/\D/g, '').slice(0, 5);
         if (ctxKey === 'public') {
           const addrEl = document.getElementById('reqPropAddress');
           const yrEl = document.getElementById('reqPropYear');
+          const sqftEl = document.getElementById('reqPropSqft');
+          const mlsEl = document.getElementById('reqPropMls');
           if (addrEl && a.formattedAddress) addrEl.value = a.formattedAddress;
           if (yrEl && p.yearBuilt) yrEl.value = String(p.yearBuilt);
-          // Per Matt: leave Approximate Square Footage blank on the public form
+          if (mlsEl) mlsEl.value = p.mlsNumber ? String(p.mlsNumber) : 'N/A';
+          // Only fill Approximate Square Footage on the public form when pulled from an MLS listing
+          if (sqftEl) {
+            if (p.fromListing && p.sqft) sqftEl.value = String(p.sqft);
+            else sqftEl.value = '';
+          }
         } else if (ctxKey === 'adminNew') {
           const setVal = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = String(v); };
           setVal('protoNewStreet', a.street || pred.mainText);
           setVal('protoNewCity', a.city);
           setVal('protoNewState', a.state || 'CO');
-          setVal('protoNewZip', a.zip);
+          setVal('protoNewZip', zip5);
           setVal('protoNewCounty', a.county || p.county);
+          setVal('protoNewMls', p.mlsNumber);
           setVal('protoNewYearBuilt', p.yearBuilt);
           setVal('protoNewSqft', p.sqft);
           setVal('protoNewBuildingType', p.buildingType);
           protoSaveNewInspDraftInputs();
-          if (p.yearBuilt || p.sqft || p.buildingType) {
-            protoToastMsg('Autofilled address and property details.');
+          if (p.yearBuilt || p.sqft || p.buildingType || p.mlsNumber) {
+            protoToastMsg(p.fromListing ? 'Autofilled address, MLS #, and listing details.' : 'Autofilled address and county property details.');
           }
         } else if (ctxKey === 'adminEdit') {
           const setVal = (id, v) => { const el = document.getElementById(id); if (el && v) el.value = String(v); };
           setVal('editInspStreet', a.street || pred.mainText);
           setVal('editInspCity', a.city);
           setVal('editInspState', a.state || 'CO');
-          setVal('editInspZip', a.zip);
+          setVal('editInspZip', zip5);
           setVal('editInspCounty', a.county || p.county);
+          setVal('editInspMls', p.mlsNumber);
           setVal('editInspYearBuilt', p.yearBuilt);
           setVal('editInspSqft', p.sqft);
           setVal('editInspBuildingType', p.buildingType);
-          if (p.yearBuilt || p.sqft || p.buildingType) {
-            protoToastMsg('Autofilled address and property details.');
+          if (p.yearBuilt || p.sqft || p.buildingType || p.mlsNumber) {
+            protoToastMsg(p.fromListing ? 'Autofilled address, MLS #, and listing details.' : 'Autofilled address and county property details.');
           }
         }
       } catch (_e) {}
@@ -6903,6 +6941,61 @@ function submitInspectionQuoteRequest(payload) {
         }
       } catch (err) {
         protoToastMsg('Could not process photo: ' + (err.message || err));
+      }
+    }
+
+    async function dhiGrabStreetViewCover(mode) {
+      if (!dhiSupabase) {
+        protoToastMsg('Sign in online to grab a Street View photo.');
+        return;
+      }
+      let street = '', city = '', stateVal = 'CO', zip = '';
+      if (mode === 'new') {
+        street = (document.getElementById('protoNewStreet')?.value || '').trim();
+        city = (document.getElementById('protoNewCity')?.value || '').trim();
+        stateVal = (document.getElementById('protoNewState')?.value || 'CO').trim();
+        zip = (document.getElementById('protoNewZip')?.value || '').trim();
+      } else {
+        street = (document.getElementById('editInspStreet')?.value || '').trim();
+        city = (document.getElementById('editInspCity')?.value || '').trim();
+        stateVal = (document.getElementById('editInspState')?.value || 'CO').trim();
+        zip = (document.getElementById('editInspZip')?.value || '').trim();
+      }
+      const fullAddr = protoComposeAdminAddress(street, city, stateVal, zip);
+      if (!street) {
+        protoToastMsg('Enter a street address first.');
+        return;
+      }
+      const btn = document.getElementById('dhiSvBtn-' + mode);
+      const prevTxt = btn ? btn.textContent : '';
+      if (btn) { btn.textContent = 'Fetching...'; btn.disabled = true; }
+      try {
+        const { data, error } = await dhiSupabase.functions.invoke('address-lookup', {
+          body: { action: 'streetview', address: fullAddr }
+        });
+        if (error || !data || !data.ok || !data.dataUrl) {
+          protoToastMsg((data && data.error) || (error && error.message) || 'Could not load Street View photo.');
+          return;
+        }
+        if (mode === 'new') {
+          protoSaveNewInspDraftInputs();
+          protoState.newInspDraft = protoState.newInspDraft || {};
+          protoState.newInspDraft.coverPhotoDataUrl = data.dataUrl;
+          renderProtoPortal();
+          protoToastMsg('Street View cover photo attached.');
+        } else {
+          dhiEditCoverState.newDataUrl = data.dataUrl;
+          dhiEditCoverState.removed = false;
+          const wrap = document.getElementById('editInspCoverPreviewWrap');
+          if (wrap) wrap.innerHTML = `<img src="${data.dataUrl}" alt="Cover preview" class="w-16 h-12 rounded-lg object-cover border border-slate-300" />`;
+          const rmBtn = document.getElementById('editInspCoverRemoveBtn');
+          if (rmBtn) rmBtn.classList.remove('hidden');
+          protoToastMsg('Street View photo ready — click Save Changes.');
+        }
+      } catch (err) {
+        protoToastMsg('Street View error: ' + (err.message || err));
+      } finally {
+        if (btn) { btn.textContent = prevTxt || 'Grab Street View'; btn.disabled = false; }
       }
     }
 
