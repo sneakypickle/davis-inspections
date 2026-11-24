@@ -191,6 +191,26 @@
     </div>
   </div>
 
+
+  <!-- Publish Pre-Flight Warning Modal -->
+  <div id="publishWarnModal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-5 space-y-4 shadow-2xl border border-slate-200 max-h-[86vh] flex flex-col">
+      <div class="flex items-start justify-between gap-2 border-b border-slate-100 pb-3">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-rose-700">Pre-Publish Check</span>
+          <h3 class="text-base font-extrabold text-slate-900">Some sections have incomplete items</h3>
+          <p class="text-xs text-slate-500 mt-0.5">Click any section below to jump straight to it, or publish anyway.</p>
+        </div>
+        <button type="button" onclick="closePublishWarnModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
+      </div>
+      <div id="publishWarnList" class="flex-1 overflow-y-auto space-y-2 text-xs"></div>
+      <div class="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-100">
+        <button type="button" onclick="closePublishWarnModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">Go back &amp; review</button>
+        <button type="button" onclick="confirmPublishAnyway()" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold">Publish anyway</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const DHI_SUPABASE_URL = 'https://uzelxunzussqmxrzeyke.supabase.co';
     const DHI_SUPABASE_ANON_KEY = 'sb_publishable_-XO_qBYL5CDILZR05KpaDA_0qMDmYi3';
@@ -242,7 +262,7 @@
         { id: 'gemini-4-argon', displayName: 'Gemini 4 Argon' },
         { id: 'gemini-4-carbon', displayName: 'Gemini 4 Carbon' },
         { id: 'gemini-3.8-flash', displayName: 'Gemini 3.8 Flash' },
-        { id: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash' }
+        { id: 'gemini-3.8-flash', displayName: 'Gemini 3.8 Flash' }
       ],
       templates: [{ id: 'local-default', name: 'Residential - By System', is_default: true, sections: DHI_TEMPLATE }],
       activeTemplateId: 'local-default',
@@ -429,7 +449,7 @@
         if (Array.isArray(setRes.data)) {
           setRes.data.forEach(row => {
             if (row.key === 'ai_narrative_instructions' && row.value) state.globalInstructions = row.value;
-            if (row.key === 'ai_model' && row.value) state.aiModel = row.value;
+            if (row.key === 'ai_model' && row.value) state.aiModel = /^gemini-[12]\./i.test(row.value) ? 'gemini-4-hydrogen' : row.value;
           });
         }
         if (Array.isArray(libRes.data)) state.commentLibrary = libRes.data;
@@ -813,8 +833,8 @@
           id: 'item-' + s.num + '-' + idx + '-' + Math.random().toString(36).slice(2, 7),
           code: it.code,
           title: it.title,
-          statuses: ['IN'],
-          status: 'IN',
+          statuses: [],
+          status: '',
           isSummary: false,
           roughNotes: '',
           narrative: '',
@@ -1255,7 +1275,7 @@
     function formatItemStatuses(it) {
       const labels = { IN: 'Inspected', NI: 'Not Inspected', NP: 'Not Present', RR: 'Repair or Replace' };
       const list = getItemStatuses(it);
-      if (!list.length) return 'Inspected';
+      if (!list.length) return 'Not Rated';
       return list.map(code => labels[code] || code).join(', ');
     }
 
@@ -1328,8 +1348,8 @@
           id: 'item-' + nextNum + '-' + idx + '-' + Math.random().toString(36).slice(2, 6),
           code: nextNum + '.' + idx,
           title: it.title,
-          statuses: ['IN'],
-          status: 'IN',
+          statuses: [],
+          status: '',
           isSummary: false,
           roughNotes: '',
           narrative: '',
@@ -1671,8 +1691,8 @@
         id: 'item-' + sec.num + '-' + Date.now(),
         code: sec.num + '.' + nextIdx,
         title: title.trim(),
-        statuses: ['IN'],
-        status: 'IN',
+        statuses: [],
+        status: '',
         isSummary: false,
         roughNotes: '',
         narrative: '',
@@ -1715,8 +1735,8 @@
           id: 'item-' + num + '-' + Date.now(),
           code: num + '.0',
           title: name.trim() + ' General',
-          statuses: ['IN'],
-          status: 'IN',
+          statuses: [],
+          status: '',
           isSummary: false,
           roughNotes: '',
           narrative: '',
@@ -2719,8 +2739,77 @@
       return new Blob([arr], { type: mime });
     }
 
-    async function uploadDraftToSupabase(publishToPortal) {
+
+    function getSectionCompleteness(sec) {
+      let missingRatings = 0;
+      let emptySM = 0;
+      let photosNoNarrative = 0;
+      (sec.stylesMaterials || []).forEach(sm => {
+        if (!String(sm.value || '').trim()) emptySM++;
+      });
+      (sec.items || []).forEach(it => {
+        const st = getItemStatuses(it);
+        const hasBaseRating = st.includes('IN') || st.includes('NI') || st.includes('NP');
+        if (!hasBaseRating) missingRatings++;
+        if ((it.photos || []).length > 0 && !String(it.narrative || '').trim()) {
+          photosNoNarrative++;
+        }
+      });
+      const status = (missingRatings > 0 || emptySM > 0)
+        ? 'red'
+        : (photosNoNarrative > 0 ? 'yellow' : 'green');
+      return { status, missingRatings, emptySM, photosNoNarrative };
+    }
+
+    function closePublishWarnModal() {
+      document.getElementById('publishWarnModal')?.classList.add('hidden');
+    }
+
+    function jumpToSectionFromWarn(secIdx) {
+      closePublishWarnModal();
+      state.activeSecIdx = secIdx;
+      render();
+    }
+
+    function confirmPublishAnyway() {
+      closePublishWarnModal();
+      uploadDraftToSupabase(true, true);
+    }
+
+    async function uploadDraftToSupabase(publishToPortal, forcePublish = false) {
       if (!state.draft || state.uploading) return;
+      if (publishToPortal && !forcePublish) {
+        const flagged = (state.draft.sections || []).map((sec, idx) => ({
+          idx,
+          sec,
+          comp: getSectionCompleteness(sec)
+        })).filter(x => x.comp.status === 'red' || x.comp.status === 'yellow');
+        if (flagged.length) {
+          const listEl = document.getElementById('publishWarnList');
+          if (listEl) {
+            listEl.innerHTML = flagged.map(({ idx, sec, comp }) => {
+              const reasons = [];
+              if (comp.missingRatings) reasons.push(`${comp.missingRatings} item${comp.missingRatings === 1 ? '' : 's'} missing IN/NI/NP`);
+              if (comp.emptySM) reasons.push(`${comp.emptySM} empty S&amp;M field${comp.emptySM === 1 ? '' : 's'}`);
+              if (comp.photosNoNarrative) reasons.push(`${comp.photosNoNarrative} item${comp.photosNoNarrative === 1 ? '' : 's'} with photos &amp; no narrative`);
+              const badgeCls = comp.status === 'red'
+                ? 'border-rose-300 bg-rose-50 hover:border-rose-500 text-rose-900'
+                : 'border-amber-300 bg-amber-50 hover:border-amber-500 text-amber-900';
+              const dotCls = comp.status === 'red' ? 'bg-rose-500' : 'bg-amber-400';
+              return `
+                <button type="button" onclick="jumpToSectionFromWarn(${idx})" class="w-full text-left p-3 rounded-xl border ${badgeCls} flex items-center justify-between gap-2 transition">
+                  <div>
+                    <div class="font-extrabold flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full ${dotCls} inline-block"></span>${sec.num}. ${esc(sec.name)}</div>
+                    <div class="text-[11px] opacity-85 mt-0.5">${reasons.join(' &bull; ')}</div>
+                  </div>
+                  <span class="text-[11px] font-bold whitespace-nowrap">Review &rarr;</span>
+                </button>`;
+            }).join('');
+          }
+          document.getElementById('publishWarnModal')?.classList.remove('hidden');
+          return;
+        }
+      }
       state.uploading = true;
       render();
       try {
@@ -3023,11 +3112,30 @@
       const optionalLeft = DHI_TEMPLATE.filter(s => DHI_ALLOWED_OPTIONAL_SECTIONS.includes(s.name) && !usedNames.has(s.name));
 
       const secTabs = state.draft.sections.map((s, idx) => {
+        const comp = getSectionCompleteness(s);
+        const isSelected = idx === state.activeSecIdx;
         const rrCount = s.items.filter(it => getItemStatuses(it).includes('RR') || it.isSummary).length;
+        let btnCls = '';
+        let dotCls = '';
+        if (isSelected) {
+          const ringCls = comp.status === 'red' ? 'ring-2 ring-rose-400' : (comp.status === 'yellow' ? 'ring-2 ring-amber-300' : 'ring-2 ring-emerald-300');
+          btnCls = `bg-sky-600 text-white border border-sky-700 shadow ${ringCls}`;
+          dotCls = comp.status === 'red' ? 'bg-rose-400 ring-1 ring-white' : (comp.status === 'yellow' ? 'bg-amber-300 ring-1 ring-white' : 'bg-emerald-300 ring-1 ring-white');
+        } else if (comp.status === 'red') {
+          btnCls = 'bg-rose-50 border border-rose-400 text-rose-900 hover:border-rose-600';
+          dotCls = 'bg-rose-500';
+        } else if (comp.status === 'yellow') {
+          btnCls = 'bg-amber-50 border border-amber-400 text-amber-900 hover:border-amber-600';
+          dotCls = 'bg-amber-400';
+        } else {
+          btnCls = 'bg-emerald-50 border border-emerald-400 text-emerald-900 hover:border-emerald-600';
+          dotCls = 'bg-emerald-500';
+        }
         return `
-          <button type="button" onclick="state.activeSecIdx=${idx}; render();" class="px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${idx === state.activeSecIdx ? 'bg-davis-navy text-white shadow' : 'bg-white border border-slate-200 text-slate-700 hover:border-davis-navy'}">
+          <button type="button" onclick="state.activeSecIdx=${idx}; render();" class="px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${btnCls}">
+            <span class="w-2 h-2 rounded-full shrink-0 ${dotCls}"></span>
             <span>${s.num}. ${esc(s.name)}</span>
-            ${rrCount ? `<span class="px-1.5 py-0.5 rounded-full text-[10px] ${idx === state.activeSecIdx ? 'bg-amber-400 text-slate-900' : 'bg-amber-100 text-amber-800'}">${rrCount}</span>` : ''}
+            ${rrCount ? `<span class="px-1.5 py-0.5 rounded-full text-[10px] ${isSelected ? 'bg-white/20 text-white' : 'bg-white/80 text-slate-800 border border-slate-300'}">${rrCount}</span>` : ''}
           </button>
         `;
       }).join('');
@@ -3046,7 +3154,7 @@
           return `<button type="button" onclick="toggleSMOption(${state.activeSecIdx}, ${smIdx}, '${safeOpt}')" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${selected.has(opt) ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
         }).join('');
         return `
-          <div class="p-3 rounded-xl border ${state.editTemplateMode ? 'border-amber-300 bg-amber-50/30' : 'border-slate-200 bg-white'} space-y-2">
+          <div class="p-3 rounded-xl border ${state.editTemplateMode ? 'border-amber-300 bg-amber-50/30' : (!String(sm.value || '').trim() ? 'border-rose-300 bg-rose-50/30' : 'border-slate-300 bg-white')} space-y-2">
             <div class="flex items-center justify-between gap-2">
               <label class="text-xs font-extrabold text-slate-800">${esc(sm.label)}</label>
               ${state.editTemplateMode ? `
@@ -3087,7 +3195,14 @@
 
         const isBusy = state.aiBusyItemId === it.id;
         return `
-          <div ondragover="event.preventDefault(); this.classList.add('ring-2', 'ring-sky-500', 'bg-sky-50/40');" ondragleave="this.classList.remove('ring-2', 'ring-sky-500', 'bg-sky-50/40');" ondrop="handleItemPhotoDrop(event, ${state.activeSecIdx}, ${itemIdx})" class="bg-white rounded-2xl border border-l-4 ${it.isSummary ? 'border-amber-400 border-l-amber-500 ring-1 ring-amber-200' : 'border-slate-300 border-l-davis-navy'} shadow-sm p-4 space-y-3 transition">
+          <div ondragover="event.preventDefault(); this.classList.add('ring-2', 'ring-sky-500', 'bg-sky-50/40');" ondragleave="this.classList.remove('ring-2', 'ring-sky-500', 'bg-sky-50/40');" ondrop="handleItemPhotoDrop(event, ${state.activeSecIdx}, ${itemIdx})" class="bg-white rounded-2xl border border-l-4 ${(() => {
+            const hasBase = selectedRatings.includes('IN') || selectedRatings.includes('NI') || selectedRatings.includes('NP');
+            const photoNoNarr = (it.photos || []).length > 0 && !String(it.narrative || '').trim();
+            if (!hasBase) return 'border-rose-300 border-l-rose-500';
+            if (photoNoNarr) return 'border-amber-400 border-l-amber-500';
+            if (it.isSummary) return 'border-amber-300 border-l-amber-500 ring-1 ring-amber-200';
+            return 'border-slate-300 border-l-emerald-500';
+          })()} shadow-sm p-4 space-y-3 transition">
             <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-200">
               <div>
                 <span class="text-[11px] font-mono font-bold text-slate-400 mr-1.5">${esc(it.code)}</span>
