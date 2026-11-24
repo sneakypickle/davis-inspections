@@ -82,17 +82,24 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
+    @page { margin: 0.5in; }
     @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       header, nav, footer, .no-print { display: none !important; }
       body { background: #ffffff !important; color: #0f172a !important; }
       #dhiReportCoverPage { display: block !important; page-break-after: always; break-after: page; border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
-      #dhiCommentKeyCard { display: block !important; border: 1px solid #cbd5e1 !important; box-shadow: none !important; page-break-inside: avoid; }
+      #dhiReportCoverPage .bg-davis-navy { background-color: #0f2942 !important; color: #ffffff !important; }
+      #dhiCommentKeyCard { display: block !important; border: 1px solid #cbd5e1 !important; box-shadow: none !important; break-inside: avoid; }
       #dhiCommentKeyBody { display: block !important; }
+      #dhiPrintGeneralSummary { display: block !important; page-break-after: always; break-after: page; }
       .dhi-sop-details { display: block !important; border: none !important; background: transparent !important; padding: 0 !important; }
       .dhi-sop-details summary { display: none !important; }
       .dhi-sop-body { display: block !important; font-size: 8.5pt !important; line-height: 1.35 !important; color: #475569 !important; }
       .dhi-print-section { page-break-inside: auto; box-shadow: none !important; }
-      .dhi-print-card { page-break-inside: avoid; break-inside: avoid; }
+      .dhi-sec-banner { background-color: #0f2942 !important; color: #ffffff !important; border: 1px solid #0f2942 !important; break-after: avoid; page-break-after: avoid; }
+      .dhi-finding-card { box-shadow: none !important; break-inside: auto; page-break-inside: auto; }
+      .dhi-finding-card-compact { break-inside: avoid; page-break-inside: avoid; }
+      .dhi-print-photo-tile { break-inside: avoid; page-break-inside: avoid; }
     }
   </style>
 </head>
@@ -4639,7 +4646,7 @@ function submitInspectionQuoteRequest(payload) {
 
       const renderInspTableRows = (list, isScheduled = false) => list.map(insp => {
         const total = insp ? protoTotal(insp) : 0;
-        const docBadges = (insp.extraDocs || []).map(d => `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">${d.title}</span>`).join('');
+        const docBadges = (insp.extraDocs || []).map(d => `<span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-semibold">${escapeHtml(d.title)}</span>`).join('');
         const pInfo = insp.propertyInfo || {};
         const permitInfo = dhiBuildPermitLink({
           address: insp.address,
@@ -4647,15 +4654,22 @@ function submitInspectionQuoteRequest(payload) {
           city: pInfo.city || '',
           county: pInfo.county || ''
         });
+        const hasSewer = (insp.services || []).some(s => String(s && s.name || '').toLowerCase().includes('sewer'));
+        const sewerBtnCls = hasSewer
+          ? 'border-teal-400 bg-teal-50 hover:border-teal-600 text-teal-900'
+          : 'border-slate-300 bg-slate-50 hover:border-davis-navy text-slate-700';
+
         return `
-          <tr class="border-t border-slate-100">
-            <td class="py-3.5 pr-3 align-top">
-              <div class="flex items-start gap-3">
-                ${insp.coverPhotoUrl ? `<img src="${insp.coverPhotoUrl}" alt="${escapeHtml(insp.address)}" class="w-24 h-16 rounded-xl object-cover border border-slate-200 bg-slate-100 shrink-0" />` : ''}
-                <div class="min-w-0">
-                  <div class="font-bold text-slate-900 text-sm">${insp.address}</div>
-                  <div class="text-xs text-slate-500">${insp.date}</div>
-                  <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+          <div class="rounded-2xl border border-slate-300 bg-white shadow-sm p-4 space-y-3">
+            <!-- Top Row: Property + Client/Agent/Status + Top-Right Management -->
+            <div class="flex flex-wrap items-start justify-between gap-4">
+              <!-- Left: Cover Thumbnail + Address + Permits -->
+              <div class="flex items-start gap-3.5 min-w-[260px] flex-1">
+                ${insp.coverPhotoUrl ? `<img src="${insp.coverPhotoUrl}" alt="${escapeHtml(insp.address)}" class="w-28 h-20 rounded-xl object-cover border border-slate-300 bg-slate-100 shrink-0" />` : ''}
+                <div class="min-w-0 space-y-1">
+                  <div class="font-extrabold text-slate-900 text-base leading-snug">${escapeHtml(insp.address)}</div>
+                  <div class="text-xs font-semibold text-slate-500">${escapeHtml(insp.date || '')}</div>
+                  <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
                     <a href="${permitInfo.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-[11px] font-bold transition">${escapeHtml(permitInfo.label)} &nearr;</a>
                     <details class="relative inline-block">
                       <summary class="list-none cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-200 bg-white hover:border-davis-navy text-slate-600 text-[11px] font-semibold select-none">
@@ -4678,51 +4692,46 @@ function submitInspectionQuoteRequest(payload) {
                   </div>
                 </div>
               </div>
-            </td>
-            <td class="py-3.5 px-2 text-xs text-slate-700 align-top">
-              <div class="font-semibold">${insp.clientName}</div>
-              <div class="text-slate-400">${insp.clientEmail}</div>
-              ${insp.agentName ? `<div class="text-slate-500 mt-0.5">Agent: ${insp.agentName}</div>` : (insp.agentEmail ? `<div class="text-slate-500 mt-0.5">Agent: ${insp.agentEmail}</div>` : '')}
-            </td>
-            <td class="py-3.5 px-2 align-top">
-              <div class="flex flex-wrap gap-1">
-                ${insp.agreementRequired === false
-                  ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">Standalone (No Agreement)</span>`
-                  : `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.agreementSigned ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${insp.agreementSigned ? 'Agreement Signed' : 'Needs Signature'}</span>`}
-                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${insp.paid ? 'Paid ($' + total.toFixed(2) + ')' : 'Balance $' + total.toFixed(2)}</span>
-                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.reportNotified ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'}">${insp.reportNotified ? 'Released' : 'Not Released'}</span>
+
+              <!-- Middle: Client / Agent + Status Pills -->
+              <div class="space-y-1.5 text-xs min-w-[210px]">
+                <div>
+                  <span class="font-bold text-slate-800">${escapeHtml(insp.clientName || '')}</span>
+                  <span class="text-slate-400 ml-1">${escapeHtml(insp.clientEmail || '')}</span>
+                </div>
+                ${(insp.agentName || insp.agentEmail) ? `<div class="text-slate-600">Agent: <strong class="text-slate-800">${escapeHtml(insp.agentName || insp.agentEmail)}</strong></div>` : ''}
+                <div class="flex flex-wrap gap-1 pt-0.5">
+                  ${insp.agreementRequired === false
+                    ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">Standalone</span>`
+                    : `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.agreementSigned ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${insp.agreementSigned ? 'Agreement Signed' : 'Needs Signature'}</span>`}
+                  <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${insp.paid ? 'Paid ($' + total.toFixed(2) + ')' : 'Balance $' + total.toFixed(2)}</span>
+                  <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.reportNotified ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'}">${insp.reportNotified ? 'Released' : 'Not Released'}</span>
+                </div>
               </div>
-            </td>
-            <td class="py-3.5 pl-2 text-right align-top space-y-2 whitespace-nowrap">
-              <div class="flex flex-wrap justify-end items-center gap-1.5">
-                <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-davis-navy text-white text-xs font-bold transition">Open Report</button>
+
+              <!-- Top-Right Corner: Edit / History / Delete -->
+              <div class="flex items-center gap-1.5 shrink-0">
                 <button type="button" onclick="dhiOpenEditInspModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Edit</button>
                 <button type="button" onclick="dhiOpenHistoryModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:border-indigo-500 text-indigo-800 text-xs font-bold transition">History</button>
-                ${isScheduled ? (() => {
-                  const hasSewer = (insp.services || []).some(s => String(s && s.name || '').toLowerCase().includes('sewer'));
-                  const btnCls = hasSewer
-                    ? 'border-teal-400 bg-teal-50 hover:border-teal-600 text-teal-900'
-                    : 'border-slate-300 bg-slate-50 hover:border-davis-navy text-slate-700';
-                  return `<button type="button" onclick="protoCopySewerText('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border ${btnCls} text-xs font-bold transition">Copy Sewer Text</button>`;
-                })() : ''}
-                <details class="relative inline-block text-left">
-                  <summary class="list-none cursor-pointer px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold select-none">Manage &#9662;</summary>
-                  <div class="absolute right-0 mt-1 z-30 w-52 rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 space-y-0.5 text-xs">
-                    <div class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Files &amp; Reports</div>
-                    <button type="button" onclick="this.closest('details').open=false; protoUploadHomeGaugeReport('${insp.id}')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-sky-50 text-davis-navy font-bold">Upload HG Report (.zip)</button>
-                    <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 text-slate-700 font-semibold">+ Attach PDF</button>
-                    ${(insp.agreementRequired !== false && insp.agreementSigned) ? `<button type="button" onclick="this.closest('details').open=false; downloadSignedAgreementPDF('${insp.id}')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 text-emerald-800 font-semibold">Signed Agreement PDF</button>` : ''}
-                    <div class="border-t border-slate-100 my-1"></div>
-                    <div class="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">Billing &amp; Schedule</div>
-                    ${!insp.paid ? `<button type="button" onclick="this.closest('details').open=false; protoMarkInspectionPaidManual('${insp.id}')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-emerald-50 text-emerald-800 font-bold">Mark Paid Manually</button>` : `<button type="button" onclick="this.closest('details').open=false; dhiDownloadReceiptPDF('${insp.id}')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 text-slate-700 font-semibold">Download Receipt PDF</button>`}
-                    ${insp.gcalUrl ? `<a href="${insp.gcalUrl}" target="_blank" rel="noopener noreferrer" onclick="this.closest('details').open=false;" class="block w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-sky-50 text-sky-800 font-semibold">Google Calendar &nearr;</a>` : ''}
-                    <div class="border-t border-slate-100 my-1"></div>
-                    <button type="button" onclick="this.closest('details').open=false; protoRequestDelete('inspection', '${insp.id}')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-rose-50 text-rose-700 font-bold">Delete Inspection</button>
-                  </div>
-                </details>
+                <button type="button" onclick="protoRequestDelete('inspection', '${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Delete</button>
               </div>
-              <div class="flex flex-wrap justify-end items-center gap-1.5 pt-1.5 border-t border-slate-100">
-                <select id="dhiEmailType-${insp.id}" class="px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700">
+            </div>
+
+            <!-- Bottom Full-Width Action Bar: All Workflow Buttons Left, Email Controls Right -->
+            <div class="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-slate-200">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-davis-navy text-white text-xs font-bold transition">Open Report</button>
+                <button type="button" onclick="protoUploadHomeGaugeReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 border border-sky-300 hover:border-davis-navy text-davis-navy text-xs font-bold transition">Upload HG (.zip)</button>
+                <button type="button" onclick="protoAttachExtraPdf('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">+ Attach PDF</button>
+                ${(insp.agreementRequired !== false && insp.agreementSigned) ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 hover:border-emerald-500 text-emerald-800 text-xs font-bold transition">Signed PDF</button>` : ''}
+                ${!insp.paid
+                  ? `<button type="button" onclick="protoMarkInspectionPaidManual('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 hover:border-emerald-600 text-emerald-800 text-xs font-bold transition">Mark Paid</button>`
+                  : `<button type="button" onclick="dhiDownloadReceiptPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Receipt PDF</button>`}
+                ${isScheduled ? `<button type="button" onclick="protoCopySewerText('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border ${sewerBtnCls} text-xs font-bold transition">Copy Sewer Text</button>` : ''}
+                ${insp.gcalUrl ? `<a href="${insp.gcalUrl}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 hover:border-sky-500 text-sky-800 text-xs font-bold transition">Google Calendar &nearr;</a>` : ''}
+              </div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <select id="dhiEmailType-${insp.id}" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700">
                   <option value="report_ready">Main Report Ready (Unlock Pay)</option>
                   <option value="radon_ready">Radon Report Ready</option>
                   <option value="termite_ready">Termite / WDI Report Ready</option>
@@ -4731,8 +4740,8 @@ function submitInspectionQuoteRequest(payload) {
                 </select>
                 <button type="button" onclick="protoSendAdminEmail('${insp.id}')" class="px-3 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Send Email</button>
               </div>
-            </td>
-          </tr>
+            </div>
+          </div>
         `;
       }).join('');
 
@@ -4759,19 +4768,7 @@ function submitInspectionQuoteRequest(payload) {
               </div>
             </div>
             ${filteredScheduled.length ? `
-              <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                  <thead>
-                    <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      <th class="pb-2 pr-3">Property</th>
-                      <th class="pb-2 px-2">Client / Agent</th>
-                      <th class="pb-2 px-2">Status</th>
-                      <th class="pb-2 pl-2 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>${renderInspTableRows(filteredScheduled, true)}</tbody>
-                </table>
-              </div>
+              <div class="space-y-3">${renderInspTableRows(filteredScheduled, true)}</div>
             ` : `
               <div class="rounded-xl bg-slate-50 border border-dashed border-slate-300 p-8 text-center space-y-2">
                 <div class="text-sm font-bold text-slate-700">No unreleased scheduled inspections</div>
@@ -4791,19 +4788,7 @@ function submitInspectionQuoteRequest(payload) {
               <input type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-56" />
             </div>
             ${filteredReleased.length ? `
-              <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                  <thead>
-                    <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                      <th class="pb-2 pr-3">Property</th>
-                      <th class="pb-2 px-2">Client / Agent</th>
-                      <th class="pb-2 px-2">Status</th>
-                      <th class="pb-2 pl-2 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>${renderInspTableRows(filteredReleased, false)}</tbody>
-                </table>
-              </div>
+              <div class="space-y-3">${renderInspTableRows(filteredReleased, false)}</div>
             ` : `
               <div class="rounded-xl bg-slate-50 border border-dashed border-slate-300 p-8 text-center text-xs text-slate-500">No released inspection reports yet.</div>
             `}
@@ -6480,9 +6465,20 @@ function submitInspectionQuoteRequest(payload) {
     }
 
     function dhiPrintInspectionReport(mode) {
+      const insp = protoGetActiveInsp();
+      const prevTitle = document.title;
       const prevBuyerMode = protoState.buyerFilterMode;
       const prevAgentMode = protoState.agentViewMode;
       const prevFilter = protoState.reportFilter;
+      const prevPrintMode = protoState.printMode || null;
+      protoState.printMode = mode || 'full';
+
+      const cleanAddr = ((insp && insp.address) ? insp.address : 'Property')
+        .replace(/[\\/:*?"<>|]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      document.title = cleanAddr + (mode === 'summary' ? ' - Inspection Summary' : ' - Inspection Report');
+
       if (mode === 'summary') {
         protoState.buyerFilterMode = 'summary';
         protoState.agentViewMode = 'summary';
@@ -6499,6 +6495,8 @@ function submitInspectionQuoteRequest(payload) {
         const prevStates = details.map(d => d.open);
         details.forEach(d => { d.open = true; });
         const restore = () => {
+          document.title = prevTitle;
+          protoState.printMode = prevPrintMode;
           details.forEach((d, idx) => { d.open = prevStates[idx]; });
           if (mode === 'summary' || mode === 'full') {
             protoState.buyerFilterMode = prevBuyerMode;
@@ -6510,7 +6508,7 @@ function submitInspectionQuoteRequest(payload) {
         };
         window.addEventListener('afterprint', restore);
         window.print();
-      }, 60);
+      }, 90);
     }
 
     function renderReportViewerHTML() {
@@ -6713,8 +6711,24 @@ function submitInspectionQuoteRequest(payload) {
             ? `<p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">${f.narrative}</p>`
             : `<p class="text-xs text-slate-500 italic">Status: ${f.status} — no additional comments noted.</p>`;
 
+          const printPhotoGridHTML = hasPhotos ? `
+            <div class="hidden print:grid print:grid-cols-2 gap-3 pt-1">
+              ${f.photos.map((ph, pIdx) => ph.mediaType === 'video' ? `
+                <div class="dhi-print-photo-tile rounded-xl border border-slate-300 bg-slate-900 text-white p-2 text-center space-y-1">
+                  ${ph.posterUrl ? `<img src="${ph.posterUrl}" class="w-full h-44 object-contain mx-auto rounded bg-black" />` : ''}
+                  <div class="text-[10px] font-bold">${escapeHtml(ph.label || 'Video Clip')} (Video available in online report)</div>
+                </div>
+              ` : `
+                <div class="dhi-print-photo-tile rounded-xl border border-slate-200 bg-slate-50 p-1.5 space-y-1">
+                  <img src="${ph.dataUrl}" alt="${escapeHtml(ph.label || f.title)}" class="w-full h-52 object-contain mx-auto rounded bg-white" />
+                  <div class="text-[10px] font-semibold text-slate-600 text-center truncate">${escapeHtml(ph.label || (f.code + ' Photo ' + (pIdx + 1)))}</div>
+                </div>
+              `).join('')}
+            </div>
+          ` : '';
+
           return `
-            <div class="bg-white rounded-2xl border ${f.isSummary ? 'border-amber-200/90' : 'border-slate-200'} shadow-sm p-4 sm:p-5 space-y-3.5">
+            <div class="dhi-finding-card ${hasPhotos ? '' : 'dhi-finding-card-compact'} bg-white rounded-2xl border ${f.isSummary ? 'border-amber-200/90' : 'border-slate-200'} shadow-sm p-4 sm:p-5 space-y-3.5">
               <div class="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <div class="flex flex-wrap items-center gap-1.5 mb-1">
@@ -6723,30 +6737,27 @@ function submitInspectionQuoteRequest(payload) {
                   </div>
                   <h4 class="text-base font-extrabold text-slate-900">${f.title}</h4>
                 </div>
-                ${(f.isSummary || f.narrative) ? `
-                  <button type="button" onclick="protoToggleObjection('${f.id}')" class="px-3 py-1.5 rounded-xl text-xs font-bold transition ${inObj ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200'}">
+                ${(f.isSummary || f.narrative) && protoState.role !== 'third_party' ? `
+                  <button type="button" onclick="protoToggleObjection('${f.id}')" class="no-print px-3 py-1.5 rounded-xl text-xs font-bold transition ${inObj ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200'}">
                     ${inObj ? (isBuyerView ? '✓ Requested for Agent Review' : '✓ On Objection List') : (isBuyerView ? '+ Request for Objection List' : '+ Add to Objection List')}
                   </button>
                 ` : ''}
               </div>
 
               ${hasPhotos ? `
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                <!-- Online Interactive Photo/Video Layout -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start no-print">
                   <div class="space-y-1.5">
                     ${activePhoto && activePhoto.mediaType === 'video' ? `
                       <div class="relative rounded-xl overflow-hidden border border-slate-200 bg-black">
-                        <video controls playsinline preload="metadata" ${activePhoto.posterUrl ? `poster="${activePhoto.posterUrl}"` : ''} src="${activePhoto.dataUrl}" class="w-full max-h-[360px] block no-print"></video>
-                        <div class="hidden print:block bg-slate-900 text-white text-center p-4 space-y-1">
-                          ${activePhoto.posterUrl ? `<img src="${activePhoto.posterUrl}" class="w-full max-h-56 object-contain mx-auto rounded" />` : ''}
-                          <div class="text-xs font-bold">Video clip available in online report</div>
-                        </div>
+                        <video controls playsinline preload="metadata" ${activePhoto.posterUrl ? `poster="${activePhoto.posterUrl}"` : ''} src="${activePhoto.dataUrl}" class="w-full max-h-[360px] block"></video>
                       </div>
                       <div class="text-[11px] text-slate-500 font-semibold">${escapeHtml(activePhoto.label || 'Inspection Video Clip')}</div>
                     ` : `
                       <div class="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-900">
                         <canvas id="photoCanvas-${f.id}" width="320" height="220" class="w-full h-auto cursor-crosshair block" data-finding-id="${f.id}" data-label="${activePhoto.label}"></canvas>
                       </div>
-                      <div class="flex items-center justify-between text-[11px] text-slate-500 no-print">
+                      <div class="flex items-center justify-between text-[11px] text-slate-500">
                         <span>Tap or drag to circle (${protoState.activeCollaborator.split(' ')[0]})</span>
                         <button type="button" onclick="protoClearMarks('${f.id}')" class="text-sky-700 font-semibold hover:underline">Clear Marks</button>
                       </div>
@@ -6756,20 +6767,27 @@ function submitInspectionQuoteRequest(payload) {
                   <div class="md:col-span-2 space-y-3">
                     ${narrativeHTML}
                     <div class="space-y-1.5">${commentsHTML}</div>
-                    <div class="flex gap-2">
-                      <input type="text" id="commentInput-${f.id}" placeholder="Add a live note as ${protoState.activeCollaborator.split(' ')[0]}..." class="flex-grow px-3 py-2 rounded-lg border border-slate-200 text-xs" />
-                      <button type="button" onclick="protoAddComment('${f.id}')" class="px-3.5 py-2 rounded-lg bg-slate-800 text-white text-xs font-bold">Post</button>
-                    </div>
+                    ${protoState.role !== 'third_party' ? `
+                      <div class="flex gap-2">
+                        <input type="text" id="commentInput-${f.id}" placeholder="Add a live note as ${protoState.activeCollaborator.split(' ')[0]}..." class="flex-grow px-3 py-2 rounded-lg border border-slate-200 text-xs" />
+                        <button type="button" onclick="protoAddComment('${f.id}')" class="px-3.5 py-2 rounded-lg bg-slate-800 text-white text-xs font-bold">Post</button>
+                      </div>
+                    ` : ''}
                   </div>
+                </div>
+                <!-- Print / PDF Dedicated Layout: Narrative + All Photos in Clean 2-Column Grid -->
+                <div class="hidden print:block space-y-2.5">
+                  ${narrativeHTML}
+                  ${printPhotoGridHTML}
                 </div>
               ` : `
                 <div class="space-y-2.5">
                   ${narrativeHTML}
-                  ${commentsHTML ? `<div class="space-y-1.5">${commentsHTML}</div>` : ''}
-                  ${(f.isSummary || f.narrative) ? `
-                    <div class="flex gap-2 pt-1">
+                  ${commentsHTML ? `<div class="space-y-1.5 no-print">${commentsHTML}</div>` : ''}
+                  ${(f.isSummary || f.narrative) && protoState.role !== 'third_party' ? `
+                    <div class="flex gap-2 pt-1 no-print">
                       <input type="text" id="commentInput-${f.id}" placeholder="Add a live note as ${protoState.activeCollaborator.split(' ')[0]}..." class="flex-grow px-3 py-1.5 rounded-lg border border-slate-200 text-xs" />
-                      <button type="button" onclick="protoAddComment('${f.id}')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-bold">Post</button>
+                      <button type="button" onclick="protoAddComment('${f.id}')" class="px-3.5 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-bold">Post</button>
                     </div>
                   ` : ''}
                 </div>
@@ -6781,7 +6799,7 @@ function submitInspectionQuoteRequest(payload) {
         const sop = dhiGetSectionSop(sec.name);
         return `
           <div class="space-y-3 pt-2 dhi-print-section">
-            <div class="bg-slate-900 text-white rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+            <div class="dhi-sec-banner bg-slate-900 text-white rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-2">
               <h3 class="text-sm sm:text-base font-extrabold tracking-tight">${sec.num}. ${sec.name}</h3>
               <span class="text-[11px] font-bold text-sky-300">${secItems.length} ${secItems.length === 1 ? 'item' : 'items'}</span>
             </div>
@@ -6921,6 +6939,33 @@ function submitInspectionQuoteRequest(payload) {
             </div>
           </div>
           ${commentKeyHTML}
+          ${(() => {
+            if (protoState.printMode === 'summary') return '';
+            const sumGroups = (protoState.sections || []).map(sec => {
+              const items = (protoState.findings || []).filter(f => String(f.sectionNum) === String(sec.num) && f.isSummary);
+              return items.length ? { sec, items } : null;
+            }).filter(Boolean);
+            if (!sumGroups.length) return '';
+            return `
+              <div id="dhiPrintGeneralSummary" class="hidden print:block bg-white rounded-xl border border-slate-300 p-5 space-y-4">
+                <div class="border-b-2 border-davis-navy pb-2">
+                  <div class="text-base font-extrabold text-davis-navy">General Summary</div>
+                  <p class="text-[11px] text-slate-500 mt-0.5">The following summary highlights items marked Repair or Replace / Summary across the report. See the numbered sections that follow for full details and photographs.</p>
+                </div>
+                ${sumGroups.map(g => `
+                  <div class="space-y-2">
+                    <div class="text-xs font-extrabold uppercase tracking-wider text-davis-navy bg-slate-100 px-2.5 py-1 rounded">${g.sec.num}. ${escapeHtml(g.sec.name)}</div>
+                    ${g.items.map(it => `
+                      <div class="dhi-finding-card-compact pl-2 border-l-2 border-amber-400 space-y-0.5">
+                        <div class="text-xs font-extrabold text-slate-900">${escapeHtml(it.code || '')} ${escapeHtml(it.title)}</div>
+                        <p class="text-[11px] text-slate-700 leading-relaxed whitespace-pre-line">${escapeHtml(it.narrative || '')}</p>
+                      </div>
+                    `).join('')}
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          })()}
 
           <div class="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-3 shadow-sm no-print">
             <div class="flex flex-wrap items-center justify-between gap-2">
