@@ -36,10 +36,12 @@
         <span id="hdrTitle" class="text-sm font-extrabold truncate max-w-[200px] sm:max-w-md">Field &amp; Report Editor</span>
       </div>
       <div class="flex flex-wrap items-center gap-1.5 text-xs">
-        <span id="hdrOnlineBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-300/30 text-[11px] font-bold text-emerald-100"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>Online</span>
-        <span id="hdrBackupBadge" class="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 text-[11px] font-semibold text-sky-100">Local save ready</span>
-        <button type="button" onclick="openInstructionsModal()" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">AI Rules</button>
-        <button type="button" onclick="openBackupsModal()" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">Backups</button>
+        <div id="hdrAuthedTools" class="hidden flex flex-wrap items-center gap-1.5">
+          <span id="hdrOnlineBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-300/30 text-[11px] font-bold text-emerald-100"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>Online</span>
+          <span id="hdrBackupBadge" class="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 text-[11px] font-semibold text-sky-100">Local save ready</span>
+          <button type="button" onclick="openInstructionsModal()" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">AI Rules</button>
+          <button type="button" onclick="openBackupsModal()" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">Backups</button>
+        </div>
         <a href="./index.html?view=portal" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">Admin Portal</a>
         <button type="button" id="hdrSignOutBtn" onclick="fieldSignOut()" class="hidden px-2.5 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 text-rose-100 font-bold transition">Sign Out</button>
       </div>
@@ -2194,30 +2196,65 @@
       saveDraftLocally(true);
     }
 
+    function getBaseItemCode(code) {
+      return String(code || '').trim().replace(/[A-Za-z]+$/, '');
+    }
+
+    function reletterSectionItemGroup(sec, baseCode) {
+      if (!sec || !Array.isArray(sec.items) || !baseCode) return;
+      const group = sec.items.filter(it => getBaseItemCode(it.code) === baseCode);
+      if (group.length <= 1) {
+        if (group.length === 1) group[0].code = baseCode;
+        return;
+      }
+      group.forEach((it, idx) => {
+        const letter = idx < 26
+          ? String.fromCharCode(65 + idx)
+          : String.fromCharCode(65 + Math.floor(idx / 26) - 1) + String.fromCharCode(65 + (idx % 26));
+        it.code = baseCode + letter;
+      });
+    }
+
     function duplicateItem(secIdx, itemIdx) {
       const sec = state.draft.sections[secIdx];
       const src = sec.items[itemIdx];
+      const baseCode = getBaseItemCode(src.code) || String(src.code || '');
+      const cleanTitle = String(src.title || '').replace(/\s*\(Itemized\)\s*$/i, '').trim() || src.title;
+      if (src.title !== cleanTitle) src.title = cleanTitle;
+      let insertAfterIdx = itemIdx;
+      for (let i = sec.items.length - 1; i >= 0; i--) {
+        if (getBaseItemCode(sec.items[i].code) === baseCode) {
+          insertAfterIdx = i;
+          break;
+        }
+      }
       const copy = {
         id: 'item-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-        code: src.code,
-        title: src.title + ' (Itemized)',
-        statuses: Array.isArray(src.statuses) ? src.statuses.slice() : (src.status ? [src.status] : ['IN']),
-        status: src.status || 'IN',
-        isSummary: src.isSummary,
+        code: baseCode,
+        title: cleanTitle,
+        statuses: ['IN', 'RR'],
+        status: 'IN, RR',
+        isSummary: true,
         roughNotes: '',
         narrative: '',
         photos: []
       };
-      sec.items.splice(itemIdx + 1, 0, copy);
+      sec.items.splice(insertAfterIdx + 1, 0, copy);
+      reletterSectionItemGroup(sec, baseCode);
       saveDraftLocally(true);
       render();
-      toast('Itemized duplicate added.');
+      toast('Added separate defect ' + copy.code + ' (' + cleanTitle + ').');
     }
 
     function deleteItem(secIdx, itemIdx) {
       const sec = state.draft.sections[secIdx];
-      if (!confirm('Remove "' + sec.items[itemIdx].title + '" from this section?')) return;
+      const target = sec.items[itemIdx];
+      if (!target) return;
+      const label = (target.code ? target.code + ' ' : '') + (target.title || 'this item');
+      if (!confirm('Remove "' + label + '" from this section?')) return;
+      const baseCode = getBaseItemCode(target.code);
       sec.items.splice(itemIdx, 1);
+      reletterSectionItemGroup(sec, baseCode);
       saveDraftLocally(true);
       render();
     }
@@ -4003,6 +4040,7 @@
     }
 
     function openInstructionsModal() {
+      if (!state.user) return;
       document.getElementById('globalInstructionsInput').value = state.globalInstructions;
       const pqSel = document.getElementById('photoQualitySelect');
       if (pqSel) pqSel.value = state.photoQualityPreset || 'standard';
@@ -4028,6 +4066,7 @@
     }
 
     async function openBackupsModal() {
+      if (!state.user) return;
       document.getElementById('backupsModal').classList.remove('hidden');
       const all = (await idbGetAll('backups'))
         .filter(b => !state.draft || b.inspectionId === state.draft.inspectionId)
@@ -4070,6 +4109,10 @@
     // =========================================================================
     function render() {
       const root = document.getElementById('appRoot');
+      const authedTools = document.getElementById('hdrAuthedTools');
+      if (authedTools) authedTools.classList.toggle('hidden', !state.user);
+      const signOutBtn = document.getElementById('hdrSignOutBtn');
+      if (signOutBtn) signOutBtn.classList.toggle('hidden', !state.user);
       if (!state.user) {
         root.innerHTML = `
           <div class="max-w-md mx-auto mt-10 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
@@ -4259,7 +4302,7 @@
                   <button type="button" onclick="moveSectionItem(${state.activeSecIdx}, ${itemIdx}, 1)" class="px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-bold text-slate-700">&darr;</button>
                   <button type="button" onclick="renameSectionItem(${state.activeSecIdx}, ${itemIdx})" class="px-2 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-xs font-bold">Rename</button>
                 ` : `
-                  <button type="button" onclick="duplicateItem(${state.activeSecIdx}, ${itemIdx})" title="Itemize / duplicate this item" class="px-2 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:border-davis-navy text-xs font-bold text-slate-600">+ Itemize</button>
+                  <button type="button" onclick="duplicateItem(${state.activeSecIdx}, ${itemIdx})" title="Add another separate defect/comment under this item (1.1A, 1.1B, ...)" class="px-2 py-1.5 rounded-lg border border-sky-200 bg-sky-50 hover:border-davis-navy text-xs font-bold text-davis-navy">+ Add Defect</button>
                 `}
                 <button type="button" onclick="deleteItem(${state.activeSecIdx}, ${itemIdx})" title="Remove item" class="px-2 py-1.5 rounded-lg text-slate-400 hover:text-rose-600 text-xs font-bold">&times;</button>
               </div>
