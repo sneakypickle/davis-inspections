@@ -6332,6 +6332,31 @@ function submitInspectionQuoteRequest(payload) {
       }
     }
 
+    async function dhiSetAgentPassword() {
+      if (!dhiSupabase || !dhiIsLiveSession()) {
+        protoToastMsg('Sign in to your live account first to set a password.');
+        return;
+      }
+      const pw = prompt('Enter a new password for your portal account (minimum 6 characters):');
+      if (pw === null) return;
+      if (pw.length < 6) {
+        protoToastMsg('Password must be at least 6 characters.');
+        return;
+      }
+      const pw2 = prompt('Re-enter your new password to confirm:');
+      if (pw2 === null) return;
+      if (pw !== pw2) {
+        protoToastMsg('Passwords did not match. Please try again.');
+        return;
+      }
+      const { error } = await dhiSupabase.auth.updateUser({ password: pw });
+      if (error) {
+        protoToastMsg('Could not update password: ' + error.message);
+      } else {
+        protoToastMsg('Password saved! You can now sign in with your work email and password anytime.');
+      }
+    }
+
     function renderAgentHTML() {
       const userEmail = protoState.authUser?.email || protoState.loggedInAgentEmail || '';
       const hasGoogleLinked = !!(protoState.authUser?.identities || []).some(id => id.provider === 'google');
@@ -6385,8 +6410,9 @@ function submitInspectionQuoteRequest(payload) {
               <span class="px-3 py-1.5 rounded-xl bg-white/10 text-xs font-bold">${(protoState.inspections || []).length} Active Properties</span>
               ${!protoState.demoMode ? (hasGoogleLinked
                 ? `<span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-300/40 text-emerald-100 text-xs font-bold">Google Linked</span>`
-                : `<button type="button" onclick="dhiLinkGoogleIdentity()" class="px-3 py-1.5 rounded-xl bg-white text-davis-navy hover:bg-sky-50 text-xs font-bold transition">Link My Google Account</button>`
+                : `<button type="button" onclick="dhiLinkGoogleIdentity()" class="px-3 py-1.5 rounded-xl bg-white text-davis-navy hover:bg-sky-50 text-xs font-bold transition">Link Google Account</button>`
               ) : ''}
+              ${!protoState.demoMode ? `<button type="button" onclick="dhiSetAgentPassword()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Set Password</button>` : ''}
               ${!protoState.demoMode ? `<button type="button" onclick="dhiSignOut()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Sign Out</button>` : ''}
             </div>
           </div>
@@ -9711,11 +9737,23 @@ function submitInspectionQuoteRequest(payload) {
       document.getElementById('protoPersonEditEmail').value = person.email || '';
       document.getElementById('protoPersonEditPhone').value = person.phone || '';
       const brokWrap = document.getElementById('protoPersonBrokerageWrap');
+      const invWrap = document.getElementById('protoAgentInviteWrap');
+      const invStatus = document.getElementById('protoAgentInviteStatus');
       if (type === 'agent') {
         brokWrap.classList.remove('hidden');
         document.getElementById('protoPersonEditBrokerage').value = person.brokerage || '';
+        if (invWrap) invWrap.classList.remove('hidden');
+        if (invStatus) {
+          let sentDate = '';
+          try {
+            const map = JSON.parse(localStorage.getItem('dhi_agent_invites_sent') || '{}');
+            sentDate = map[targetEmail] || '';
+          } catch (_e) {}
+          invStatus.textContent = sentDate ? ('Last invited: ' + sentDate) : 'Sends 1-click sign-in link, Google/password setup, and feature overview.';
+        }
       } else {
         brokWrap.classList.add('hidden');
+        if (invWrap) invWrap.classList.add('hidden');
       }
 
       // Associated reports (street number + street name only, clickable straight to report)
@@ -9751,6 +9789,49 @@ function submitInspectionQuoteRequest(payload) {
       const m = document.getElementById('protoPersonModal');
       if (m) m.classList.add('hidden');
       protoEditingPerson = null;
+    }
+
+    async function protoSendAgentInviteEmail() {
+      if (!protoEditingPerson || protoEditingPerson.type !== 'agent') return;
+      const email = (document.getElementById('protoPersonEditEmail')?.value || protoEditingPerson.origEmail || '').trim();
+      const firstName = (document.getElementById('protoPersonEditFirstName')?.value || '').trim();
+      const lastName = (document.getElementById('protoPersonEditLastName')?.value || '').trim();
+      const fullName = [firstName, lastName].filter(Boolean).join(' ') || email;
+      if (!email) {
+        protoToastMsg('Enter an email address for this agent first.');
+        return;
+      }
+      if (!confirm('Send the Agent Portal Invite email to ' + fullName + ' (' + email + ')?')) return;
+      const btn = document.getElementById('protoSendAgentInviteBtn');
+      const statusEl = document.getElementById('protoAgentInviteStatus');
+      if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+      try {
+        if (!dhiSupabase || !dhiIsLiveSession()) {
+          throw new Error('Sign in as Admin to send live invite emails.');
+        }
+        const { data, error } = await dhiSupabase.functions.invoke('send-portal-email', {
+          body: {
+            type: 'agent_invite',
+            to: email,
+            recipientName: firstName || fullName,
+            portalLink: dhiGetRedirectUrl()
+          }
+        });
+        if (error) throw new Error(error.message || 'Email function error');
+        if (data && data.error) throw new Error(data.error);
+        const nowStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        try {
+          const map = JSON.parse(localStorage.getItem('dhi_agent_invites_sent') || '{}');
+          map[email.toLowerCase()] = nowStr;
+          localStorage.setItem('dhi_agent_invites_sent', JSON.stringify(map));
+        } catch (_e) {}
+        if (statusEl) statusEl.textContent = 'Last invited: ' + nowStr;
+        protoToastMsg('Sent Agent Portal Invite email to ' + email + '.');
+      } catch (err) {
+        protoToastMsg('Could not send invite: ' + (err.message || err));
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Send Portal Invite'; }
+      }
     }
 
     async function protoSavePersonEdit() {
@@ -9829,6 +9910,13 @@ function submitInspectionQuoteRequest(payload) {
           <label class="block font-bold text-slate-700 mb-1">Brokerage</label>
           <input id="protoPersonEditBrokerage" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
         </div>
+      </div>
+      <div id="protoAgentInviteWrap" class="hidden rounded-xl border border-sky-200 bg-sky-50/70 p-3 flex flex-wrap items-center justify-between gap-2.5">
+        <div class="min-w-0 flex-1">
+          <div class="text-xs font-extrabold text-davis-navy">New Portal Migration Invite</div>
+          <div id="protoAgentInviteStatus" class="text-[11px] text-slate-600 mt-0.5">Sends 1-click sign-in link, Google/password setup, and feature overview.</div>
+        </div>
+        <button type="button" id="protoSendAgentInviteBtn" onclick="protoSendAgentInviteEmail()" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark disabled:opacity-60 text-white text-xs font-bold shrink-0 transition">Send Portal Invite</button>
       </div>
       <div class="space-y-2 pt-1">
         <div class="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Associated Reports</div>
