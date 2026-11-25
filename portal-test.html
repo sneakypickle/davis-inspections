@@ -3720,14 +3720,14 @@ function submitInspectionQuoteRequest(payload) {
       protoToastMsg('Saved agent: ' + fullName);
     }
 
-    async function dhiFetchAllTableRows(tableName, orderCol) {
+    async function dhiFetchAllTableRows(tableName, orderCol, ascending = true) {
       if (!dhiSupabase) return { data: [], error: null };
       const all = [];
       const pageSize = 1000;
       let from = 0;
       while (true) {
         let q = dhiSupabase.from(tableName).select('*').range(from, from + pageSize - 1);
-        if (orderCol) q = q.order(orderCol, { ascending: true });
+        if (orderCol) q = q.order(orderCol, { ascending: ascending !== false });
         const { data, error } = await q;
         if (error) return { data: all, error };
         if (!Array.isArray(data) || !data.length) break;
@@ -3736,6 +3736,40 @@ function submitInspectionQuoteRequest(payload) {
         from += pageSize;
       }
       return { data: all, error: null };
+    }
+
+    async function dhiSignCoverPhotosForList(inspList) {
+      if (!dhiSupabase || !Array.isArray(inspList) || !inspList.length) return;
+      const missing = inspList.filter(x => x && x.coverPhotoPath && !x.coverPhotoUrl);
+      if (!missing.length) return;
+      const uniquePaths = Array.from(new Set(missing.map(x => x.coverPhotoPath)));
+      const cMap = new Map();
+      for (let i = 0; i < uniquePaths.length; i += 100) {
+        const chunk = uniquePaths.slice(i, i + 100);
+        try {
+          const { data: cSigned } = await dhiSupabase.storage.from('reports').createSignedUrls(chunk, 3600);
+          (cSigned || []).forEach(s => { if (s && s.path && s.signedUrl) cMap.set(s.path, s.signedUrl); });
+        } catch (e) {}
+      }
+      missing.forEach(x => {
+        if (x.coverPhotoPath && cMap.has(x.coverPhotoPath)) x.coverPhotoUrl = cMap.get(x.coverPhotoPath);
+      });
+    }
+
+    function dhiRenderPageBar(stateKey, page, totalPages, totalItems, pageSize) {
+      if (totalPages <= 1) return '';
+      const startNum = (page - 1) * pageSize + 1;
+      const endNum = Math.min(totalItems, page * pageSize);
+      return `
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 text-xs text-slate-600">
+          <span>Showing <strong>${startNum}-${endNum}</strong> of <strong>${totalItems}</strong></span>
+          <div class="flex items-center gap-1.5">
+            <button type="button" ${page <= 1 ? 'disabled' : ''} onclick="protoState.${stateKey}=${Math.max(1, page - 1)}; renderProtoPortal();" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy font-bold disabled:opacity-40 transition">Prev</button>
+            <span class="px-2 font-semibold text-slate-700">Page ${page} of ${totalPages}</span>
+            <button type="button" ${page >= totalPages ? 'disabled' : ''} onclick="protoState.${stateKey}=${Math.min(totalPages, page + 1)}; renderProtoPortal();" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy font-bold disabled:opacity-40 transition">Next</button>
+          </div>
+        </div>
+      `;
     }
 
     function protoImportHomeGaugeCSV(targetType) {
@@ -4949,11 +4983,8 @@ function submitInspectionQuoteRequest(payload) {
 
               <!-- Middle: Client / Agent + Status Pills -->
               <div class="space-y-1.5 text-xs min-w-[210px]">
-                <div>
-                  <span class="font-bold text-slate-800">${escapeHtml(insp.clientName || '')}</span>
-                  <span class="text-slate-400 ml-1">${escapeHtml(insp.clientEmail || '')}</span>
-                </div>
-                ${(insp.agentName || insp.agentEmail) ? `<div class="text-slate-600">Agent: <strong class="text-slate-800">${escapeHtml(insp.agentName || insp.agentEmail)}</strong></div>` : ''}
+                ${(insp.clientName || insp.clientEmail) ? `<div class="text-slate-600">Customer: <button type="button" onclick="dhiOpenPersonFromCard('customer', '${(insp.clientEmail || '').replace(/'/g, "\'")}', '${(insp.clientName || '').replace(/'/g, "\'")}')" class="font-bold text-davis-navy hover:underline text-left">${escapeHtml(insp.clientName || insp.clientEmail)}</button></div>` : ''}
+                ${(insp.agentName || insp.agentEmail) ? `<div class="text-slate-600">Agent: <button type="button" onclick="dhiOpenPersonFromCard('agent', '${(insp.agentEmail || '').replace(/'/g, "\'")}', '${(insp.agentName || '').replace(/'/g, "\'")}')" class="font-bold text-davis-navy hover:underline text-left">${escapeHtml(insp.agentName || insp.agentEmail)}</button></div>` : ''}
                 <div class="flex flex-wrap gap-1 pt-0.5">
                   ${insp.agreementRequired === false
                     ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">Standalone</span>`
@@ -5041,20 +5072,26 @@ function submitInspectionQuoteRequest(payload) {
           </div>
         `;
       } else if (protoState.adminTab === 'reports') {
+        const repPageSize = 50;
+        const repTotalPages = Math.max(1, Math.ceil(filteredReleased.length / repPageSize));
+        const repPage = Math.min(Math.max(1, protoState.reportsPage || 1), repTotalPages);
+        protoState.reportsPage = repPage;
+        const pagedReleased = filteredReleased.slice((repPage - 1) * repPageSize, repPage * repPageSize);
         bodyHTML = `
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 class="text-lg font-extrabold text-slate-900">Inspection Reports</h2>
+                <h2 class="text-lg font-extrabold text-slate-900">Inspection Reports (${filteredReleased.length})</h2>
                 <p class="text-xs text-slate-500">Completed inspections that have been released to clients and agents.</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <input type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-52 sm:w-56" />
+                <input type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; protoState.reportsPage=1; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-52 sm:w-56" />
                 <button type="button" onclick="dhiOpenBulkHgModal()" class="px-3.5 py-2 rounded-xl border border-sky-300 bg-sky-50 hover:border-davis-navy hover:bg-sky-100 text-davis-navy text-xs font-extrabold transition whitespace-nowrap">Bulk Import HG Folder</button>
               </div>
             </div>
-            ${filteredReleased.length ? `
-              <div class="space-y-3">${renderInspTableRows(filteredReleased, false)}</div>
+            ${pagedReleased.length ? `
+              <div class="space-y-3">${renderInspTableRows(pagedReleased, false)}</div>
+              ${dhiRenderPageBar('reportsPage', repPage, repTotalPages, filteredReleased.length, repPageSize)}
             ` : `
               <div class="rounded-xl bg-slate-50 border border-dashed border-slate-300 p-8 text-center text-xs text-slate-500">No released inspection reports yet.</div>
             `}
@@ -5311,7 +5348,12 @@ function submitInspectionQuoteRequest(payload) {
       } else if (protoState.adminTab === 'agents') {
         const q = (protoState.agentSearch || '').toLowerCase();
         const filteredAgents = agentsList.filter(a => !q || ((a.firstName || '') + ' ' + (a.lastName || '') + ' ' + (a.name || '') + ' ' + (a.email || '') + ' ' + (a.brokerage || '')).toLowerCase().includes(q));
-        const agentRows = filteredAgents.map(a => {
+        const agPageSize = 100;
+        const agTotalPages = Math.max(1, Math.ceil(filteredAgents.length / agPageSize));
+        const agPage = Math.min(Math.max(1, protoState.agentPage || 1), agTotalPages);
+        protoState.agentPage = agPage;
+        const pagedAgents = filteredAgents.slice((agPage - 1) * agPageSize, agPage * agPageSize);
+        const agentRows = pagedAgents.map(a => {
           const sp = dhiSplitFullName(a.name, a.firstName, a.lastName);
           return `
           <tr onclick="protoOpenPersonModal('agent', '${(a.email || '').replace(/'/g, "\\'")}')" class="border-t border-slate-100 hover:bg-sky-50/60 cursor-pointer transition">
@@ -5368,7 +5410,7 @@ function submitInspectionQuoteRequest(payload) {
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-base font-extrabold text-slate-900">Agent Directory (${filteredAgents.length})</h3>
-                <input type="search" value="${escapeHtml(protoState.agentSearch || '')}" oninput="protoState.agentSearch=this.value; renderProtoPortal();" placeholder="Search agents..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-56" />
+                <input type="search" value="${escapeHtml(protoState.agentSearch || '')}" oninput="protoState.agentSearch=this.value; protoState.agentPage=1; renderProtoPortal();" placeholder="Search agents..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-56" />
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
@@ -5385,13 +5427,19 @@ function submitInspectionQuoteRequest(payload) {
                   <tbody>${agentRows || '<tr><td colspan="6" class="py-6 text-center text-xs text-slate-400">No agents found.</td></tr>'}</tbody>
                 </table>
               </div>
+              ${dhiRenderPageBar('agentPage', agPage, agTotalPages, filteredAgents.length, agPageSize)}
             </div>
           </div>
         `;
       } else if (protoState.adminTab === 'customers') {
         const q = (protoState.customerSearch || '').toLowerCase();
         const filteredCusts = customersList.filter(c => !q || ((c.firstName || '') + ' ' + (c.lastName || '') + ' ' + (c.name || '') + ' ' + (c.email || '') + ' ' + (c.lastAddress || '')).toLowerCase().includes(q));
-        const custRows = filteredCusts.map(c => {
+        const cuPageSize = 100;
+        const cuTotalPages = Math.max(1, Math.ceil(filteredCusts.length / cuPageSize));
+        const cuPage = Math.min(Math.max(1, protoState.customerPage || 1), cuTotalPages);
+        protoState.customerPage = cuPage;
+        const pagedCusts = filteredCusts.slice((cuPage - 1) * cuPageSize, cuPage * cuPageSize);
+        const custRows = pagedCusts.map(c => {
           const sp = dhiSplitFullName(c.name, c.firstName, c.lastName);
           return `
           <tr onclick="protoOpenPersonModal('customer', '${(c.email || '').replace(/'/g, "\\'")}')" class="border-t border-slate-100 hover:bg-sky-50/60 cursor-pointer transition">
@@ -5416,7 +5464,7 @@ function submitInspectionQuoteRequest(payload) {
                 <p class="text-xs text-slate-500">Automatically populates when buyers submit requests or when you create inspections. You can also import your HomeGauge customer CSV.</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <input type="search" value="${escapeHtml(protoState.customerSearch || '')}" oninput="protoState.customerSearch=this.value; renderProtoPortal();" placeholder="Search customers..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-52" />
+                <input type="search" value="${escapeHtml(protoState.customerSearch || '')}" oninput="protoState.customerSearch=this.value; protoState.customerPage=1; renderProtoPortal();" placeholder="Search customers..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-52" />
                 <button type="button" onclick="protoImportHomeGaugeCSV('customers')" class="px-3.5 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Import HomeGauge CSV</button>
               </div>
             </div>
@@ -5435,6 +5483,7 @@ function submitInspectionQuoteRequest(payload) {
                 <tbody>${custRows || '<tr><td colspan="6" class="py-6 text-center text-xs text-slate-400">No customers found.</td></tr>'}</tbody>
               </table>
             </div>
+            ${dhiRenderPageBar('customerPage', cuPage, cuTotalPages, filteredCusts.length, cuPageSize)}
           </div>
         `;
       } else {
@@ -10068,6 +10117,10 @@ function submitInspectionQuoteRequest(payload) {
     async function dhiLoadInspectionDetails(inspectionId) {
       if (!dhiIsLiveSession() || !inspectionId || inspectionId === 'insp-demo') return;
       try {
+        const activeInspObj = (protoState.inspections || []).find(i => i.id === inspectionId);
+        if (activeInspObj && activeInspObj.coverPhotoPath && !activeInspObj.coverPhotoUrl) {
+          await dhiSignCoverPhotosForList([activeInspObj]);
+        }
         const [fRes, dRes, oRes, mRes, cRes] = await Promise.all([
           dhiSupabase.from('inspection_findings').select('*').eq('inspection_id', inspectionId).order('item_code', { ascending: true }),
           dhiSupabase.from('inspection_documents').select('*').eq('inspection_id', inspectionId),
@@ -10529,10 +10582,10 @@ function submitInspectionQuoteRequest(payload) {
           protoState.role = 'admin';
           protoState.activeCollaborator = 'Matt (Inspector)';
           const [iRes, dAllRes, aRes, cRes, rRes, catRes] = await Promise.all([
-            dhiSupabase.from('inspections').select('*').order('created_at', { ascending: false }),
-            dhiSupabase.from('inspection_documents').select('*'),
-            dhiSupabase.from('agents').select('*').order('last_name', { ascending: true }),
-            dhiSupabase.from('customers').select('*').order('last_name', { ascending: true }),
+            dhiFetchAllTableRows('inspections', 'created_at', false),
+            dhiFetchAllTableRows('inspection_documents'),
+            dhiFetchAllTableRows('agents', 'last_name', true),
+            dhiFetchAllTableRows('customers', 'last_name', true),
             dhiSupabase.from('inspection_requests').select('*').order('created_at', { ascending: false }),
             dhiSupabase.from('service_catalog').select('*').eq('active', true).order('sort_order', { ascending: true })
           ]);
@@ -10618,16 +10671,9 @@ function submitInspectionQuoteRequest(payload) {
             return row;
           });
 
-          const coverPaths = (protoState.inspections || []).map(x => x.coverPhotoPath).filter(Boolean);
-          if (coverPaths.length) {
-            try {
-              const { data: cSigned } = await dhiSupabase.storage.from('reports').createSignedUrls(coverPaths, 3600);
-              const cMap = new Map((cSigned || []).map(s => [s.path, s.signedUrl]));
-              protoState.inspections.forEach(x => { if (x.coverPhotoPath && cMap.has(x.coverPhotoPath)) x.coverPhotoUrl = cMap.get(x.coverPhotoPath); });
-            } catch (e) {}
-          }
           protoState.activeInspectionId = protoState.inspections.length ? protoState.inspections[0].id : null;
         }
+        await dhiSignCoverPhotosForList(protoState.inspections);
       } catch (err) {
         console.warn('Error loading account data:', err);
       } finally {
@@ -10723,6 +10769,63 @@ function submitInspectionQuoteRequest(payload) {
 
 
     let protoEditingPerson = null;
+
+    function dhiOpenPersonFromCard(type, email, name) {
+      const list = type === 'agent' ? (protoState.agents || []) : (protoState.customers || []);
+      const cleanEmail = String(email || '').trim().toLowerCase();
+      let found = cleanEmail ? list.find(x => (x.email || '').trim().toLowerCase() === cleanEmail) : null;
+      if (!found && name) {
+        const norm = (s) => String(s || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        const cands = [String(name).trim()];
+        String(name).split(/\s*(?:&|\/|,)\s*/).forEach(p => { if (p.trim() && !cands.includes(p.trim())) cands.push(p.trim()); });
+        const normCands = cands.map(norm).filter(Boolean);
+        for (const cand of normCands) {
+          found = list.find(x => norm(dhiSplitFullName(x.name, x.firstName, x.lastName).name) === cand);
+          if (found) break;
+        }
+      }
+      if (found && found.email) {
+        protoOpenPersonModal(type, found.email);
+        return;
+      }
+      // Fallback: open the directory modal pre-filled with the card's name/email so Admin can view or save them
+      const fallbackName = String(name || '').trim();
+      if (!fallbackName && !cleanEmail) {
+        protoToastMsg('No directory entry found for this ' + (type === 'agent' ? 'agent' : 'customer') + '.');
+        return;
+      }
+      protoEditingPerson = { type, origEmail: cleanEmail, id: '' };
+      document.getElementById('protoPersonModalType').textContent = type === 'agent' ? 'Agent Directory (Not Saved Yet)' : 'Customer Directory (Not Saved Yet)';
+      const sp = dhiSplitFullName(fallbackName, '', '');
+      document.getElementById('protoPersonModalTitle').textContent = sp.name || cleanEmail;
+      document.getElementById('protoPersonEditFirstName').value = sp.firstName || '';
+      document.getElementById('protoPersonEditLastName').value = sp.lastName || '';
+      document.getElementById('protoPersonEditEmail').value = cleanEmail || '';
+      document.getElementById('protoPersonEditPhone').value = '';
+      const brokWrap = document.getElementById('protoPersonBrokerageWrap');
+      const invWrap = document.getElementById('protoAgentInviteWrap');
+      if (type === 'agent') {
+        if (brokWrap) brokWrap.classList.remove('hidden');
+        document.getElementById('protoPersonEditBrokerage').value = '';
+        if (invWrap) invWrap.classList.remove('hidden');
+      } else {
+        if (brokWrap) brokWrap.classList.add('hidden');
+        if (invWrap) invWrap.classList.add('hidden');
+      }
+      const listEl = document.getElementById('protoPersonReportsList');
+      if (listEl) {
+        const related = (protoState.inspections || []).filter(i => {
+          if (i.isDemo) return false;
+          const eMatch = cleanEmail && ((type === 'agent' ? i.agentEmail : i.clientEmail) || '').toLowerCase() === cleanEmail;
+          const nMatch = fallbackName && ((type === 'agent' ? i.agentName : i.clientName) || '').toLowerCase() === fallbackName.toLowerCase();
+          return eMatch || nMatch;
+        });
+        listEl.innerHTML = related.length
+          ? related.map(i => `<div class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs"><div><div class="font-bold text-slate-900">${escapeHtml(i.address)}</div><div class="text-[11px] text-slate-500">${escapeHtml(i.date || '')}</div></div><button type="button" onclick="protoClosePersonModal(); protoOpenInspection('${i.id}')" class="px-2.5 py-1 rounded-lg bg-davis-navy text-white text-[11px] font-bold">Open</button></div>`).join('')
+          : '<p class="text-xs text-slate-400">No linked inspections found.</p>';
+      }
+      document.getElementById('protoPersonModal').classList.remove('hidden');
+    }
 
     function protoOpenPersonModal(type, email) {
       const targetEmail = (email || '').toLowerCase();
