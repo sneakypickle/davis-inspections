@@ -4922,8 +4922,8 @@ function submitInspectionQuoteRequest(payload) {
       const agentEmail = (document.getElementById('editInspAgentEmail')?.value || '').trim().toLowerCase();
       const standalone = !!document.getElementById('editInspStandalone')?.checked;
 
-      if (!street || !clientName || !clientEmail) {
-        protoToastMsg('Street Address, Buyer Name, and Buyer Email are required.');
+      if (!street || (!clientEmail && !agentEmail)) {
+        protoToastMsg('Street Address and at least a Buyer Email or Agent Email are required.');
         return;
       }
       const fullAddr = protoComposeAdminAddress(street, city, stateVal, zip);
@@ -5990,14 +5990,22 @@ function submitInspectionQuoteRequest(payload) {
                   </select>
                 </div>
                 <div class="sm:col-span-2">
-                  <label class="block font-bold text-slate-700 mb-1">Buyer Name *</label>
-                  <input id="protoNewClient" type="text" value="${escapeHtml(pre.clientName || '')}" oninput="protoUpdateCalPreview()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                    <label class="font-bold text-slate-700">Buyer Name ${pre.forAgentOnly ? '<span class="text-slate-400 font-normal">(skipped — For Agent)</span>' : '*'}</label>
+                    <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-davis-navy cursor-pointer select-none">
+                      <input id="protoNewForAgentOnly" type="checkbox" ${pre.forAgentOnly ? 'checked' : ''} onchange="protoSaveNewInspDraftInputs(); renderProtoPortal();" class="rounded border-slate-300 text-davis-navy" />
+                      <span>For Agent (no buyer)</span>
+                    </label>
+                  </div>
+                  <div class="${pre.forAgentOnly ? 'hidden' : ''}">
+                    <input id="protoNewClient" type="text" value="${escapeHtml(pre.clientName || '')}" oninput="protoUpdateCalPreview()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  </div>
                 </div>
-                <div>
+                <div class="${pre.forAgentOnly ? 'hidden' : ''}">
                   <label class="block font-bold text-slate-700 mb-1">Buyer Email *</label>
                   <input id="protoNewClientEmail" type="email" value="${escapeHtml(pre.clientEmail || '')}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
                 </div>
-                <div>
+                <div class="${pre.forAgentOnly ? 'hidden' : ''}">
                   <label class="block font-bold text-slate-700 mb-1">Buyer Phone</label>
                   <input id="protoNewClientPhone" type="tel" value="${escapeHtml(pre.clientPhone || '')}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
                 </div>
@@ -6242,6 +6250,7 @@ function submitInspectionQuoteRequest(payload) {
         agentEmail: document.getElementById('protoNewAgentEmail')?.value || '',
         agentName: document.getElementById('protoNewAgentName')?.value || '',
         standalone: !!document.getElementById('protoNewStandalone')?.checked,
+        forAgentOnly: !!document.getElementById('protoNewForAgentOnly')?.checked,
         additionalCustomers: dhiReadNewInspExtraContacts('customer'),
         additionalAgents: dhiReadNewInspExtraContacts('agent')
       };
@@ -6519,7 +6528,13 @@ function submitInspectionQuoteRequest(payload) {
           }, { onConflict: 'email' }).then(() => {}).catch(() => {});
         }
       }
-      if (!addr || !client || !email) {
+      const forAgentOnly = !!document.getElementById('protoNewForAgentOnly')?.checked;
+      if (forAgentOnly) {
+        if (!addr || !agentEmail) {
+          protoToastMsg('Please enter at least the Property Address and Agent Email.');
+          return;
+        }
+      } else if (!addr || !client || !email) {
         protoToastMsg('Please enter at least the Property Address, Buyer Name, and Buyer Email.');
         return;
       }
@@ -6549,10 +6564,15 @@ function submitInspectionQuoteRequest(payload) {
         details: gcalDetails
       });
 
-      await protoUpsertCustomer({ firstName: clientSplit.firstName, lastName: clientSplit.lastName, name: clientSplit.name, email, phone, lastAddress: addr });
+      if (!forAgentOnly && email) {
+        await protoUpsertCustomer({ firstName: clientSplit.firstName, lastName: clientSplit.lastName, name: clientSplit.name, email, phone, lastAddress: addr });
+      }
 
       let newId = 'insp-' + Date.now();
-      const allCustsNew = [{ name: clientSplit.name || email, email: email.toLowerCase() }, ...extraCustsNew];
+      const allCustsNew = forAgentOnly
+        ? [...extraCustsNew]
+        : [{ name: clientSplit.name || email, email: email.toLowerCase() }, ...extraCustsNew];
+      if (forAgentOnly) propInfoObj.forAgentOnly = true;
       const allAgsNew = (agentSplit.name || agentEmail) ? [{ name: agentSplit.name || agentEmail, email: agentEmail.toLowerCase() }, ...extraAgsNew] : extraAgsNew;
       const addlClientEmailsNew = extraCustsNew.map(c => (c.email || '').toLowerCase()).filter(e => e && e !== email.toLowerCase());
       const addlAgentEmailsNew = extraAgsNew.map(a => (a.email || '').toLowerCase()).filter(e => e && e !== agentEmail.toLowerCase());
@@ -6570,10 +6590,10 @@ function submitInspectionQuoteRequest(payload) {
         const createPayload = {
           address: addr,
           inspection_date: dateStr,
-          client_first_name: clientSplit.firstName,
-          client_last_name: clientSplit.lastName,
-          client_name: clientSplit.name,
-          client_email: email.toLowerCase(),
+          client_first_name: forAgentOnly ? '' : clientSplit.firstName,
+          client_last_name: forAgentOnly ? '' : clientSplit.lastName,
+          client_name: forAgentOnly ? '' : clientSplit.name,
+          client_email: forAgentOnly ? '' : email.toLowerCase(),
           agent_first_name: agentSplit.firstName,
           agent_last_name: agentSplit.lastName,
           agent_name: agentSplit.name,
@@ -6652,7 +6672,9 @@ function submitInspectionQuoteRequest(payload) {
       }
 
       if (dhiSupabase) {
-        const recipients = allCustsNew.filter(c => c.email);
+        const recipients = allCustsNew.filter(c => c.email).length
+          ? allCustsNew.filter(c => c.email)
+          : allAgsNew.filter(a => a.email);
         for (const rec of recipients) {
           try {
             await dhiSupabase.functions.invoke('send-portal-email', {
@@ -6671,7 +6693,7 @@ function submitInspectionQuoteRequest(payload) {
           }
         }
       }
-      protoToastMsg('Inspection scheduled, Google Calendar opened, & confirmation sent to ' + email + '!');
+      protoToastMsg('Inspection scheduled, Google Calendar opened, & confirmation sent to ' + (forAgentOnly ? agentEmail : email) + '!');
     }
 
     function protoParseHomeGaugeHtml(htmlText) {
@@ -7066,9 +7088,13 @@ function submitInspectionQuoteRequest(payload) {
           }
         }
         const targetCusts = dhiGetInspCustomers(insp).filter(c => c.email);
-        const recipients = targetCusts.length ? targetCusts : (insp.clientEmail ? [{ name: insp.clientName || 'Customer', email: insp.clientEmail }] : []);
+        const targetAgs = dhiGetInspAgents(insp).filter(a => a.email);
+        const recipients = targetCusts.length
+          ? targetCusts
+          : (insp.clientEmail ? [{ name: insp.clientName || 'Customer', email: insp.clientEmail }]
+            : (targetAgs.length ? targetAgs : (insp.agentEmail ? [{ name: insp.agentName || 'Agent', email: insp.agentEmail }] : [])));
         if (!recipients.length) {
-          protoToastMsg('No customer email address on this inspection.');
+          protoToastMsg('No customer or agent email address on this inspection.');
           return;
         }
         for (const rec of recipients) {
