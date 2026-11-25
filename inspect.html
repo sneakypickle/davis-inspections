@@ -784,7 +784,9 @@
       if (!m) {
         return {
           label: 'PPRBD Permits',
-          url: 'https://account.pprbd.org/publicaccess/AddressSearch.aspx'
+          url: 'https://www.pprbd.org/Search/Permit',
+          streetText: cleanedStreet || street,
+          autoSearch: false
         };
       }
 
@@ -805,10 +807,12 @@
         'AVE': 'AVE', 'AVENUE': 'AVE', 'AV': 'AVE',
         'BLVD': 'BLVD', 'BOULEVARD': 'BLVD',
         'CIR': 'CIR', 'CIRCLE': 'CIR',
+        'CRES': 'CRES', 'CRESCENT': 'CRES',
         'CT': 'CT', 'COURT': 'CT',
         'CV': 'CV', 'COVE': 'CV',
         'DR': 'DR', 'DRIVE': 'DR',
         'EXPY': 'EXPY', 'EXPRESSWAY': 'EXPY',
+        'GLN': 'GLN', 'GLEN': 'GLN',
         'GRV': 'GRV', 'GROVE': 'GRV',
         'HTS': 'HTS', 'HEIGHTS': 'HTS',
         'HWY': 'HWY', 'HIGHWAY': 'HWY',
@@ -817,14 +821,21 @@
         'PATH': 'PATH',
         'PKWY': 'PKWY', 'PARKWAY': 'PKWY',
         'PL': 'PL', 'PLACE': 'PL',
-        'PT': 'PT', 'POINT': 'PT',
+        'PLZ': 'PLZ', 'PLAZA': 'PLZ',
+        'PT': 'PT', 'POINT': 'PT', 'POINTE': 'PT',
+        'PTWY': 'PTWY', 'PORTWAY': 'PTWY', 'POINTWAY': 'PTWY',
         'RD': 'RD', 'ROAD': 'RD',
+        'RDG': 'RDG', 'RIDGE': 'RDG',
+        'RUN': 'RUN',
         'SQ': 'SQ', 'SQUARE': 'SQ',
         'ST': 'ST', 'STREET': 'ST',
         'TER': 'TER', 'TERRACE': 'TER', 'TERR': 'TER',
+        'TRCE': 'TRCE', 'TRACE': 'TRCE',
         'TRL': 'TRL', 'TRAIL': 'TRL',
+        'VIS': 'VIS', 'VISTA': 'VIS',
         'VW': 'VW', 'VIEW': 'VW',
-        'WAY': 'WAY', 'WY': 'WAY'
+        'WAY': 'WAY', 'WY': 'WAY',
+        'XING': 'XING', 'CROSSING': 'XING'
       };
 
       let stType = '';
@@ -835,19 +846,50 @@
       if (!stName) {
         return {
           label: 'PPRBD Permits',
-          url: 'https://account.pprbd.org/publicaccess/AddressSearch.aspx'
+          url: 'https://www.pprbd.org/Search/Permit',
+          streetText: cleanedStreet || street,
+          autoSearch: false
         };
       }
 
-      const url = 'https://account.pprbd.org/publicaccess/PermitSearchResults.aspx'
-        + '?StLo=' + encodeURIComponent(houseNum)
-        + '&StHi=' + encodeURIComponent(houseNum)
-        + '&StDir=' + encodeURIComponent(stDir)
-        + '&StName=' + encodeURIComponent(stName)
-        + '&StType=' + encodeURIComponent(stType)
-        + '&SearchType=Permits'
-        + '&BackLink=AddressSearch.aspx';
-      return { label: 'PPRBD Permits', url, streetText: cleanedStreet };
+      const url = 'https://www.pprbd.org/Search/Permit'
+        + '?SearchType=By%20Address'
+        + '&lowstnum=' + encodeURIComponent(houseNum)
+        + '&histnum=' + encodeURIComponent(houseNum)
+        + '&stdir=' + encodeURIComponent(stDir)
+        + '&stname=' + encodeURIComponent(stName)
+        + '&sttype=' + encodeURIComponent(stType)
+        + '&WhichSearch=Basic'
+        + '&AutoSearch=True';
+      return { label: 'PPRBD Permits', url, streetText: cleanedStreet, autoSearch: true };
+    }
+
+    function dhiOpenFieldPermitLookup(btn) {
+      if (!btn) return;
+      const url = btn.dataset.url || 'https://www.pprbd.org/Search/Permit';
+      const street = (btn.dataset.street || '').trim();
+      const isAuto = url.indexOf('AutoSearch=True') !== -1;
+      window.open(url, '_blank', 'noopener,noreferrer');
+      if (street) {
+        const done = () => toast(isAuto
+          ? ('Opening PPRBD permits for "' + street + '" (address also copied).')
+          : ('Copied "' + street + '" to clipboard. Paste it into the permit search page.'));
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(street).then(done).catch(() => {});
+        } else {
+          try {
+            const ta = document.createElement('textarea');
+            ta.value = street;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            done();
+          } catch (_e) {}
+        }
+      }
     }
 
     function buildBlankDraftFromTemplate(insp) {
@@ -1990,7 +2032,8 @@
             city: state.draft.propertyInfo.city || '',
             county: state.draft.propertyInfo.county || ''
           });
-          pLinkEl.href = pl.url;
+          pLinkEl.dataset.url = pl.url;
+          pLinkEl.dataset.street = pl.streetText || state.draft.propertyInfo.street || '';
           pLinkEl.textContent = pl.label + ' \u2197';
         }
       }
@@ -4064,7 +4107,7 @@
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-              <a href="${permitInfo.url}" target="_blank" rel="noopener noreferrer" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">${esc(permitInfo.label)} &nearr;</a>
+              <button type="button" data-url="${esc(permitInfo.url)}" data-street="${esc(permitInfo.streetText || pInfo.street || (i.address || '').split(',')[0].trim())}" onclick="dhiOpenFieldPermitLookup(this)" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">${esc(permitInfo.label)} &nearr;</button>
               <button type="button" onclick="openInspectionDraft('${i.id}')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Open in editor &rarr;</button>
             </div>
           </div>`;
@@ -4127,15 +4170,14 @@
       const smCards = (sec.stylesMaterials || []).map((sm, smIdx) => {
         const selected = new Set((sm.value || '').split(',').map(x => x.trim()).filter(Boolean));
         const chips = (sm.options || []).map(opt => {
-          const safeOpt = esc(opt).replace(/'/g, "\\'");
           if (state.editTemplateMode) {
             return `
               <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold border border-slate-300 bg-slate-50 text-slate-700">
                 ${esc(opt)}
-                <button type="button" onclick="removeSMOptionChip(${state.activeSecIdx}, ${smIdx}, '${safeOpt}')" class="text-rose-600 hover:text-rose-800 font-bold ml-0.5">&times;</button>
+                <button type="button" data-val="${esc(opt)}" onclick="removeSMOptionChip(${state.activeSecIdx}, ${smIdx}, this.dataset.val)" class="text-rose-600 hover:text-rose-800 font-bold ml-0.5">&times;</button>
               </span>`;
           }
-          return `<button type="button" onclick="toggleSMOption(${state.activeSecIdx}, ${smIdx}, '${safeOpt}')" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${selected.has(opt) ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
+          return `<button type="button" data-val="${esc(opt)}" onclick="toggleSMOption(${state.activeSecIdx}, ${smIdx}, this.dataset.val)" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${selected.has(opt) ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
         }).join('');
         return `
           <div class="p-3 rounded-xl border ${state.editTemplateMode ? 'border-amber-300 bg-amber-50/30' : (!String(sm.value || '').trim() ? 'border-rose-300 bg-rose-50/30' : 'border-slate-300 bg-white')} space-y-2">
@@ -4270,7 +4312,7 @@
               <button type="button" onclick="closeActiveDraft()" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">&larr; All inspections</button>
               ${(() => {
                 const pl = dhiBuildPermitLink({ address: state.draft.address, street: pi.street || '', city: pi.city || '', county: pi.county || '' });
-                return `<a id="dhiTopPermitLink" href="${pl.url}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl border border-sky-200 bg-sky-50 hover:border-davis-navy text-davis-navy text-xs font-bold transition">${esc(pl.label)} &nearr;</a>`;
+                return `<button type="button" id="dhiTopPermitLink" data-url="${esc(pl.url)}" data-street="${esc(pl.streetText || pi.street || (state.draft.address || '').split(',')[0].trim())}" onclick="dhiOpenFieldPermitLookup(this)" class="px-3 py-1.5 rounded-xl border border-sky-200 bg-sky-50 hover:border-davis-navy text-davis-navy text-xs font-bold transition">${esc(pl.label)} &nearr;</button>`;
               })()}
               <span class="text-xs font-bold text-slate-500">${state.draft.dirty ? 'Unsynced local changes' : 'Synced'}</span>
             </div>
@@ -4422,7 +4464,7 @@
                     <div class="flex flex-wrap gap-1">
                       ${DHI_BUILDING_TYPES.map(opt => {
                         const sel = (pi.buildingType || '').split(',').map(x => x.trim()).includes(opt);
-                        return `<button type="button" onclick="togglePropChip('buildingType', '${esc(opt).replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
+                        return `<button type="button" data-val="${esc(opt)}" onclick="togglePropChip('buildingType', this.dataset.val)" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
                       }).join('')}
                     </div>
                   </div>
@@ -4434,7 +4476,7 @@
                     <div class="flex flex-wrap gap-1">
                       ${DHI_ATTENDANCE_OPTIONS.map(opt => {
                         const sel = (pi.inAttendance || '').split(',').map(x => x.trim()).includes(opt);
-                        return `<button type="button" onclick="togglePropChip('inAttendance', '${esc(opt).replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
+                        return `<button type="button" data-val="${esc(opt)}" onclick="togglePropChip('inAttendance', this.dataset.val)" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
                       }).join('')}
                     </div>
                   </div>

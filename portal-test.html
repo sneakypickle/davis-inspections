@@ -140,6 +140,10 @@
       .dhi-print-photo-tile { break-inside: avoid; page-break-inside: avoid; }
     }
   </style>
+  <style>
+    .dhi-no-scrollbar::-webkit-scrollbar { display: none; }
+    .dhi-no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
@@ -1985,7 +1989,13 @@ function submitInspectionQuoteRequest(payload) {
       // Keep the normal site header and container layout across all pages including Client Sign-In
       const mainHeader = document.getElementById('mainSiteHeader');
       const mainContainer = document.getElementById('mainContentContainer');
-      if (mainHeader) mainHeader.classList.remove('hidden');
+      if (mainHeader) {
+        mainHeader.classList.remove('hidden');
+        if (pageKey !== 'portal') {
+          mainHeader.classList.remove('md:sticky', 'md:top-0');
+          mainHeader.classList.add('sticky', 'top-0');
+        }
+      }
       if (mainContainer) mainContainer.className = 'flex-grow max-w-6xl w-full mx-auto px-4 py-6 pb-12';
 
       // Update Return to Checklist Banner if user clicked an info page from the checklist
@@ -2749,7 +2759,7 @@ function submitInspectionQuoteRequest(payload) {
             temperature: '68°F',
             groundConditions: 'Dry',
             standardsOfPractice: 'ASHI',
-            permitShare: { buyer: false, agent: true }
+            permitShare: { buyer: true, agent: true }
           },
           clientName: 'John Miller',
           clientEmail: 'john.miller@example.com',
@@ -3163,9 +3173,75 @@ function submitInspectionQuoteRequest(payload) {
       return insp.services.reduce((s, x) => s + Number(x.price || 0), 0);
     }
 
+    function dhiSyncMainHeaderSticky() {
+      const mainHeader = document.getElementById('mainSiteHeader');
+      if (!mainHeader) return;
+      const portalSec = document.getElementById('page-portal');
+      const isPortalVisible = portalSec && !portalSec.classList.contains('hidden');
+      if (isPortalVisible && protoState.viewingReport) {
+        // Scroll main site header away on both desktop & mobile while viewing a report
+        mainHeader.classList.remove('sticky', 'top-0', 'md:sticky', 'md:top-0');
+      } else if (isPortalVisible && protoState.role === 'admin') {
+        // Scroll main site header away on mobile when on Admin dashboard so Admin nav sticks cleanly
+        mainHeader.classList.remove('sticky', 'top-0');
+        mainHeader.classList.add('md:sticky', 'md:top-0');
+      } else {
+        mainHeader.classList.remove('md:sticky', 'md:top-0');
+        mainHeader.classList.add('sticky', 'top-0');
+      }
+    }
+
+    function dhiJumpToReportSection(target) {
+      const dd = document.getElementById('dhiJumpSectionDetails');
+      if (dd) dd.open = false;
+      if (target === '__top__') {
+        const el = document.getElementById('dhiReportTop');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        else window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      if (target === '__filter__') {
+        const el = document.getElementById('dhiReportFilterBar');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      if (target === '__objections__') {
+        const el = document.getElementById('objectionListPanel');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      const secNum = String(target);
+      let needsRender = false;
+      if (protoState.reportFilter !== 'All' && String(protoState.reportFilter) !== secNum) {
+        protoState.reportFilter = 'All';
+        needsRender = true;
+      }
+      const isBuyerView = protoState.role === 'buyer' || (protoState.demoMode && protoState.activeCollaborator.includes('Buyer'));
+      const showSummaryOnly = isBuyerView ? (protoState.buyerFilterMode === 'summary') : (protoState.agentViewMode === 'summary');
+      if (showSummaryOnly) {
+        const hasSummaryInSec = (protoState.findings || []).some(f => String(f.sectionNum) === secNum && f.isSummary);
+        if (!hasSummaryInSec) {
+          if (isBuyerView) protoState.buyerFilterMode = 'all';
+          else protoState.agentViewMode = 'full';
+          needsRender = true;
+        }
+      }
+      const doScroll = () => {
+        const el = document.getElementById('dhiReportSec-' + secNum);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      if (needsRender) {
+        renderProtoPortal();
+        setTimeout(doScroll, 40);
+      } else {
+        doScroll();
+      }
+    }
+
     function renderProtoPortal() {
       const root = document.getElementById('protoPortalRoot');
       if (!root) return;
+      dhiSyncMainHeaderSticky();
 
       if (protoState.viewingReport) {
         root.innerHTML = renderReportViewerHTML();
@@ -4086,7 +4162,9 @@ function submitInspectionQuoteRequest(payload) {
       if (!m) {
         return {
           label: 'PPRBD Permits',
-          url: 'https://account.pprbd.org/publicaccess/AddressSearch.aspx'
+          url: 'https://www.pprbd.org/Search/Permit',
+          streetText: cleanedStreet || street,
+          autoSearch: false
         };
       }
 
@@ -4107,10 +4185,12 @@ function submitInspectionQuoteRequest(payload) {
         'AVE': 'AVE', 'AVENUE': 'AVE', 'AV': 'AVE',
         'BLVD': 'BLVD', 'BOULEVARD': 'BLVD',
         'CIR': 'CIR', 'CIRCLE': 'CIR',
+        'CRES': 'CRES', 'CRESCENT': 'CRES',
         'CT': 'CT', 'COURT': 'CT',
         'CV': 'CV', 'COVE': 'CV',
         'DR': 'DR', 'DRIVE': 'DR',
         'EXPY': 'EXPY', 'EXPRESSWAY': 'EXPY',
+        'GLN': 'GLN', 'GLEN': 'GLN',
         'GRV': 'GRV', 'GROVE': 'GRV',
         'HTS': 'HTS', 'HEIGHTS': 'HTS',
         'HWY': 'HWY', 'HIGHWAY': 'HWY',
@@ -4119,14 +4199,21 @@ function submitInspectionQuoteRequest(payload) {
         'PATH': 'PATH',
         'PKWY': 'PKWY', 'PARKWAY': 'PKWY',
         'PL': 'PL', 'PLACE': 'PL',
-        'PT': 'PT', 'POINT': 'PT',
+        'PLZ': 'PLZ', 'PLAZA': 'PLZ',
+        'PT': 'PT', 'POINT': 'PT', 'POINTE': 'PT',
+        'PTWY': 'PTWY', 'PORTWAY': 'PTWY', 'POINTWAY': 'PTWY',
         'RD': 'RD', 'ROAD': 'RD',
+        'RDG': 'RDG', 'RIDGE': 'RDG',
+        'RUN': 'RUN',
         'SQ': 'SQ', 'SQUARE': 'SQ',
         'ST': 'ST', 'STREET': 'ST',
         'TER': 'TER', 'TERRACE': 'TER', 'TERR': 'TER',
+        'TRCE': 'TRCE', 'TRACE': 'TRCE',
         'TRL': 'TRL', 'TRAIL': 'TRL',
+        'VIS': 'VIS', 'VISTA': 'VIS',
         'VW': 'VW', 'VIEW': 'VW',
-        'WAY': 'WAY', 'WY': 'WAY'
+        'WAY': 'WAY', 'WY': 'WAY',
+        'XING': 'XING', 'CROSSING': 'XING'
       };
 
       let stType = '';
@@ -4137,29 +4224,41 @@ function submitInspectionQuoteRequest(payload) {
       if (!stName) {
         return {
           label: 'PPRBD Permits',
-          url: 'https://account.pprbd.org/publicaccess/AddressSearch.aspx'
+          url: 'https://www.pprbd.org/Search/Permit',
+          streetText: cleanedStreet || street,
+          autoSearch: false
         };
       }
 
-      const url = 'https://account.pprbd.org/publicaccess/PermitSearchResults.aspx'
-        + '?StLo=' + encodeURIComponent(houseNum)
-        + '&StHi=' + encodeURIComponent(houseNum)
-        + '&StDir=' + encodeURIComponent(stDir)
-        + '&StName=' + encodeURIComponent(stName)
-        + '&StType=' + encodeURIComponent(stType)
-        + '&SearchType=Permits'
-        + '&BackLink=AddressSearch.aspx';
-      return { label: 'PPRBD Permits', url, streetText: cleanedStreet };
+      const url = 'https://www.pprbd.org/Search/Permit'
+        + '?SearchType=By%20Address'
+        + '&lowstnum=' + encodeURIComponent(houseNum)
+        + '&histnum=' + encodeURIComponent(houseNum)
+        + '&stdir=' + encodeURIComponent(stDir)
+        + '&stname=' + encodeURIComponent(stName)
+        + '&sttype=' + encodeURIComponent(stType)
+        + '&WhichSearch=Basic'
+        + '&AutoSearch=True';
+      return { label: 'PPRBD Permits', url, streetText: cleanedStreet, autoSearch: true };
     }
 
+
+    function dhiGetPermitShare(pInfo) {
+      const ps = (pInfo && pInfo.permitShare && typeof pInfo.permitShare === 'object') ? pInfo.permitShare : {};
+      return {
+        agent: ps.agent !== false,
+        buyer: ps.buyer !== false
+      };
+    }
 
     async function protoTogglePermitShare(inspId, targetRole, checked) {
       const insp = (protoState.inspections || []).find(i => i.id === inspId);
       if (!insp) return;
       insp.propertyInfo = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? { ...insp.propertyInfo } : {};
+      const curShare = dhiGetPermitShare(insp.propertyInfo);
       insp.propertyInfo.permitShare = {
-        buyer: !!(insp.propertyInfo.permitShare && insp.propertyInfo.permitShare.buyer),
-        agent: !!(insp.propertyInfo.permitShare && insp.propertyInfo.permitShare.agent),
+        buyer: curShare.buyer,
+        agent: curShare.agent,
         [targetRole]: !!checked
       };
       renderProtoPortal();
@@ -4247,26 +4346,29 @@ function submitInspectionQuoteRequest(payload) {
       protoToastMsg('Copied for Mainline: ' + msg);
     }
 
-    async function protoOpenBuyerPermitLookup(inspId) {
+    function protoOpenBuyerPermitLookup(inspId) {
       const insp = (protoState.inspections || []).find(i => i.id === inspId);
       if (!insp) return;
       const pInfo = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
       const parsed = dhiParseAddrParts(insp.address || '');
-      const streetToCopy = (pInfo.street || parsed.street || insp.address || '').trim();
       const pLink = dhiBuildPermitLink({
         address: insp.address,
         street: pInfo.street || '',
         city: pInfo.city || '',
         county: pInfo.county || ''
       });
-      const targetUrl = (pLink.label === 'PPRBD Permits')
-        ? 'https://account.pprbd.org/publicaccess/AddressSearch.aspx'
-        : pLink.url;
-      if (streetToCopy) {
-        await dhiCopyTextToClipboard(streetToCopy);
-        protoToastMsg('Copied "' + streetToCopy + '" — paste it into the permit search page.');
-      }
+      const streetToCopy = (pLink.streetText || pInfo.street || parsed.street || insp.address || '').trim();
+      const targetUrl = pLink.url || 'https://www.pprbd.org/Search/Permit';
       window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      if (streetToCopy) {
+        dhiCopyTextToClipboard(streetToCopy).then(() => {
+          if (pLink.autoSearch) {
+            protoToastMsg('Opening PPRBD permits for "' + streetToCopy + '" (address also copied).');
+          } else {
+            protoToastMsg('Copied "' + streetToCopy + '" to clipboard. Paste it into the permit search page.');
+          }
+        }).catch(() => {});
+      }
     }
 
 
@@ -4794,24 +4896,30 @@ function submitInspectionQuoteRequest(payload) {
                   <div class="text-xs font-semibold text-slate-500">${escapeHtml(insp.date || '')}</div>
                   <div class="flex flex-wrap items-start gap-4 pt-1">
                     <div class="flex flex-col items-start gap-1.5">
-                    <a href="${permitInfo.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-[11px] font-bold transition">${escapeHtml(permitInfo.label)} &nearr;</a>
-                    <details class="relative inline-block">
+                    <button type="button" onclick="protoOpenBuyerPermitLookup('${insp.id}')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-[11px] font-bold transition">${escapeHtml(permitInfo.label)} &nearr;</button>
+                    ${(() => {
+                      const ps = dhiGetPermitShare(pInfo);
+                      const labelStr = (ps.agent || ps.buyer)
+                        ? ': ' + [ps.agent ? 'Agent' : '', ps.buyer ? 'Buyer' : ''].filter(Boolean).join(' & ')
+                        : ': Off';
+                      return `<details class="relative inline-block">
                       <summary class="list-none cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-200 bg-white hover:border-davis-navy text-slate-600 text-[11px] font-semibold select-none">
-                        <span>Share Permits${(pInfo.permitShare && (pInfo.permitShare.buyer || pInfo.permitShare.agent)) ? ': ' + [pInfo.permitShare.agent ? 'Agent' : '', pInfo.permitShare.buyer ? 'Buyer' : ''].filter(Boolean).join(' & ') : ': Off'}</span>
+                        <span>Share Permits${labelStr}</span>
                         <span class="text-[9px]">&#9662;</span>
                       </summary>
                       <div class="absolute left-0 mt-1 z-30 w-44 rounded-xl border border-slate-200 bg-white shadow-lg p-2.5 space-y-1.5 text-xs">
                         <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Show permit link to</div>
                         <label class="flex items-center gap-2 cursor-pointer text-slate-700 font-semibold">
-                          <input type="checkbox" ${pInfo.permitShare && pInfo.permitShare.agent ? 'checked' : ''} onchange="protoTogglePermitShare('${insp.id}', 'agent', this.checked)" class="rounded border-slate-300" />
+                          <input type="checkbox" ${ps.agent ? 'checked' : ''} onchange="protoTogglePermitShare('${insp.id}', 'agent', this.checked)" class="rounded border-slate-300" />
                           <span>Agent</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer text-slate-700 font-semibold">
-                          <input type="checkbox" ${pInfo.permitShare && pInfo.permitShare.buyer ? 'checked' : ''} onchange="protoTogglePermitShare('${insp.id}', 'buyer', this.checked)" class="rounded border-slate-300" />
+                          <input type="checkbox" ${ps.buyer ? 'checked' : ''} onchange="protoTogglePermitShare('${insp.id}', 'buyer', this.checked)" class="rounded border-slate-300" />
                           <span>Buyer</span>
                         </label>
                       </div>
-                    </details>
+                    </details>`;
+                    })()}
                     </div>
                     <div class="pl-4 border-l border-slate-200 pt-0.5">
                       <button type="button" onclick="dhiOpenForwardModal('${insp.id}')" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 hover:text-davis-navy text-slate-800 text-[11px] font-bold transition">Forward Report</button>
@@ -5342,18 +5450,18 @@ function submitInspectionQuoteRequest(payload) {
 
       return `
         <div class="space-y-5">
-          <div class="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
-            <div class="flex flex-wrap items-center justify-between gap-2.5">
-              <div class="flex flex-wrap items-center gap-2">
+          <div class="sticky top-0 md:static z-20 bg-white/95 md:bg-white backdrop-blur md:backdrop-blur-none rounded-2xl border border-slate-200 p-2.5 sm:p-4 space-y-2 sm:space-y-3 shadow-md md:shadow-sm">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto md:flex-wrap dhi-no-scrollbar min-w-0 flex-1 py-0.5">
                 ${tabBtns}
               </div>
-              <button type="button" onclick="protoState.adminTab='new'; renderProtoPortal();" class="px-4 py-2 rounded-xl text-xs font-extrabold transition shadow-sm ${protoState.adminTab === 'new' ? 'bg-emerald-700 text-white ring-2 ring-emerald-300' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}">+ New Inspection</button>
+              <button type="button" onclick="protoState.adminTab='new'; renderProtoPortal();" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-extrabold transition shadow-sm shrink-0 whitespace-nowrap ${protoState.adminTab === 'new' ? 'bg-emerald-700 text-white ring-2 ring-emerald-300' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}">+ New Inspection</button>
             </div>
-            <div class="flex flex-wrap items-center justify-between gap-2.5 pt-2.5 border-t border-slate-100">
-              <a href="./inspect.html" class="px-3.5 py-1.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-bold transition">Field &amp; Report App &rarr;</a>
-              <div class="flex items-center gap-2.5 ml-auto">
-                <span class="text-xs font-semibold text-slate-500">${escapeHtml(protoState.authUser?.email || 'Matt@Davis-Inspections.com')}</span>
-                <button type="button" onclick="dhiSignOut()" class="px-3.5 py-1.5 rounded-xl border border-slate-300 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-xs font-bold transition">Sign Out</button>
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+              <a href="./inspect.html" class="px-3 sm:px-3.5 py-1.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-[11px] sm:text-xs font-bold transition whitespace-nowrap">Field &amp; Report App &rarr;</a>
+              <div class="flex items-center gap-2 sm:gap-2.5 ml-auto">
+                <span class="hidden sm:inline text-xs font-semibold text-slate-500">${escapeHtml(protoState.authUser?.email || 'Matt@Davis-Inspections.com')}</span>
+                <button type="button" onclick="dhiSignOut()" class="px-3 sm:px-3.5 py-1.5 rounded-xl border border-slate-300 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-[11px] sm:text-xs font-bold transition">Sign Out</button>
               </div>
             </div>
           </div>
@@ -5626,7 +5734,7 @@ function submitInspectionQuoteRequest(payload) {
       const buildingType = (document.getElementById('protoNewBuildingType')?.value || '').trim();
       const pendingCoverDataUrl = (protoState.newInspDraft && protoState.newInspDraft.coverPhotoDataUrl) || '';
       const addr = protoComposeAdminAddress(street, city, stateVal, zip);
-      const propInfoObj = { address: addr, street, city, state: stateVal, zip, county, mls, yearBuilt, sqft, buildingType, standardsOfPractice: 'ASHI' };
+      const propInfoObj = { address: addr, street, city, state: stateVal, zip, county, mls, yearBuilt, sqft, buildingType, standardsOfPractice: 'ASHI', permitShare: { buyer: true, agent: true } };
       dhiRememberAddrHistory({ city, state: stateVal, county, zip });
       const dateOnly = (document.getElementById('protoNewDateOnly')?.value || '').trim();
       const timeOnly = (document.getElementById('protoNewTimeOnly')?.value || '').trim();
@@ -7744,9 +7852,9 @@ function submitInspectionQuoteRequest(payload) {
         protoState.activeDocTab = extraDocs[0].id;
       }
       const docTabs = (allowMainTab ? [
-        `<button type="button" onclick="protoState.activeDocTab='main'; renderProtoPortal();" class="px-3.5 py-2 rounded-xl text-xs font-bold transition ${protoState.activeDocTab === 'main' ? 'bg-davis-navy text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">Main Home Inspection</button>`
+        `<button type="button" onclick="protoState.activeDocTab='main'; renderProtoPortal();" class="px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition shrink-0 whitespace-nowrap ${protoState.activeDocTab === 'main' ? 'bg-davis-navy text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}"><span class="hidden sm:inline">Main Home Inspection</span><span class="sm:hidden">Main Inspection</span></button>`
       ] : []).concat(extraDocs.map(d => `
-        <button type="button" onclick="protoState.activeDocTab='${d.id}'; renderProtoPortal();" class="px-3.5 py-2 rounded-xl text-xs font-bold transition ${protoState.activeDocTab === d.id ? 'bg-davis-navy text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">${d.title} <span class="opacity-75">(PDF)</span></button>
+        <button type="button" onclick="protoState.activeDocTab='${d.id}'; renderProtoPortal();" class="px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition shrink-0 whitespace-nowrap ${protoState.activeDocTab === d.id ? 'bg-davis-navy text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">${d.title} <span class="opacity-75">(PDF)</span></button>
       `)).join('');
 
       const collabPills = Object.keys(COLLAB_COLORS).map(name => `
@@ -7757,59 +7865,87 @@ function submitInspectionQuoteRequest(payload) {
       `).join('');
 
       const activeExtraDoc = protoState.activeDocTab !== 'main' ? (extraDocs.find(d => d.id === protoState.activeDocTab) || extraDocs[0] || null) : null;
+      const jumpSectionItemsHTML = (protoState.sections || []).map(sec => {
+        const allInSec = (protoState.findings || []).filter(f => String(f.sectionNum) === String(sec.num));
+        if (!allInSec.length) return '';
+        const sumInSec = allInSec.filter(f => f.isSummary).length;
+        const badge = sumInSec > 0
+          ? `<span class="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold shrink-0">${sumInSec}</span>`
+          : `<span class="text-[10px] text-slate-400 shrink-0">${allInSec.length}</span>`;
+        return `<button type="button" onclick="dhiJumpToReportSection('${sec.num}')" class="w-full text-left px-3 py-1.5 rounded-lg hover:bg-slate-100 font-semibold text-slate-700 flex items-center justify-between gap-2"><span class="truncate">${sec.num}. ${escapeHtml(sec.name)}</span>${badge}</button>`;
+      }).join('');
+
       const headerAndDocsBar = `
-        <div class="bg-white rounded-2xl border border-slate-200 px-4 py-3 space-y-2.5 shadow-sm no-print">
-          <div class="flex flex-wrap items-center justify-between gap-2.5">
-            <div class="flex flex-wrap items-center gap-2.5">
+        <div id="dhiStickyReportBar" class="sticky top-0 z-30 bg-white/95 backdrop-blur rounded-2xl border border-slate-200 px-2.5 sm:px-4 py-2 sm:py-2.5 space-y-2 shadow-md no-print">
+          <div class="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs">
               ${protoState.demoMode
-                ? `<button type="button" onclick="protoExitDemoToSamples()" class="text-xs font-bold text-slate-600 hover:text-davis-navy">← Back to Sample Reports</button><span class="text-slate-300">|</span><button type="button" onclick="protoLaunchSampleDemo()" class="text-xs font-bold text-sky-700 hover:underline">Switch View (Buyer / Agent)</button>`
-                : `<button type="button" onclick="protoState.viewingReport=false; renderProtoPortal();" class="text-xs font-bold text-sky-700 hover:underline">← Back to Dashboard</button><span class="text-slate-300">|</span><button type="button" onclick="dhiSignOut()" class="text-xs font-semibold text-slate-500 hover:text-rose-600">Sign Out</button>`}
-              ${activeExtraDoc ? `<span class="text-slate-300 hidden sm:inline">|</span><span class="text-xs font-bold text-slate-700 truncate max-w-xs hidden sm:inline">${escapeHtml(insp.address)}</span>` : ''}
+                ? `<button type="button" onclick="protoExitDemoToSamples()" class="font-bold text-slate-600 hover:text-davis-navy whitespace-nowrap"><span class="hidden sm:inline">&larr; Back to Sample Reports</span><span class="sm:hidden">&larr; Back</span></button><span class="text-slate-300">|</span><button type="button" onclick="protoLaunchSampleDemo()" class="font-bold text-sky-700 hover:underline whitespace-nowrap"><span class="hidden sm:inline">Switch View (Buyer / Agent)</span><span class="sm:hidden">Switch View</span></button>`
+                : `<button type="button" onclick="protoState.viewingReport=false; renderProtoPortal();" class="font-bold text-sky-700 hover:underline whitespace-nowrap"><span class="hidden sm:inline">&larr; Back to Dashboard</span><span class="sm:hidden">&larr; Back</span></button><span class="text-slate-300">|</span><button type="button" onclick="dhiSignOut()" class="font-semibold text-slate-500 hover:text-rose-600 whitespace-nowrap">Sign Out</button>`}
+              ${activeExtraDoc ? `<span class="text-slate-300 hidden md:inline">|</span><span class="text-xs font-bold text-slate-700 truncate max-w-xs hidden md:inline">${escapeHtml(insp.address)}</span>` : ''}
             </div>
-            <div class="flex flex-wrap items-center gap-2 no-print">
+            <div class="flex flex-wrap items-center gap-1 sm:gap-1.5 justify-end no-print">
               ${(() => {
                 const isDemoInsp = !!(protoState.demoMode || insp.id === 'insp-demo');
                 const pInfo = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
-                const share = isDemoInsp ? { buyer: false, agent: true } : (pInfo.permitShare || {});
+                const share = isDemoInsp ? { buyer: true, agent: true } : dhiGetPermitShare(pInfo);
                 const isAdminRole = protoState.role === 'admin';
                 const isAgentRole = protoState.role === 'agent';
                 const isBuyerRole = protoState.role === 'buyer';
                 const canSeePermit = isAdminRole || (isAgentRole && !!share.agent) || (isBuyerRole && !!share.buyer);
                 if (!canSeePermit) return '';
                 if (isDemoInsp) {
-                  return `<button type="button" onclick="protoToastMsg('Permit lookup is not available in the interactive demo. On live inspections, this links directly to the PPRBD or county permit page for the home.')" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</button>`;
+                  return `<button type="button" onclick="protoToastMsg('Permit lookup is not available in the interactive demo. On live inspections, this links directly to the PPRBD or county permit page for the home.')" class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-[11px] sm:text-xs font-bold transition whitespace-nowrap"><span class="hidden sm:inline">View Permits &nearr;</span><span class="sm:hidden">Permits &nearr;</span></button>`;
                 }
-                if (isBuyerRole) {
-                  return `<button type="button" onclick="protoOpenBuyerPermitLookup('${insp.id}')" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</button>`;
-                }
-                const pLink = dhiBuildPermitLink({ address: insp.address, street: pInfo.street || '', city: pInfo.city || '', county: pInfo.county || '' });
-                return `<a href="${pLink.url}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">View Permits &nearr;</a>`;
+                return `<button type="button" onclick="protoOpenBuyerPermitLookup('${insp.id}')" class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-[11px] sm:text-xs font-bold transition whitespace-nowrap"><span class="hidden sm:inline">View Permits &nearr;</span><span class="sm:hidden">Permits &nearr;</span></button>`;
               })()}
-              ${(protoState.role !== 'third_party' && !protoState.demoMode && (protoState.role !== 'buyer' || insp.paid)) ? `<button type="button" onclick="dhiOpenForwardModal('${insp.id}')" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Forward</button>` : ''}
+              ${(protoState.role !== 'third_party' && !protoState.demoMode && (protoState.role !== 'buyer' || insp.paid)) ? `<button type="button" onclick="dhiOpenForwardModal('${insp.id}')" class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-[11px] sm:text-xs font-bold transition whitespace-nowrap">Forward</button>` : ''}
               ${protoState.activeDocTab === 'main'
                 ? `<details class="relative inline-block">
-                     <summary id="dhiSavePdfSummaryBtn" class="list-none cursor-pointer px-3 py-1.5 rounded-xl border border-davis-navy bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition select-none">Save PDF &#9662;</summary>
-                     <div class="absolute right-0 mt-1 z-30 w-48 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5 space-y-1 text-xs">
+                     <summary id="dhiSavePdfSummaryBtn" class="list-none cursor-pointer px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-davis-navy bg-davis-navy hover:bg-davis-dark text-white text-[11px] sm:text-xs font-bold transition select-none whitespace-nowrap">Save PDF &#9662;</summary>
+                     <div class="absolute right-0 mt-1 z-40 w-48 rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 space-y-1 text-xs">
                        <button type="button" onclick="this.closest('details').open=false; dhiSaveInspectionPdf('full')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-800">Full Report PDF</button>
                        <button type="button" onclick="this.closest('details').open=false; dhiSaveInspectionPdf('summary')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-800">Summary Only PDF</button>
                      </div>
                    </details>
                    <details class="relative inline-block">
-                     <summary class="list-none cursor-pointer px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition select-none">Print &#9662;</summary>
-                     <div class="absolute right-0 mt-1 z-30 w-44 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5 space-y-1 text-xs">
+                     <summary class="list-none cursor-pointer px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-[11px] sm:text-xs font-bold transition select-none whitespace-nowrap">Print &#9662;</summary>
+                     <div class="absolute right-0 mt-1 z-40 w-44 rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 space-y-1 text-xs">
                        <button type="button" onclick="this.closest('details').open=false; dhiPrintInspectionReport('full')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-800">Full Report</button>
                        <button type="button" onclick="this.closest('details').open=false; dhiPrintInspectionReport('summary')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-800">Summary Only</button>
                      </div>
                    </details>`
                 : (activeExtraDoc && (activeExtraDoc.pdfViewUrl || activeExtraDoc.pdfPreviewUrl)
-                    ? `<a href="${activeExtraDoc.pdfViewUrl || activeExtraDoc.pdfPreviewUrl}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Download / Open ${escapeHtml(activeExtraDoc.title)} &nearr;</a>`
+                    ? `<a href="${activeExtraDoc.pdfViewUrl || activeExtraDoc.pdfPreviewUrl}" target="_blank" rel="noopener noreferrer" class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-[11px] sm:text-xs font-bold transition whitespace-nowrap">Download ${escapeHtml(activeExtraDoc.title)} &nearr;</a>`
                     : '')}
-              ${(protoState.activeDocTab === 'main' && protoState.role !== 'third_party') ? `<button type="button" onclick="document.getElementById('objectionListPanel')?.scrollIntoView({behavior:'smooth', block:'start'})" class="px-3 py-1.5 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Jump to Objection List &darr;</button>` : ''}
+              ${(protoState.activeDocTab === 'main' && protoState.role !== 'third_party') ? `<button type="button" onclick="dhiJumpToReportSection('__objections__')" class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-[11px] sm:text-xs font-bold whitespace-nowrap"><span class="hidden sm:inline">Jump to Objection List &darr;</span><span class="sm:hidden">Objections &darr;</span></button>` : ''}
             </div>
           </div>
-          <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
-            <span class="text-[11px] font-bold text-slate-400 uppercase mr-1">Documents:</span>
-            ${docTabs}
+          <div class="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100">
+            <div class="flex items-center gap-1.5 overflow-x-auto dhi-no-scrollbar min-w-0 flex-1 py-0.5">
+              <span class="hidden sm:inline text-[11px] font-bold text-slate-400 uppercase mr-1 shrink-0">Documents:</span>
+              ${docTabs}
+            </div>
+            ${protoState.activeDocTab === 'main' && jumpSectionItemsHTML ? `
+              <details id="dhiJumpSectionDetails" class="relative inline-block shrink-0">
+                <summary class="list-none cursor-pointer px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-sky-300 bg-sky-50 hover:border-davis-navy hover:bg-sky-100 text-davis-navy text-[11px] sm:text-xs font-bold transition select-none whitespace-nowrap">
+                  <span class="hidden sm:inline">Jump to Section &#9662;</span>
+                  <span class="sm:hidden">Sections &#9662;</span>
+                </summary>
+                <div class="absolute right-0 mt-1.5 z-50 w-64 max-h-80 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-1.5 space-y-0.5 text-xs">
+                  <button type="button" onclick="dhiJumpToReportSection('__top__')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-700 flex items-center justify-between">
+                    <span>Top of Report</span>
+                    <span class="text-[10px] text-slate-400">&uarr;</span>
+                  </button>
+                  <button type="button" onclick="dhiJumpToReportSection('__filter__')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-sky-50 font-bold text-davis-navy flex items-center justify-between">
+                    <span>Summary &amp; Filters</span>
+                    <span class="text-[10px] text-slate-400">&bull;</span>
+                  </button>
+                  <div class="border-t border-slate-100 my-1"></div>
+                  ${jumpSectionItemsHTML}
+                </div>
+              </details>
+            ` : ''}
           </div>
         </div>
       `;
@@ -8030,7 +8166,7 @@ function submitInspectionQuoteRequest(payload) {
 
         const sop = dhiGetSectionSop(sec.name);
         return `
-          <div class="space-y-3 pt-2 dhi-print-section">
+          <div id="dhiReportSec-${sec.num}" class="scroll-mt-32 sm:scroll-mt-28 space-y-3 pt-2 dhi-print-section">
             <div class="dhi-sec-banner bg-slate-900 text-white rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-2">
               <h3 class="text-sm sm:text-base font-extrabold tracking-tight">${sec.num}. ${sec.name}</h3>
               <span class="text-[11px] font-bold text-sky-300">${secItems.length} ${secItems.length === 1 ? 'item' : 'items'}</span>
@@ -8163,7 +8299,9 @@ function submitInspectionQuoteRequest(payload) {
       return `
         <div class="space-y-4">
           ${headerAndDocsBar}
-          ${coverPageHTML}
+          <div id="dhiReportTop" class="scroll-mt-32 sm:scroll-mt-28">
+            ${coverPageHTML}
+          </div>
           <div class="hidden print:block bg-white rounded-xl border border-slate-200 p-4 space-y-2">
             <div class="text-sm font-extrabold text-davis-navy border-b border-slate-200 pb-1">Table of Contents</div>
             <div class="grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-700">
@@ -8200,7 +8338,7 @@ function submitInspectionQuoteRequest(payload) {
             `;
           })()}
 
-          <div class="bg-white rounded-2xl border border-slate-200 p-3.5 space-y-3 shadow-sm no-print">
+          <div id="dhiReportFilterBar" class="scroll-mt-32 sm:scroll-mt-28 bg-white rounded-2xl border border-slate-200 p-3.5 space-y-3 shadow-sm no-print">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="flex flex-wrap items-center gap-2">
                 ${!isBuyerView ? `
@@ -8234,7 +8372,7 @@ function submitInspectionQuoteRequest(payload) {
                   : (sectionsHTML || ((protoState.findings || []).length ? '<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-500">No summary items in this section — switch to All Report Items or choose All Sections above.</div>' : '<div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No main home inspection report has been uploaded for this property yet.</div>')))}
           </div>
 
-          <div id="objectionListPanel" class="${protoState.role === 'third_party' ? 'hidden' : ''} bg-white rounded-2xl border-2 border-davis-navy/20 shadow-sm p-5 space-y-4 mt-6 no-print">
+          <div id="objectionListPanel" class="${protoState.role === 'third_party' ? 'hidden' : ''} scroll-mt-32 sm:scroll-mt-28 bg-white rounded-2xl border-2 border-davis-navy/20 shadow-sm p-5 space-y-4 mt-6 no-print">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">AI-Rewritten for CREC NTC43</span>
