@@ -507,7 +507,7 @@
             </div>
             <div>
               <label for="reqClientRole" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">I Am A...</label>
-              <select id="reqClientRole" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 bg-white focus:border-davis-navy outline-none">
+              <select id="reqClientRole" onchange="dhiSyncReqCounterpartyUI()" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 bg-white focus:border-davis-navy outline-none">
                 <option value="Home Buyer">Home Buyer</option>
                 <option value="Real Estate Agent">Real Estate Agent</option>
                 <option value="Home Seller / Owner">Home Seller / Owner</option>
@@ -521,13 +521,28 @@
               <label for="reqClientPhone" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Phone Number <span class="text-rose-600">*</span></label>
               <input type="tel" id="reqClientPhone" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-davis-navy outline-none" />
             </div>
-            <div class="sm:col-span-2 space-y-2.5 pt-1 border-t border-slate-100">
+            <div class="sm:col-span-2 space-y-2 pt-2 border-t border-slate-100">
               <div class="flex flex-wrap items-center justify-between gap-2">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-600">Additional Customers or Agents (Optional)</span>
-                <div class="flex flex-wrap gap-2">
-                  <button type="button" onclick="dhiAddReqExtraPerson('customer')" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-[11px] font-bold transition">+ Add Another Customer</button>
-                  <button type="button" onclick="dhiAddReqExtraPerson('agent')" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-[11px] font-bold transition">+ Add Another Agent</button>
+                <span id="reqCounterpartyHeading" class="text-xs font-bold uppercase tracking-wider text-slate-700">Real Estate Agent <span class="text-rose-600">*</span></span>
+                <label id="reqNoAgentWrap" class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 cursor-pointer select-none">
+                  <input type="checkbox" id="reqNoAgentCheck" onchange="dhiSyncReqCounterpartyUI()" class="rounded border-slate-300 text-davis-navy" />
+                  <span>No agent / not working with a realtor</span>
+                </label>
+              </div>
+              <div id="reqCounterpartyRow" class="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                <div class="sm:col-span-4">
+                  <input type="text" id="reqCounterpartyName" required placeholder="Agent Name *" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs bg-white text-slate-900 focus:border-davis-navy outline-none" />
                 </div>
+                <div class="sm:col-span-4">
+                  <input type="email" id="reqCounterpartyEmail" placeholder="Agent Email (optional)" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs bg-white text-slate-900 focus:border-davis-navy outline-none" />
+                </div>
+                <div class="sm:col-span-4">
+                  <input type="tel" id="reqCounterpartyPhone" placeholder="Agent Phone (optional)" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs bg-white text-slate-900 focus:border-davis-navy outline-none" />
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-2 pt-1">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Additional Customers (Optional)</span>
+                <button type="button" onclick="dhiAddReqExtraPerson('customer')" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-[11px] font-bold transition">+ Add Another Customer</button>
               </div>
               <div id="reqExtraPeopleList" class="space-y-2"></div>
             </div>
@@ -2103,6 +2118,46 @@ function submitInspectionQuoteRequest(payload) {
     // =========================================================================
     // PUBLIC INSPECTION REQUEST / QUOTE FORM HANDLER
     // =========================================================================
+    function dhiSyncReqCounterpartyUI() {
+      const roleVal = (document.getElementById('reqClientRole')?.value || '').toLowerCase();
+      const isAgent = roleVal.includes('agent');
+      const heading = document.getElementById('reqCounterpartyHeading');
+      const noAgentWrap = document.getElementById('reqNoAgentWrap');
+      const noAgentCheck = document.getElementById('reqNoAgentCheck');
+      const row = document.getElementById('reqCounterpartyRow');
+      const nameInp = document.getElementById('reqCounterpartyName');
+      const emailInp = document.getElementById('reqCounterpartyEmail');
+      const phoneInp = document.getElementById('reqCounterpartyPhone');
+      if (!heading || !row || !nameInp) return;
+
+      if (isAgent) {
+        heading.innerHTML = 'Home Buyer / Client <span class="text-rose-600">*</span>';
+        if (noAgentWrap) noAgentWrap.classList.add('hidden');
+        if (noAgentCheck) noAgentCheck.checked = false;
+        row.classList.remove('hidden');
+        nameInp.required = true;
+        nameInp.placeholder = 'Buyer / Client Name *';
+        if (emailInp) emailInp.placeholder = 'Buyer Email (optional)';
+        if (phoneInp) phoneInp.placeholder = 'Buyer Phone (optional)';
+      } else {
+        const noAgent = !!(noAgentCheck && noAgentCheck.checked);
+        heading.innerHTML = noAgent
+          ? 'Real Estate Agent <span class="text-slate-400 font-normal normal-case">(None)</span>'
+          : 'Real Estate Agent <span class="text-rose-600">*</span>';
+        if (noAgentWrap) noAgentWrap.classList.remove('hidden');
+        if (noAgent) {
+          row.classList.add('hidden');
+          nameInp.required = false;
+        } else {
+          row.classList.remove('hidden');
+          nameInp.required = true;
+          nameInp.placeholder = 'Agent Name *';
+          if (emailInp) emailInp.placeholder = 'Agent Email (optional)';
+          if (phoneInp) phoneInp.placeholder = 'Agent Phone (optional)';
+        }
+      }
+    }
+
     function dhiAddReqExtraPerson(roleType) {
       const wrap = document.getElementById('reqExtraPeopleList');
       if (!wrap) return;
@@ -2151,15 +2206,34 @@ function submitInspectionQuoteRequest(payload) {
       if (document.getElementById('reqAddonRadon').checked) addons.push('48-Hour Radon Testing ($125+)');
       if (document.getElementById('reqAddonTermite').checked) addons.push('Termite/WDI Inspection ($125)');
 
+      const isAgentRole = (clientRole || '').toLowerCase().includes('agent');
+      const noAgentSelected = !isAgentRole && !!document.getElementById('reqNoAgentCheck')?.checked;
+      const cpName = (document.getElementById('reqCounterpartyName')?.value || '').trim();
+      const cpEmail = (document.getElementById('reqCounterpartyEmail')?.value || '').trim().toLowerCase();
+      const cpPhone = (document.getElementById('reqCounterpartyPhone')?.value || '').trim();
+
       if (!clientName || !clientEmail || !clientPhone || !responsePreference || !propAddress || !propSqft || !propYear) {
         alertEl.textContent = 'Please complete your name, email, phone number, preferred response method, property address, approximate square footage, and year built.';
         alertEl.classList.remove('hidden');
         showToast('Missing Fields', 'Please fill in all required inspection request fields.', true);
         return;
       }
+      if (!noAgentSelected && !cpName) {
+        alertEl.textContent = isAgentRole
+          ? 'Please enter the Home Buyer / Client name.'
+          : 'Please enter your Real Estate Agent\'s name (or check "No agent / not working with a realtor").';
+        alertEl.classList.remove('hidden');
+        showToast('Missing Fields', alertEl.textContent, true);
+        return;
+      }
 
       const extraCustomers = [];
       const extraAgents = [];
+      if (!noAgentSelected && cpName) {
+        const cpEntry = { name: cpName, email: cpEmail, phone: cpPhone };
+        if (isAgentRole) extraCustomers.push(cpEntry);
+        else extraAgents.push(cpEntry);
+      }
       document.querySelectorAll('#reqExtraPeopleList .dhi-req-extra-row').forEach(row => {
         const rType = row.getAttribute('data-role') || 'customer';
         const rName = (row.querySelector('.dhi-extra-name')?.value || '').trim();
@@ -6351,13 +6425,27 @@ function submitInspectionQuoteRequest(payload) {
         coverPhotoDataUrl: '',
         dateOnly,
         timeOnly: '',
-        clientName: isAgentReq ? '' : (r.clientName || ''),
-        clientEmail: isAgentReq ? '' : (r.clientEmail || ''),
-        clientPhone: isAgentReq ? '' : (r.clientPhone || ''),
-        agentEmail: isAgentReq ? (r.clientEmail || '') : '',
-        agentName: isAgentReq ? (r.clientName || '') : '',
-        additionalCustomers: Array.isArray(r.additionalCustomers) ? r.additionalCustomers.slice() : [],
-        additionalAgents: Array.isArray(r.additionalAgents) ? r.additionalAgents.slice() : []
+        clientName: isAgentReq
+          ? ((r.additionalCustomers && r.additionalCustomers[0] && r.additionalCustomers[0].name) || '')
+          : (r.clientName || ''),
+        clientEmail: isAgentReq
+          ? ((r.additionalCustomers && r.additionalCustomers[0] && r.additionalCustomers[0].email) || '')
+          : (r.clientEmail || ''),
+        clientPhone: isAgentReq
+          ? ((r.additionalCustomers && r.additionalCustomers[0] && r.additionalCustomers[0].phone) || '')
+          : (r.clientPhone || ''),
+        agentEmail: isAgentReq
+          ? (r.clientEmail || '')
+          : ((r.additionalAgents && r.additionalAgents[0] && r.additionalAgents[0].email) || ''),
+        agentName: isAgentReq
+          ? (r.clientName || '')
+          : ((r.additionalAgents && r.additionalAgents[0] && r.additionalAgents[0].name) || ''),
+        additionalCustomers: isAgentReq
+          ? (Array.isArray(r.additionalCustomers) ? r.additionalCustomers.slice(1) : [])
+          : (Array.isArray(r.additionalCustomers) ? r.additionalCustomers.slice() : []),
+        additionalAgents: isAgentReq
+          ? (Array.isArray(r.additionalAgents) ? r.additionalAgents.slice() : [])
+          : (Array.isArray(r.additionalAgents) ? r.additionalAgents.slice(1) : [])
       };
       const preItems = [];
       const findCat = (kw) => (protoState.serviceCatalog || []).find(c => c.name.toLowerCase().includes(kw));
