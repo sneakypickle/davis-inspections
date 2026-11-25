@@ -3720,6 +3720,24 @@ function submitInspectionQuoteRequest(payload) {
       protoToastMsg('Saved agent: ' + fullName);
     }
 
+    async function dhiFetchAllTableRows(tableName, orderCol) {
+      if (!dhiSupabase) return { data: [], error: null };
+      const all = [];
+      const pageSize = 1000;
+      let from = 0;
+      while (true) {
+        let q = dhiSupabase.from(tableName).select('*').range(from, from + pageSize - 1);
+        if (orderCol) q = q.order(orderCol, { ascending: true });
+        const { data, error } = await q;
+        if (error) return { data: all, error };
+        if (!Array.isArray(data) || !data.length) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return { data: all, error: null };
+    }
+
     function protoImportHomeGaugeCSV(targetType) {
       const inp = document.createElement('input');
       inp.type = 'file';
@@ -3823,7 +3841,7 @@ function submitInspectionQuoteRequest(payload) {
           const fullAddr = addrParts.join(', ');
 
           const rowType = iType >= 0 ? (cols[iType] || '').trim().toLowerCase() : '';
-          const isRep = rowType ? (rowType === 'rep' || rowType === 'agent' || rowType.includes('realtor')) : (targetType === 'agents');
+          const isRep = rowType ? (rowType.includes('rep') || rowType.includes('agent') || rowType.includes('realtor') || rowType.includes('broker')) : (targetType === 'agents');
 
           const rec = {
             email,
@@ -3870,8 +3888,8 @@ function submitInspectionQuoteRequest(payload) {
           }
           if (!dbErr) {
             const [aRes, cRes] = await Promise.all([
-              dhiSupabase.from('agents').select('*').order('last_name', { ascending: true }),
-              dhiSupabase.from('customers').select('*').order('last_name', { ascending: true })
+              dhiFetchAllTableRows('agents', 'last_name'),
+              dhiFetchAllTableRows('customers', 'last_name')
             ]);
             if (Array.isArray(aRes.data)) protoState.agents = aRes.data.map(dhiMapAgentRow);
             if (Array.isArray(cRes.data)) protoState.customers = cRes.data.map(dhiMapCustomerRow);
@@ -4858,6 +4876,7 @@ function submitInspectionQuoteRequest(payload) {
         { id: 'scheduled', label: `Scheduled Inspections (${scheduledInspections.length})` },
         { id: 'reports', label: `Inspection Reports (${releasedReports.length})` },
         { id: 'requests', label: `Requests (${reqTotal})`, highlight: (newReqCount > 0 || reqTotal > 0) },
+        { id: 'analytics', label: 'Analytics' },
         { id: 'agents', label: `Agents (${agentsList.length})` },
         { id: 'customers', label: `Customers (${customersList.length})` }
       ].map(t => {
@@ -5073,6 +5092,216 @@ function submitInspectionQuoteRequest(payload) {
             </div>
             <div class="space-y-3">
               ${reqCards || '<div class="rounded-xl bg-slate-50 border border-dashed border-slate-300 p-8 text-center text-xs text-slate-500">No incoming requests yet.</div>'}
+            </div>
+          </div>
+        `;
+      } else if (protoState.adminTab === 'analytics') {
+        const realInsps = (protoState.inspections || []).filter(i => !i.isDemo && i.id !== 'insp-demo');
+        const parseInspDateObj = (insp) => {
+          const raw = String(insp.date || '').trim();
+          const d1 = new Date(raw.replace(/\s+at\s+/i, ' '));
+          if (!isNaN(d1.getTime()) && d1.getFullYear() >= 2000) return d1;
+          if (insp.createdAt) {
+            const d2 = new Date(insp.createdAt);
+            if (!isNaN(d2.getTime())) return d2;
+          }
+          return new Date();
+        };
+        const yearsSet = new Set([String(new Date().getFullYear())]);
+        realInsps.forEach(i => yearsSet.add(String(parseInspDateObj(i).getFullYear())));
+        const yearOpts = Array.from(yearsSet).sort((a, b) => b.localeCompare(a));
+        const selYear = protoState.analyticsYear || String(new Date().getFullYear());
+        const paidOnly = protoState.analyticsPaidOnly !== false;
+
+        const inYear = realInsps.filter(i => selYear === 'all' || String(parseInspDateObj(i).getFullYear()) === selYear);
+        const activeRows = paidOnly ? inYear.filter(i => !!i.paid) : inYear;
+        const unpaidInYear = inYear.filter(i => !i.paid);
+        const unpaidTotal = unpaidInYear.reduce((s, i) => s + protoTotal(i), 0);
+
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthly = monthNames.map(m => ({ month: m, count: 0, base: 0, addons: 0, total: 0 }));
+        const svcMap = new Map();
+        const agentRefMap = new Map();
+        let grossRev = 0, totalBaseRev = 0, totalAddonRev = 0, homeInspCount = 0;
+
+        activeRows.forEach(insp => {
+          const dObj = parseInspDateObj(insp);
+          const mIdx = dObj.getMonth();
+          const svcs = Array.isArray(insp.services) && insp.services.length
+            ? insp.services
+            : [{ name: 'Home Inspection', price: protoTotal(insp) }];
+          let inspBase = 0, inspAddons = 0, hasHome = false;
+          svcs.forEach(sv => {
+            const sName = String(sv && sv.name || 'Inspection Service').trim();
+            const sPrice = Number(sv && sv.price) || 0;
+            const low = sName.toLowerCase();
+            const isBaseHome = low.includes('home inspection') || low.includes('buyer inspection') || low.includes('pre-listing') || low.includes('condo') || low.includes('townhome');
+            if (isBaseHome) { inspBase += sPrice; hasHome = true; }
+            else { inspAddons += sPrice; }
+            const prev = svcMap.get(sName) || { name: sName, qty: 0, revenue: 0, isAddon: !isBaseHome };
+            prev.qty += 1;
+            prev.revenue += sPrice;
+            svcMap.set(sName, prev);
+          });
+          const inspTot = inspBase + inspAddons;
+          grossRev += inspTot;
+          totalBaseRev += inspBase;
+          totalAddonRev += inspAddons;
+          if (hasHome) homeInspCount += 1;
+
+          monthly[mIdx].count += 1;
+          monthly[mIdx].base += inspBase;
+          monthly[mIdx].addons += inspAddons;
+          monthly[mIdx].total += inspTot;
+
+          const agKey = (insp.agentEmail || insp.agentName || '').trim().toLowerCase();
+          if (agKey) {
+            const prevA = agentRefMap.get(agKey) || { name: insp.agentName || insp.agentEmail, email: insp.agentEmail || '', count: 0, revenue: 0 };
+            prevA.count += 1;
+            prevA.revenue += inspTot;
+            agentRefMap.set(agKey, prevA);
+          }
+        });
+
+        const avgTicket = activeRows.length ? Math.round(grossRev / activeRows.length) : 0;
+        const svcRows = Array.from(svcMap.values()).sort((a, b) => b.revenue - a.revenue);
+        const topAgents = Array.from(agentRefMap.values()).sort((a, b) => b.count - a.count || b.revenue - a.revenue).slice(0, 15);
+        const fmt$ = (n) => '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
+
+        bodyHTML = `
+          <div class="space-y-4">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 class="text-lg font-extrabold text-slate-900">Business &amp; Tax Analytics</h2>
+                  <p class="text-xs text-slate-500">Monthly revenue, itemized services sold, and referral tracking for tax prep.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <select onchange="protoState.analyticsYear=this.value; renderProtoPortal();" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800">
+                    ${yearOpts.map(y => `<option value="${y}" ${selYear === y ? 'selected' : ''}>${y}</option>`).join('')}
+                    <option value="all" ${selYear === 'all' ? 'selected' : ''}>All Time</option>
+                  </select>
+                  <div class="inline-flex rounded-xl bg-slate-100 p-0.5 text-xs font-bold">
+                    <button type="button" onclick="protoState.analyticsPaidOnly=true; renderProtoPortal();" class="px-2.5 py-1.5 rounded-lg transition ${paidOnly ? 'bg-davis-navy text-white shadow-sm' : 'text-slate-600'}">Paid Only</button>
+                    <button type="button" onclick="protoState.analyticsPaidOnly=false; renderProtoPortal();" class="px-2.5 py-1.5 rounded-lg transition ${!paidOnly ? 'bg-davis-navy text-white shadow-sm' : 'text-slate-600'}">All Scheduled</button>
+                  </div>
+                  <button type="button" onclick="dhiExportTaxAnalyticsCsv()" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm transition">Export Tax CSV &darr;</button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <div class="p-3.5 rounded-xl bg-sky-50/70 border border-sky-200">
+                  <div class="text-[11px] font-bold uppercase tracking-wider text-sky-700">${paidOnly ? 'Gross Paid Revenue' : 'Total Booked Revenue'}</div>
+                  <div class="text-2xl font-black text-davis-navy mt-1">${fmt$(grossRev)}</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">${activeRows.length} inspection${activeRows.length === 1 ? '' : 's'}</div>
+                </div>
+                <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Average Ticket</div>
+                  <div class="text-2xl font-black text-slate-900 mt-1">${fmt$(avgTicket)}</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">Per inspection</div>
+                </div>
+                <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200">
+                  <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Add-On Services</div>
+                  <div class="text-2xl font-black text-emerald-800 mt-1">${fmt$(totalAddonRev)}</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">${grossRev ? Math.round((totalAddonRev / grossRev) * 100) : 0}% of total revenue</div>
+                </div>
+                <div class="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200">
+                  <div class="text-[11px] font-bold uppercase tracking-wider text-amber-800">Unpaid / Pending</div>
+                  <div class="text-2xl font-black text-amber-900 mt-1">${fmt$(unpaidTotal)}</div>
+                  <div class="text-[11px] text-slate-500 mt-0.5">${unpaidInYear.length} open invoice${unpaidInYear.length === 1 ? '' : 's'}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <!-- Monthly Breakdown -->
+              <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
+                <h3 class="text-sm font-extrabold text-slate-900">Monthly Revenue Breakdown (${selYear === 'all' ? 'All Years Combined' : selYear})</h3>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-xs">
+                    <thead>
+                      <tr class="border-b border-slate-200 text-left text-[11px] uppercase tracking-wider text-slate-400">
+                        <th class="py-2 pr-2">Month</th>
+                        <th class="py-2 px-2 text-right">Jobs</th>
+                        <th class="py-2 px-2 text-right">Base</th>
+                        <th class="py-2 px-2 text-right">Add-Ons</th>
+                        <th class="py-2 pl-2 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${monthly.map(m => `
+                        <tr class="border-t border-slate-100 ${m.count ? 'text-slate-800' : 'text-slate-400'}">
+                          <td class="py-1.5 pr-2 font-bold">${m.month}</td>
+                          <td class="py-1.5 px-2 text-right">${m.count}</td>
+                          <td class="py-1.5 px-2 text-right">${fmt$(m.base)}</td>
+                          <td class="py-1.5 px-2 text-right">${fmt$(m.addons)}</td>
+                          <td class="py-1.5 pl-2 text-right font-extrabold ${m.total ? 'text-davis-navy' : ''}">${fmt$(m.total)}</td>
+                        </tr>
+                      `).join('')}
+                      <tr class="border-t-2 border-slate-300 bg-slate-50 font-extrabold text-slate-900">
+                        <td class="py-2 pr-2">Total</td>
+                        <td class="py-2 px-2 text-right">${activeRows.length}</td>
+                        <td class="py-2 px-2 text-right">${fmt$(totalBaseRev)}</td>
+                        <td class="py-2 px-2 text-right">${fmt$(totalAddonRev)}</td>
+                        <td class="py-2 pl-2 text-right text-davis-navy">${fmt$(grossRev)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Services / Items Sold + Top Agents -->
+              <div class="space-y-4">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
+                  <h3 class="text-sm font-extrabold text-slate-900">Services &amp; Items Sold</h3>
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                      <thead>
+                        <tr class="border-b border-slate-200 text-left text-[11px] uppercase tracking-wider text-slate-400">
+                          <th class="py-2 pr-2">Service</th>
+                          <th class="py-2 px-2 text-right">Qty</th>
+                          <th class="py-2 px-2 text-right">Revenue</th>
+                          <th class="py-2 pl-2 text-right">Share</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${svcRows.length ? svcRows.map(s => `
+                          <tr class="border-t border-slate-100 text-slate-800">
+                            <td class="py-1.5 pr-2 font-bold">${escapeHtml(s.name)}</td>
+                            <td class="py-1.5 px-2 text-right font-semibold">${s.qty}</td>
+                            <td class="py-1.5 px-2 text-right font-extrabold text-davis-navy">${fmt$(s.revenue)}</td>
+                            <td class="py-1.5 pl-2 text-right text-slate-500">${grossRev ? Math.round((s.revenue / grossRev) * 100) : 0}%${s.isAddon && homeInspCount ? ` <span class="text-[10px] text-emerald-700">(${Math.round((s.qty / homeInspCount) * 100)}% attach)</span>` : ''}</td>
+                          </tr>
+                        `).join('') : '<tr><td colspan="4" class="py-6 text-center text-slate-400">No inspections in this period yet.</td></tr>'}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 space-y-3">
+                  <h3 class="text-sm font-extrabold text-slate-900">Top Referring Agents</h3>
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-xs">
+                      <thead>
+                        <tr class="border-b border-slate-200 text-left text-[11px] uppercase tracking-wider text-slate-400">
+                          <th class="py-2 pr-2">Agent</th>
+                          <th class="py-2 px-2 text-right">Referrals</th>
+                          <th class="py-2 pl-2 text-right">Revenue</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${topAgents.length ? topAgents.map(a => `
+                          <tr class="border-t border-slate-100 text-slate-800">
+                            <td class="py-1.5 pr-2 font-bold">${escapeHtml(a.name)}</td>
+                            <td class="py-1.5 px-2 text-right font-semibold">${a.count}</td>
+                            <td class="py-1.5 pl-2 text-right font-extrabold text-davis-navy">${fmt$(a.revenue)}</td>
+                          </tr>
+                        `).join('') : '<tr><td colspan="3" class="py-4 text-center text-slate-400">No agent referrals recorded in this period yet.</td></tr>'}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         `;
@@ -5468,6 +5697,59 @@ function submitInspectionQuoteRequest(payload) {
           ${bodyHTML}
         </div>
       `;
+    }
+
+    function dhiExportTaxAnalyticsCsv() {
+      const selYear = protoState.analyticsYear || String(new Date().getFullYear());
+      const paidOnly = protoState.analyticsPaidOnly !== false;
+      const realInsps = (protoState.inspections || []).filter(i => !i.isDemo && i.id !== 'insp-demo');
+      const parseD = (insp) => {
+        const d1 = new Date(String(insp.date || '').replace(/\s+at\s+/i, ' '));
+        if (!isNaN(d1.getTime()) && d1.getFullYear() >= 2000) return d1;
+        if (insp.createdAt) { const d2 = new Date(insp.createdAt); if (!isNaN(d2.getTime())) return d2; }
+        return new Date();
+      };
+      const rows = realInsps.filter(i => {
+        if (selYear !== 'all' && String(parseD(i).getFullYear()) !== selYear) return false;
+        if (paidOnly && !i.paid) return false;
+        return true;
+      }).sort((a, b) => parseD(a) - parseD(b));
+
+      const csvEsc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+      const lines = [
+        ['Date', 'Month', 'Address', 'Client Name', 'Client Email', 'Agent Name', 'Paid Status', 'Services Itemized', 'Total ($)'].map(csvEsc).join(',')
+      ];
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      let grandTotal = 0;
+      rows.forEach(i => {
+        const d = parseD(i);
+        const tot = protoTotal(i);
+        grandTotal += tot;
+        const svcsStr = (i.services || []).map(s => `${s.name} ($${Number(s.price) || 0})`).join('; ');
+        lines.push([
+          i.date || d.toLocaleDateString('en-US'),
+          monthNames[d.getMonth()] + ' ' + d.getFullYear(),
+          i.address || '',
+          i.clientName || '',
+          i.clientEmail || '',
+          i.agentName || '',
+          i.paid ? 'Paid' : 'Unpaid',
+          svcsStr,
+          tot.toFixed(2)
+        ].map(csvEsc).join(','));
+      });
+      lines.push('');
+      lines.push(['TOTAL', '', '', '', '', '', rows.length + ' inspections', '', grandTotal.toFixed(2)].map(csvEsc).join(','));
+
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Davis_Home_Inspections_Tax_Report_${selYear}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      protoToastMsg('Exported Tax CSV (' + rows.length + ' inspections).');
     }
 
     function protoComposeAdminAddress(street, city, state, zip) {

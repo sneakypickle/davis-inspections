@@ -3877,6 +3877,7 @@
         // 1. Check empty Styles & Materials fields first
         const smList = sec.stylesMaterials || [];
         for (let smIdx = 0; smIdx < smList.length; smIdx++) {
+          if (smList[smIdx].scanOnly) continue;
           if (!String(smList[smIdx].value || '').trim()) {
             state.activeSecIdx = sIdx;
             state.showSM = true;
@@ -3920,11 +3921,120 @@
       toast('All Styles & Materials, ratings, and photo narratives are complete!');
     }
 
+    function dhiSectionSupportsDataPlateScan(secName) {
+      const n = String(secName || '').toLowerCase();
+      return n.includes('plumbing') || n.includes('heating') || n.includes('air conditioning') || n.includes('hvac') || n.includes('electrical') || n.includes('appliance') || n.includes('kitchen');
+    }
+
+    function removeScanOnlySMField(secIdx, smIdx) {
+      const sec = state.draft && state.draft.sections && state.draft.sections[secIdx];
+      if (!sec || !Array.isArray(sec.stylesMaterials)) return;
+      sec.stylesMaterials.splice(smIdx, 1);
+      saveDraftLocally(true);
+      render();
+    }
+
+    function scanDataPlateForSection(secIdx) {
+      if (!state.user || !state.draft) return;
+      if (!navigator.onLine) {
+        toast('Data-plate AI scan requires an internet connection.');
+        return;
+      }
+      const sec = state.draft.sections[secIdx];
+      if (!sec) return;
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*';
+      inp.capture = 'environment';
+      inp.onchange = async () => {
+        const file = inp.files && inp.files[0];
+        if (!file) return;
+        state.scanningDataPlate = true;
+        render();
+        toast('Reading data plate with AI...');
+        try {
+          // Compress photo in memory for fast AI reading, then discard photo
+          const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error('Could not read photo'));
+            reader.onload = () => {
+              const img = new Image();
+              img.onerror = () => resolve(reader.result);
+              img.onload = () => {
+                const maxW = 1280;
+                const scale = img.naturalWidth > maxW ? (maxW / img.naturalWidth) : 1;
+                const c = document.createElement('canvas');
+                c.width = Math.round(img.naturalWidth * scale);
+                c.height = Math.round(img.naturalHeight * scale);
+                const ctx = c.getContext('2d');
+                ctx.drawImage(img, 0, 0, c.width, c.height);
+                resolve(c.toDataURL('image/jpeg', 0.85));
+              };
+              img.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+          });
+
+          const existingLabels = (sec.stylesMaterials || []).filter(s => !s.scanOnly).map(s => s.label);
+          const { data, error } = await sb.functions.invoke('generate-narrative', {
+            body: {
+              action: 'scan_dataplate',
+              sectionName: sec.name,
+              existingLabels,
+              photoBase64: dataUrl,
+              model: state.aiModel || 'gemini-4-hydrogen'
+            }
+          });
+          if (error) throw new Error(error.message || 'Scan failed');
+          if (!data || !data.ok) throw new Error((data && data.error) || 'Could not read data plate');
+
+          let filledCount = 0;
+          const matched = data.matchedFields || {};
+          Object.keys(matched).forEach(lbl => {
+            const val = String(matched[lbl] || '').trim();
+            if (!val) return;
+            const target = (sec.stylesMaterials || []).find(s => String(s.label || '').trim().toLowerCase() === lbl.trim().toLowerCase());
+            if (target) {
+              target.value = dhiNormalizeSMOptionLabel(val);
+              filledCount++;
+            }
+          });
+
+          const extras = Array.isArray(data.extraFields) ? data.extraFields : [];
+          extras.forEach(ex => {
+            const lbl = String(ex.label || '').trim();
+            const val = String(ex.value || '').trim();
+            if (!lbl || !val) return;
+            const existing = (sec.stylesMaterials || []).find(s => String(s.label || '').trim().toLowerCase() === lbl.toLowerCase());
+            if (existing) {
+              existing.value = val;
+            } else {
+              sec.stylesMaterials.push({ label: lbl, value: val, options: [], scanOnly: true });
+            }
+            filledCount++;
+          });
+
+          state.showSM = true;
+          saveDraftLocally(true);
+          toast(filledCount > 0
+            ? ('Data plate scanned (' + (data.equipmentType || sec.name) + '): filled ' + filledCount + ' field' + (filledCount === 1 ? '' : 's') + '.')
+            : 'Could not read clear specs from that photo. Try a closer shot of the label.');
+        } catch (err) {
+          toast('Data-plate scan failed: ' + (err.message || err));
+        } finally {
+          state.scanningDataPlate = false;
+          render();
+        }
+      };
+      inp.click();
+    }
+
     function getSectionCompleteness(sec) {
       let missingRatings = 0;
       let emptySM = 0;
       let photosNoNarrative = 0;
       (sec.stylesMaterials || []).forEach(sm => {
+        if (sm.scanOnly) return;
         if (!String(sm.value || '').trim()) emptySM++;
       });
       (sec.items || []).forEach(it => {
@@ -4374,11 +4484,24 @@
           }
           return `<button type="button" data-val="${esc(opt)}" onclick="toggleSMOption(${state.activeSecIdx}, ${smIdx}, this.dataset.val)" class="px-2 py-0.5 sm:py-1 rounded-lg text-[11px] font-semibold border transition ${selected.has(opt.toLowerCase()) ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
         }).join('');
+        const smBorderCls = state.editTemplateMode
+          ? 'border-amber-300 bg-amber-50/30'
+          : (sm.scanOnly
+              ? 'border-sky-300 bg-sky-50/40'
+              : (!String(sm.value || '').trim() ? 'border-rose-300 bg-rose-50/30' : 'border-slate-300 bg-white'));
         return `
-          <div id="dhiSmCard-${state.activeSecIdx}-${smIdx}" class="scroll-mt-32 p-2.5 sm:p-3 rounded-xl border ${state.editTemplateMode ? 'border-amber-300 bg-amber-50/30' : (!String(sm.value || '').trim() ? 'border-rose-300 bg-rose-50/30' : 'border-slate-300 bg-white')} space-y-2 transition">
+          <div id="dhiSmCard-${state.activeSecIdx}-${smIdx}" class="scroll-mt-32 p-2.5 sm:p-3 rounded-xl border ${smBorderCls} space-y-2 transition">
             <div class="flex items-center justify-between gap-2">
-              <label class="text-xs font-extrabold text-slate-800">${esc(sm.label)}</label>
-              ${state.editTemplateMode ? `
+              <div class="flex items-center gap-1.5 min-w-0">
+                <label class="text-xs font-extrabold text-slate-800 truncate">${esc(sm.label)}</label>
+                ${sm.scanOnly ? '<span class="px-1.5 py-0.5 rounded bg-sky-100 text-davis-navy text-[9px] font-extrabold uppercase tracking-wide shrink-0">AI Scan</span>' : ''}
+              </div>
+              ${sm.scanOnly && !state.editTemplateMode ? `
+                <div class="flex items-center gap-1">
+                  <input type="text" value="${esc(sm.value || '')}" oninput="setSMText(${state.activeSecIdx}, ${smIdx}, this.value)" class="w-40 sm:w-44 px-2 py-1 rounded-lg border border-sky-300 bg-white text-xs" />
+                  <button type="button" onclick="removeScanOnlySMField(${state.activeSecIdx}, ${smIdx})" title="Remove scanned field" class="px-1.5 py-1 rounded-lg text-slate-400 hover:text-rose-600 font-bold text-xs">&times;</button>
+                </div>
+              ` : (state.editTemplateMode ? `
                 <div class="flex items-center gap-1">
                   <button type="button" onclick="addSMOptionChip(${state.activeSecIdx}, ${smIdx})" class="px-2 py-1 rounded-lg bg-sky-50 border border-sky-200 text-davis-navy text-[11px] font-bold">+ Option</button>
                   <button type="button" onclick="renameSMField(${state.activeSecIdx}, ${smIdx})" class="px-2 py-1 rounded-lg bg-white border border-slate-300 text-slate-700 text-[11px] font-bold">Rename</button>
@@ -4386,7 +4509,7 @@
                 </div>
               ` : `
                 <input type="text" value="${esc(sm.value || '')}" oninput="setSMText(${state.activeSecIdx}, ${smIdx}, this.value)" placeholder="Custom or selected..." class="w-44 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
-              `}
+              `)}
             </div>
             ${chips ? `<div class="flex flex-wrap gap-1">${chips}</div>` : ''}
           </div>
@@ -4785,10 +4908,15 @@
           <!-- Styles & Materials -->
           ${(sec.stylesMaterials && sec.stylesMaterials.length) ? `
             <div class="bg-slate-100/90 rounded-2xl border border-slate-300 shadow-sm overflow-hidden">
-              <button type="button" onclick="state.showSM=!state.showSM; render();" class="w-full px-4 py-2.5 flex items-center justify-between text-xs font-extrabold text-slate-800">
-                <span>${sec.num}. ${esc(sec.name)} — Styles &amp; Materials (${sec.stylesMaterials.length})</span>
-                <span>${state.showSM ? 'Hide' : 'Show'}</span>
-              </button>
+              <div class="px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
+                <button type="button" onclick="state.showSM=!state.showSM; render();" class="flex-1 text-left flex items-center justify-between text-xs font-extrabold text-slate-800">
+                  <span>${sec.num}. ${esc(sec.name)} - Styles &amp; Materials (${sec.stylesMaterials.length})</span>
+                  <span class="text-slate-500 ml-2">${state.showSM ? 'Hide' : 'Show'}</span>
+                </button>
+                ${dhiSectionSupportsDataPlateScan(sec.name) ? `
+                  <button type="button" onclick="scanDataPlateForSection(${state.activeSecIdx})" ${state.scanningDataPlate ? 'disabled' : ''} class="px-2.5 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark disabled:opacity-60 text-white text-[11px] font-bold shrink-0 transition">${state.scanningDataPlate ? 'Scanning...' : 'Scan Data Plate'}</button>
+                ` : ''}
+              </div>
               ${state.showSM ? `<div class="p-3 pt-0 grid grid-cols-1 md:grid-cols-2 gap-2.5">${smCards}</div>` : ''}
             </div>
           ` : ''}
