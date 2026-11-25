@@ -5048,7 +5048,10 @@ function submitInspectionQuoteRequest(payload) {
                 <h2 class="text-lg font-extrabold text-slate-900">Inspection Reports</h2>
                 <p class="text-xs text-slate-500">Completed inspections that have been released to clients and agents.</p>
               </div>
-              <input type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-56" />
+              <div class="flex flex-wrap items-center gap-2">
+                <input type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-52 sm:w-56" />
+                <button type="button" onclick="dhiOpenBulkHgModal()" class="px-3.5 py-2 rounded-xl border border-sky-300 bg-sky-50 hover:border-davis-navy hover:bg-sky-100 text-davis-navy text-xs font-extrabold transition whitespace-nowrap">Bulk Import HG Folder</button>
+              </div>
             </div>
             ${filteredReleased.length ? `
               <div class="space-y-3">${renderInspTableRows(filteredReleased, false)}</div>
@@ -6598,6 +6601,463 @@ function submitInspectionQuoteRequest(payload) {
 
     async function protoReleaseReport(id) {
       return protoSendAdminEmail(id, 'report_ready');
+    }
+
+    // =========================================================================
+    // BULK HOMEGAUGE FOLDER IMPORTER (upMatt.Davis-Full Report For Upload.zip)
+    // =========================================================================
+    const dhiBulkHgState = {
+      items: [],
+      onlyLastTwoYears: true,
+      scanning: false,
+      importing: false,
+      stopRequested: false,
+      doneCount: 0,
+      totalToRun: 0,
+      currentLabel: ''
+    };
+
+    function dhiOpenBulkHgModal() {
+      document.getElementById('dhiBulkHgModal')?.classList.remove('hidden');
+      dhiRenderBulkHgModal();
+    }
+
+    function dhiCloseBulkHgModal() {
+      if (dhiBulkHgState.importing) {
+        if (!confirm('Import is currently running. Stop after the current report finishes?')) return;
+        dhiBulkHgState.stopRequested = true;
+        return;
+      }
+      document.getElementById('dhiBulkHgModal')?.classList.add('hidden');
+    }
+
+    function dhiLookupDirectoryEmail(name, roleType) {
+      const target = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      if (!target) return '';
+      const list = roleType === 'agent' ? (protoState.agents || []) : (protoState.customers || []);
+      for (const p of list) {
+        const full = dhiSplitFullName(p.name, p.firstName, p.lastName).name.trim().toLowerCase().replace(/\s+/g, ' ');
+        if (full && full === target) return (p.email || '').trim().toLowerCase();
+      }
+      return '';
+    }
+
+    function dhiExtractHomeGaugeCoverMeta(htmlText, folderName, fileLastModified) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlText, 'text/html');
+      const clean = (s) => String(s || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+      const bodyText = clean(doc.body ? doc.body.textContent : '');
+
+      // 1. Address
+      let address = '';
+      const addrSelectors = ['span.cover-address', '.cover-address', '#cover-address', '.property-address', 'h1', 'h2'];
+      for (const sel of addrSelectors) {
+        const el = doc.querySelector(sel);
+        const t = clean(el ? el.textContent : '');
+        if (t && /^\d+\s+/.test(t) && t.length < 140) { address = t; break; }
+      }
+      if (!address) {
+        const mAddr = bodyText.match(/\b(\d{1,6}\s+[A-Za-z0-9.\s]{3,45},\s*[A-Za-z\s]{2,25},\s*CO\s*\d{5})/);
+        if (mAddr) address = clean(mAddr[1]);
+      }
+      if (!address) address = clean(folderName).replace(/^\d{4}[-_]\d{2}[-_]\d{2}[-_\s]*/, '').replace(/_/g, ' ');
+
+      // 2. Inspection Date
+      let dateObj = null;
+      let dateDisplay = '';
+      const dateEl = doc.querySelector('.cover-date, .inspection-date, span.date');
+      const dateCandidates = [
+        clean(dateEl ? dateEl.textContent : ''),
+        (bodyText.match(/(?:Inspection\s+Date|Date\s+of\s+Inspection|Date)[:\s]+([A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i) || [])[1] || '',
+        (bodyText.match(/\b((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},\s+20\d{2})\b/i) || [])[1] || '',
+        (bodyText.match(/\b(\d{1,2}\/\d{1,2}\/20\d{2})\b/) || [])[1] || ''
+      ];
+      for (const dc of dateCandidates) {
+        if (!dc) continue;
+        const d = new Date(dc);
+        if (!isNaN(d.getTime()) && d.getFullYear() >= 2005 && d.getFullYear() <= 2035) {
+          dateObj = d;
+          dateDisplay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          break;
+        }
+      }
+      if (!dateObj) {
+        dateObj = new Date(fileLastModified || Date.now());
+        dateDisplay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+
+      // 3. Client & Agent Names + Emails
+      let clientName = '', clientEmail = '', agentName = '', agentEmail = '';
+      const preparedFor = bodyText.match(/Prepared\s+For\s*[:\-]\s*([A-Za-z][A-Za-z\s.&'\-]{1,45}?)(?:\s+(?:Concerning|By|Date|Property|Address|Agent|Real\s+Estate)|$)/i);
+      if (preparedFor) clientName = clean(preparedFor[1]);
+      const repMatch = bodyText.match(/(?:Real\s+Estate\s+(?:Agent|Professional|Rep)|Agent|Buyer'?s\s+Agent)\s*[:\-]\s*([A-Za-z][A-Za-z\s.&'\-]{1,45}?)(?:\s+(?:Company|Brokerage|Phone|Email|Date|Prepared|Property)|$)/i);
+      if (repMatch) agentName = clean(repMatch[1]);
+
+      const mailtos = Array.from(doc.querySelectorAll('a[href^="mailto:"]'))
+        .map(a => (a.getAttribute('href') || '').replace(/^mailto:/i, '').split('?')[0].trim().toLowerCase())
+        .filter(e => e && e.includes('@') && !e.includes('davis-inspections.com'));
+      if (clientName) clientEmail = dhiLookupDirectoryEmail(clientName, 'customer');
+      if (agentName) agentEmail = dhiLookupDirectoryEmail(agentName, 'agent');
+      if (!clientEmail && mailtos.length) clientEmail = mailtos[0];
+      if (!agentEmail && mailtos.length > 1) agentEmail = mailtos[1];
+
+      // 4. Cover photo filename if present
+      let coverFilename = '';
+      const coverImg = doc.querySelector('.cover-photo img, #cover-photo img, .cover-image img, img[src*="cover" i]');
+      if (coverImg && coverImg.getAttribute('src')) {
+        coverFilename = coverImg.getAttribute('src').trim().split('/').pop();
+      }
+
+      return { address, dateObj, dateDisplay, clientName, clientEmail, agentName, agentEmail, coverFilename };
+    }
+
+    function dhiBulkHgPickFolder() {
+      if (dhiBulkHgState.importing) return;
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.multiple = true;
+      inp.setAttribute('webkitdirectory', '');
+      inp.setAttribute('directory', '');
+      inp.onchange = async () => {
+        const allFiles = Array.from(inp.files || []);
+        const zipFiles = allFiles.filter(f => {
+          const base = (f.name || '').toLowerCase();
+          return base.endsWith('.zip') && base.includes('full report for upload');
+        });
+        if (!zipFiles.length) {
+          protoToastMsg('No "Full Report For Upload" ZIP files found inside that folder.');
+          return;
+        }
+        if (!window.JSZip) {
+          protoToastMsg('ZIP library not loaded yet. Please refresh and try again.');
+          return;
+        }
+
+        dhiBulkHgState.scanning = true;
+        dhiBulkHgState.items = [];
+        dhiBulkHgState.currentLabel = 'Scanning ' + zipFiles.length + ' report ZIP files...';
+        dhiRenderBulkHgModal();
+
+        const existingKeys = new Set((protoState.inspections || []).filter(i => !i.isDemo).map(i => {
+          const st = (i.address || '').split(',')[0].trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+          return st;
+        }).filter(Boolean));
+
+        const twoYearsAgo = new Date();
+        twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+
+        const scanned = [];
+        for (let idxF = 0; idxF < zipFiles.length; idxF++) {
+          const file = zipFiles[idxF];
+          const relParts = (file.webkitRelativePath || file.name).split('/');
+          const folderName = relParts.length >= 2 ? relParts[relParts.length - 2] : file.name;
+          dhiBulkHgState.currentLabel = `Scanning ${idxF + 1} of ${zipFiles.length}: ${folderName}`;
+          if (idxF % 5 === 0) dhiRenderBulkHgModal();
+          try {
+            const zip = await window.JSZip.loadAsync(file);
+            let htmlEntry = null;
+            zip.forEach((relPath, entry) => {
+              if (entry.dir) return;
+              const low = relPath.split('/').pop().toLowerCase();
+              if (!htmlEntry && (low === 'fullreportforupload.html' || low.endsWith('.html') || low.endsWith('.htm'))) {
+                htmlEntry = entry;
+              }
+            });
+            if (!htmlEntry) continue;
+            const htmlText = await htmlEntry.async('string');
+            const meta = dhiExtractHomeGaugeCoverMeta(htmlText, folderName, file.lastModified);
+            const normStreet = (meta.address || '').split(',')[0].trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+            const isDup = !!(normStreet && existingKeys.has(normStreet));
+            const withinTwoYears = meta.dateObj ? (meta.dateObj >= twoYearsAgo) : true;
+            scanned.push({
+              id: 'bhg-' + idxF,
+              file,
+              folderName,
+              ...meta,
+              isDup,
+              withinTwoYears,
+              selected: !isDup && withinTwoYears,
+              status: isDup ? 'duplicate' : 'ready',
+              errorMsg: ''
+            });
+          } catch (e) {
+            scanned.push({
+              id: 'bhg-' + idxF,
+              file,
+              folderName,
+              address: folderName,
+              dateObj: new Date(file.lastModified || Date.now()),
+              dateDisplay: '',
+              clientName: '', clientEmail: '', agentName: '', agentEmail: '',
+              coverFilename: '',
+              isDup: false,
+              withinTwoYears: true,
+              selected: false,
+              status: 'error',
+              errorMsg: 'Could not read ZIP'
+            });
+          }
+        }
+        scanned.sort((a, b) => (b.dateObj ? b.dateObj.getTime() : 0) - (a.dateObj ? a.dateObj.getTime() : 0));
+        dhiBulkHgState.items = scanned;
+        dhiBulkHgState.scanning = false;
+        dhiBulkHgState.currentLabel = '';
+        dhiRenderBulkHgModal();
+      };
+      inp.click();
+    }
+
+    function dhiBulkHgToggleTwoYears(onlyTwo) {
+      dhiBulkHgState.onlyLastTwoYears = !!onlyTwo;
+      dhiBulkHgState.items.forEach(it => {
+        if (it.status === 'ready') {
+          it.selected = onlyTwo ? it.withinTwoYears : true;
+        }
+      });
+      dhiRenderBulkHgModal();
+    }
+
+    function dhiBulkHgToggleItem(itemId, checked) {
+      const it = dhiBulkHgState.items.find(x => x.id === itemId);
+      if (it && it.status === 'ready') it.selected = !!checked;
+      dhiRenderBulkHgModal();
+    }
+
+    async function dhiBulkHgStartImport() {
+      if (dhiBulkHgState.importing || !dhiSupabase || !dhiIsLiveSession()) return;
+      const queue = dhiBulkHgState.items.filter(it => it.selected && it.status === 'ready');
+      if (!queue.length) {
+        protoToastMsg('No reports selected to import.');
+        return;
+      }
+      dhiBulkHgState.importing = true;
+      dhiBulkHgState.stopRequested = false;
+      dhiBulkHgState.doneCount = 0;
+      dhiBulkHgState.totalToRun = queue.length;
+      dhiRenderBulkHgModal();
+
+      let importedOk = 0;
+      for (let qIdx = 0; qIdx < queue.length; qIdx++) {
+        if (dhiBulkHgState.stopRequested) break;
+        const item = queue[qIdx];
+        item.status = 'importing';
+        dhiBulkHgState.currentLabel = `Importing ${qIdx + 1} of ${queue.length}: ${item.address}`;
+        dhiRenderBulkHgModal();
+
+        try {
+          const zip = await window.JSZip.loadAsync(item.file);
+          let htmlEntry = null;
+          const imageBlobs = new Map();
+          zip.forEach((relPath, entry) => {
+            if (entry.dir) return;
+            const base = relPath.split('/').pop();
+            const low = base.toLowerCase();
+            if (!htmlEntry && (low === 'fullreportforupload.html' || low.endsWith('.html') || low.endsWith('.htm'))) {
+              htmlEntry = entry;
+            } else if (/\.(jpe?g|png|gif|webp)$/i.test(base)) {
+              imageBlobs.set(low, { base, entry });
+            }
+          });
+          if (!htmlEntry) throw new Error('No HTML inside ZIP');
+          const htmlText = await htmlEntry.async('string');
+          const { sections, findings } = protoParseHomeGaugeHtml(htmlText);
+          if (!findings.length) throw new Error('No inspection findings parsed');
+
+          const parsedAddr = dhiParseAddrParts(item.address || '');
+          const cSplit = dhiSplitFullName(item.clientName, '', '');
+          const aSplit = dhiSplitFullName(item.agentName, '', '');
+
+          // Create inspection record first to get its UUID
+          const { data: newInsp, error: insErr } = await dhiSupabase.from('inspections').insert({
+            address: item.address || item.folderName,
+            inspection_date: item.dateDisplay || '',
+            client_first_name: cSplit.firstName || '',
+            client_last_name: cSplit.lastName || '',
+            client_name: cSplit.name || item.clientEmail || 'HomeGauge Client',
+            client_email: item.clientEmail || '',
+            agent_first_name: aSplit.firstName || '',
+            agent_last_name: aSplit.lastName || '',
+            agent_name: aSplit.name || '',
+            agent_email: item.agentEmail || '',
+            services: [{ name: 'Home Inspection (Migrated from HomeGauge)', price: 0 }],
+            agreement_required: false,
+            agreement_signed: true,
+            paid: true,
+            report_notified: true,
+            report_sections: sections,
+            property_info: {
+              address: item.address || '',
+              street: parsedAddr.street || '',
+              city: parsedAddr.city || '',
+              state: parsedAddr.state || 'CO',
+              zip: parsedAddr.zip || '',
+              county: parsedAddr.county || '',
+              standardsOfPractice: 'ASHI',
+              permitShare: { agent: true, buyer: true },
+              migratedFromHomeGauge: true
+            }
+          }).select().single();
+          if (insErr || !newInsp) throw new Error(insErr ? insErr.message : 'Failed to create inspection');
+          const inspId = newInsp.id;
+
+          // Collect referenced photos (+ cover photo) and upload in batches of 6
+          const neededFiles = new Set();
+          findings.forEach(f => (f.photos || []).forEach(p => { if (p.filename) neededFiles.add(p.filename.toLowerCase()); }));
+          if (item.coverFilename) neededFiles.add(item.coverFilename.toLowerCase());
+
+          const uploadedPathByLow = new Map();
+          const fileList = Array.from(neededFiles).filter(k => imageBlobs.has(k));
+          for (let i = 0; i < fileList.length; i += 6) {
+            const slice = fileList.slice(i, i + 6);
+            await Promise.all(slice.map(async (lowKey) => {
+              const obj = imageBlobs.get(lowKey);
+              if (!obj) return;
+              const blob = await obj.entry.async('blob');
+              const safeBase = obj.base.replace(/[^a-zA-Z0-9._-]/g, '_');
+              const storagePath = `inspections/${inspId}/hg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}_${safeBase}`;
+              const ext = lowKey.split('.').pop();
+              const mime = ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : 'image/jpeg');
+              const { error: uErr } = await dhiSupabase.storage.from('reports').upload(storagePath, blob, { contentType: mime, upsert: true });
+              if (!uErr) uploadedPathByLow.set(lowKey, storagePath);
+            }));
+          }
+
+          if (item.coverFilename && uploadedPathByLow.has(item.coverFilename.toLowerCase())) {
+            await dhiSupabase.from('inspections').update({
+              cover_photo_path: uploadedPathByLow.get(item.coverFilename.toLowerCase())
+            }).eq('id', inspId);
+          }
+
+          const rows = findings.map(f => {
+            const pArr = (f.photos || []).map(p => ({
+              label: p.label || f.title,
+              path: p.filename ? (uploadedPathByLow.get(p.filename.toLowerCase()) || '') : ''
+            })).filter(p => p.path);
+            return {
+              inspection_id: inspId,
+              item_code: f.code,
+              section_num: f.sectionNum,
+              category: f.category,
+              severity: f.severity,
+              is_summary: !!f.isSummary,
+              title: f.title,
+              narrative: f.narrative,
+              trade: 'qualified licensed contractor',
+              repair_action: 'evaluate and repair per inspection report',
+              photo_path: pArr[0] ? pArr[0].path : '',
+              photo_paths: pArr
+            };
+          });
+          for (let i = 0; i < rows.length; i += 100) {
+            const { error: fErr } = await dhiSupabase.from('inspection_findings').insert(rows.slice(i, i + 100));
+            if (fErr) throw new Error(fErr.message);
+          }
+
+          item.status = 'done';
+          item.selected = false;
+          importedOk++;
+        } catch (err) {
+          item.status = 'error';
+          item.errorMsg = err.message || String(err);
+        }
+        dhiBulkHgState.doneCount = qIdx + 1;
+        dhiRenderBulkHgModal();
+      }
+
+      dhiBulkHgState.importing = false;
+      dhiBulkHgState.currentLabel = '';
+      dhiRenderBulkHgModal();
+      protoToastMsg(`Bulk import finished: ${importedOk} report${importedOk === 1 ? '' : 's'} imported.`);
+      try {
+        const { data: { session } } = await dhiSupabase.auth.getSession();
+        if (session) await dhiRefreshAccountData(session);
+      } catch (_e) {}
+    }
+
+    function dhiRenderBulkHgModal() {
+      const body = document.getElementById('dhiBulkHgModalBody');
+      if (!body) return;
+      const visibleItems = dhiBulkHgState.onlyLastTwoYears
+        ? dhiBulkHgState.items.filter(x => x.withinTwoYears)
+        : dhiBulkHgState.items;
+      const selectedCount = dhiBulkHgState.items.filter(x => x.selected && x.status === 'ready').length;
+      const pct = dhiBulkHgState.totalToRun ? Math.round((dhiBulkHgState.doneCount / dhiBulkHgState.totalToRun) * 100) : 0;
+
+      body.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="dhiBulkHgPickFolder()" ${dhiBulkHgState.importing || dhiBulkHgState.scanning ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark disabled:opacity-60 text-white text-xs font-bold transition">Choose HomeGauge Reports Folder...</button>
+            ${dhiBulkHgState.items.length ? `
+              <div class="inline-flex rounded-xl bg-slate-100 p-0.5 text-xs font-bold">
+                <button type="button" onclick="dhiBulkHgToggleTwoYears(true)" ${dhiBulkHgState.importing ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg ${dhiBulkHgState.onlyLastTwoYears ? 'bg-davis-navy text-white' : 'text-slate-600'}">Last 2 Years</button>
+                <button type="button" onclick="dhiBulkHgToggleTwoYears(false)" ${dhiBulkHgState.importing ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg ${!dhiBulkHgState.onlyLastTwoYears ? 'bg-davis-navy text-white' : 'text-slate-600'}">All Found (${dhiBulkHgState.items.length})</button>
+              </div>
+            ` : ''}
+          </div>
+          <div class="flex items-center gap-2">
+            ${dhiBulkHgState.importing ? `
+              <button type="button" onclick="dhiBulkHgState.stopRequested=true; dhiRenderBulkHgModal();" class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition">${dhiBulkHgState.stopRequested ? 'Stopping...' : 'Stop After Current'}</button>
+            ` : (selectedCount > 0 ? `
+              <button type="button" onclick="dhiBulkHgStartImport()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm transition">Start Bulk Import (${selectedCount})</button>
+            ` : '')}
+          </div>
+        </div>
+
+        ${(dhiBulkHgState.scanning || dhiBulkHgState.importing) ? `
+          <div class="rounded-xl bg-sky-50 border border-sky-200 p-3 space-y-2">
+            <div class="flex items-center justify-between text-xs font-bold text-davis-navy">
+              <span class="truncate">${escapeHtml(dhiBulkHgState.currentLabel || 'Working...')}</span>
+              ${dhiBulkHgState.importing ? `<span>${pct}% (${dhiBulkHgState.doneCount}/${dhiBulkHgState.totalToRun})</span>` : ''}
+            </div>
+            ${dhiBulkHgState.importing ? `<div class="w-full h-2 rounded-full bg-sky-200 overflow-hidden"><div class="h-full bg-davis-navy transition-all" style="width:${pct}%"></div></div>` : ''}
+          </div>
+        ` : ''}
+
+        ${visibleItems.length ? `
+          <div class="border border-slate-200 rounded-xl overflow-hidden max-h-[48vh] overflow-y-auto">
+            <table class="w-full text-xs">
+              <thead class="bg-slate-50 sticky top-0 border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th class="py-2 px-2 text-left w-8"></th>
+                  <th class="py-2 px-2 text-left">Property Address</th>
+                  <th class="py-2 px-2 text-left">Date</th>
+                  <th class="py-2 px-2 text-left">Client / Agent</th>
+                  <th class="py-2 px-2 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${visibleItems.map(it => {
+                  const badge = it.status === 'done'
+                    ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">Imported</span>'
+                    : (it.status === 'importing'
+                        ? '<span class="px-2 py-0.5 rounded-full bg-sky-100 text-davis-navy font-bold text-[10px]">Uploading...</span>'
+                        : (it.status === 'duplicate'
+                            ? '<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold text-[10px]">Already Imported</span>'
+                            : (it.status === 'error'
+                                ? `<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold text-[10px]" title="${escapeHtml(it.errorMsg)}">Error</span>`
+                                : '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px]">Ready</span>')));
+                  return `
+                    <tr class="border-t border-slate-100 ${it.status === 'duplicate' ? 'opacity-60' : ''}">
+                      <td class="py-2 px-2"><input type="checkbox" ${it.selected ? 'checked' : ''} ${it.status !== 'ready' || dhiBulkHgState.importing ? 'disabled' : ''} onchange="dhiBulkHgToggleItem('${it.id}', this.checked)" class="rounded border-slate-300" /></td>
+                      <td class="py-2 px-2 font-bold text-slate-900">${escapeHtml(it.address || it.folderName)}</td>
+                      <td class="py-2 px-2 text-slate-600 whitespace-nowrap">${escapeHtml(it.dateDisplay || '')}</td>
+                      <td class="py-2 px-2 text-slate-600">
+                        <div>${escapeHtml(it.clientName || 'Unknown client')}${it.clientEmail ? ` <span class="text-emerald-700">(${escapeHtml(it.clientEmail)})</span>` : ''}</div>
+                        ${it.agentName ? `<div class="text-[10px] text-slate-500">Agent: ${escapeHtml(it.agentName)}${it.agentEmail ? ` (${escapeHtml(it.agentEmail)})` : ''}</div>` : ''}
+                      </td>
+                      <td class="py-2 px-2 text-right whitespace-nowrap">${badge}</td>
+                    </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : `
+          <div class="rounded-xl bg-slate-50 border border-dashed border-slate-300 p-8 text-center space-y-1.5 text-xs text-slate-500">
+            <div class="font-bold text-slate-700">Select your HomeGauge Reports parent folder</div>
+            <p>We automatically scan all subfolders, ignore extra HomeGauge files, and pull only <strong>upMatt.Davis-Full Report For Upload.zip</strong>.</p>
+          </div>
+        `}
+      `;
     }
 
     async function dhiLinkGoogleIdentity() {
@@ -10421,6 +10881,21 @@ function submitInspectionQuoteRequest(payload) {
         <button type="button" onclick="document.getElementById('dhiForwardModal').classList.add('hidden')" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">Cancel</button>
         <button type="button" id="dhiForwardSendBtn" onclick="dhiSubmitForwardReport()" class="px-5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Send Magic Link &rarr;</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Bulk HomeGauge Folder Importer Modal -->
+  <div id="dhiBulkHgModal" onclick="if(event.target===this) dhiCloseBulkHgModal()" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 no-print">
+    <div class="bg-white rounded-2xl max-w-4xl w-full p-5 space-y-4 shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">HomeGauge Migration</span>
+          <h3 class="text-lg font-extrabold text-slate-900">Bulk Import HomeGauge Report Folder</h3>
+          <p class="text-xs text-slate-500">Finds every <code>upMatt.Davis-Full Report For Upload.zip</code> across subfolders, splits multi-defect items into A/B/C, links matching client &amp; agent emails, and skips duplicates.</p>
+        </div>
+        <button type="button" onclick="dhiCloseBulkHgModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
+      </div>
+      <div id="dhiBulkHgModalBody" class="space-y-3 overflow-y-auto flex-1"></div>
     </div>
   </div>
 
