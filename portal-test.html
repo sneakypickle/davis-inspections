@@ -5932,41 +5932,70 @@ function submitInspectionQuoteRequest(payload) {
         });
         sections.push({ num: secNum, name: secName, stylesMaterials });
 
-        // Items inside table.form
+        // Items inside table.form (split multi-comment HomeGauge items into 1.1A, 1.1B, ... with matching photos)
         page.querySelectorAll('table.form').forEach(tbl => {
           const code = cleanTxt(tbl.querySelector('span.question-number'));
           const title = cleanTxt(tbl.querySelector('span.question'));
           const status = cleanTxt(tbl.querySelector('span.answer')) || 'Inspected';
           if (!code && !title) return;
 
-          const commentParts = [];
-          tbl.querySelectorAll('span.comments').forEach(sp => {
-            const t = (sp.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
-            if (t) commentParts.push(t);
-          });
-          const narrative = commentParts.join('\n\n');
-
-          const photos = [];
-          tbl.querySelectorAll('div.pic-wrap').forEach(pw => {
-            const img = pw.querySelector('img');
-            const src = img ? (img.getAttribute('src') || '').trim() : '';
-            if (!src) return;
-            const cap = cleanTxt(pw.querySelector('div.comments')) || title;
-            photos.push({ label: cap, filename: src.split('/').pop() });
+          const blocks = [];
+          const orphanPhotos = [];
+          tbl.querySelectorAll('span.comments, div.pic-wrap').forEach(node => {
+            if (node.matches && node.matches('span.comments')) {
+              if (node.closest && node.closest('div.pic-wrap')) return;
+              const t = (node.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+              if (t) {
+                blocks.push({
+                  text: t,
+                  photos: (!blocks.length && orphanPhotos.length) ? orphanPhotos.splice(0) : []
+                });
+              }
+            } else {
+              const img = node.querySelector('img');
+              const src = img ? (img.getAttribute('src') || '').trim() : '';
+              if (!src) return;
+              const cap = cleanTxt(node.querySelector('div.comments')) || title;
+              const ph = { label: cap, filename: src.split('/').pop() };
+              if (blocks.length > 0) blocks[blocks.length - 1].photos.push(ph);
+              else orphanPhotos.push(ph);
+            }
           });
 
           const statusLow = status.toLowerCase();
           const isSummary = summaryCodes.has(code) || statusLow.includes('repair') || statusLow.includes('replace') || statusLow.includes('safety');
-          findings.push({
-            code,
-            sectionNum: secNum,
-            category: secName,
-            severity: status,
-            isSummary,
-            title: title || ('Item ' + code),
-            narrative: narrative || status,
-            photos
-          });
+
+          if (blocks.length <= 1) {
+            const singleBlock = blocks[0];
+            findings.push({
+              code,
+              sectionNum: secNum,
+              category: secName,
+              severity: status,
+              isSummary,
+              title: title || ('Item ' + code),
+              narrative: (singleBlock && singleBlock.text) ? singleBlock.text : status,
+              photos: singleBlock ? singleBlock.photos : orphanPhotos
+            });
+          } else {
+            blocks.forEach((blk, bIdx) => {
+              const letter = bIdx < 26
+                ? String.fromCharCode(65 + bIdx)
+                : String.fromCharCode(65 + Math.floor(bIdx / 26) - 1) + String.fromCharCode(65 + (bIdx % 26));
+              const subCode = code + letter;
+              const cleanNarr = blk.text.replace(/^\(\d+\)\s*/, '').trim() || blk.text;
+              findings.push({
+                code: subCode,
+                sectionNum: secNum,
+                category: secName,
+                severity: status,
+                isSummary,
+                title: title || ('Item ' + subCode),
+                narrative: cleanNarr,
+                photos: blk.photos
+              });
+            });
+          }
         });
       });
 
