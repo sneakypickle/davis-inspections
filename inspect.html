@@ -29,21 +29,23 @@
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
-  <header id="dhiFieldHeader" class="sticky top-0 z-30 bg-davis-dark text-white border-b border-white/10 shadow-sm">
+  <header id="dhiFieldHeader" class="md:sticky md:top-0 z-30 bg-davis-dark text-white border-b border-white/10 shadow-sm">
     <div class="w-full max-w-none mx-auto px-2.5 sm:px-6 py-2 flex items-center justify-between gap-1.5 sm:gap-2 flex-wrap">
       <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
         <span class="px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg bg-sky-500/20 border border-sky-300/30 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-sky-200 shrink-0">DHI</span>
-        <span id="hdrTitle" class="text-xs sm:text-sm font-extrabold truncate max-w-[140px] sm:max-w-md">Field &amp; Report Editor</span>
+        <span id="hdrTitle" class="text-xs sm:text-sm font-extrabold truncate max-w-[180px] sm:max-w-md">Field &amp; Report Editor</span>
       </div>
-      <div class="flex flex-wrap items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs">
+      <div class="w-full sm:w-auto flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs flex-wrap">
         <div id="hdrAuthedTools" class="hidden flex flex-wrap items-center gap-1 sm:gap-1.5">
           <span id="hdrOnlineBadge" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-300/30 text-[10px] sm:text-[11px] font-bold text-emerald-100"><span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400"></span><span class="hidden sm:inline">Online</span></span>
           <span id="hdrBackupBadge" class="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 text-[11px] font-semibold text-sky-100">Local save ready</span>
           <button type="button" onclick="openInstructionsModal()" class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">AI Rules</button>
           <button type="button" onclick="openBackupsModal()" class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">Backups</button>
         </div>
-        <a href="./index.html?view=portal" class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">Portal</a>
-        <button type="button" id="hdrSignOutBtn" onclick="fieldSignOut()" class="hidden px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/35 text-rose-100 font-bold transition">Sign Out</button>
+        <a id="hdrAdminLink" href="./index.html?view=portal" class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition"><span class="hidden sm:inline">Admin Dashboard</span><span class="sm:hidden">Admin</span></a>
+        <div id="hdrSignOutWrap" class="hidden ml-auto sm:ml-4 sm:pl-3 sm:border-l sm:border-white/20">
+          <button type="button" id="hdrSignOutBtn" onclick="fieldSignOut()" class="px-2.5 py-1 sm:py-1.5 rounded-lg bg-rose-500/25 hover:bg-rose-500/40 text-rose-100 font-bold transition">Sign Out</button>
+        </div>
       </div>
     </div>
   </header>
@@ -4250,8 +4252,18 @@
       const root = document.getElementById('appRoot');
       const authedTools = document.getElementById('hdrAuthedTools');
       if (authedTools) authedTools.classList.toggle('hidden', !state.user);
-      const signOutBtn = document.getElementById('hdrSignOutBtn');
-      if (signOutBtn) signOutBtn.classList.toggle('hidden', !state.user);
+      const signOutWrap = document.getElementById('hdrSignOutWrap');
+      if (signOutWrap) signOutWrap.classList.toggle('hidden', !state.user);
+      const adminLink = document.getElementById('hdrAdminLink');
+      if (adminLink) {
+        try {
+          if (document.referrer && document.referrer.toLowerCase().includes('portal-test.html')) {
+            sessionStorage.setItem('dhi_admin_return_page', 'portal-test.html');
+          }
+          const retPage = sessionStorage.getItem('dhi_admin_return_page') || 'index.html';
+          adminLink.href = './' + retPage + '?view=portal';
+        } catch (_e) {}
+      }
       if (!state.user) {
         root.innerHTML = `
           <div class="max-w-md mx-auto mt-10 bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
@@ -4601,17 +4613,16 @@
                       <input type="text" value="${esc(pi.sqft || '')}" oninput="updatePropInfo('sqft', this.value)" placeholder="e.g., 2,400" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
                     </div>
                     <div class="col-span-2 sm:col-span-2">
-                      <div class="flex items-center justify-between mb-1">
-                        <label class="block font-bold text-slate-600">Weather</label>
-                        <button type="button" id="autoWeatherBtn" onclick="autoFillCurrentWeather()" class="px-2 py-0.5 rounded bg-sky-50 border border-sky-200 hover:border-davis-navy text-davis-navy text-[10px] font-bold transition">Auto-fill</button>
+                      <div class="flex items-center justify-between gap-1 mb-1">
+                        <label class="block font-bold text-slate-600">Weather &amp; Temp</label>
+                        <button type="button" id="autoWeatherBtn" onclick="autoFillCurrentWeather()" class="px-2 py-0.5 rounded bg-sky-50 border border-sky-200 hover:border-davis-navy text-davis-navy text-[10px] font-bold transition shrink-0">Auto-fill</button>
                       </div>
-                      <input id="piWeatherInput" type="text" value="${esc(pi.weather || '')}" oninput="updatePropInfo('weather', this.value)" placeholder="e.g., Partly Cloudy" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                      <div class="flex items-center gap-1.5">
+                        <input id="piWeatherInput" type="text" value="${esc(pi.weather || '')}" oninput="updatePropInfo('weather', this.value)" placeholder="Partly Cloudy" class="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                        <input id="piTempInput" type="text" value="${esc(pi.temperature || '')}" oninput="updatePropInfo('temperature', this.value)" placeholder="46°F" class="w-20 shrink-0 px-2 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                      </div>
                     </div>
-                    <div class="col-span-1 sm:col-span-2">
-                      <label class="block font-bold text-slate-600 mb-1">Temperature</label>
-                      <input id="piTempInput" type="text" value="${esc(pi.temperature || '')}" oninput="updatePropInfo('temperature', this.value)" placeholder="e.g., 46°F" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
-                    </div>
-                    <div class="col-span-2 sm:col-span-4 space-y-1">
+                    <div class="col-span-2 sm:col-span-6 space-y-1">
                       <div class="flex items-center justify-between gap-2">
                         <label class="block font-bold text-slate-600">Ground / soil conditions</label>
                         <input id="piGroundInput" type="text" value="${esc(pi.groundConditions || '')}" oninput="updatePropInfo('groundConditions', this.value)" placeholder="Select below or type..." class="w-44 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
@@ -4733,7 +4744,7 @@
               </button>`;
             }).join('');
             return `
-            <div class="sticky top-[44px] sm:top-[50px] z-20 bg-white/95 backdrop-blur rounded-2xl border border-slate-300 shadow-md p-2 sm:p-2.5 flex items-center justify-between gap-2">
+            <div class="sticky top-0 md:top-[48px] z-20 bg-white/95 backdrop-blur rounded-2xl border border-slate-300 shadow-md p-2 sm:p-2.5 flex items-center justify-between gap-2">
               <!-- Mobile Dropdown (< md) -->
               <div class="flex md:hidden items-center gap-1.5 min-w-0 flex-1">
                 <details id="dhiMobileSecDropdown" class="relative min-w-0 flex-1 max-w-[230px]">
