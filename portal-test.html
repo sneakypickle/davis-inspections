@@ -7912,7 +7912,7 @@ function submitInspectionQuoteRequest(payload) {
             <div class="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs">
               ${protoState.demoMode
                 ? `<button type="button" onclick="protoExitDemoToSamples()" class="font-bold text-slate-600 hover:text-davis-navy whitespace-nowrap"><span class="hidden sm:inline">&larr; Back to Sample Reports</span><span class="sm:hidden">&larr; Back</span></button><span class="text-slate-300">|</span><button type="button" onclick="protoLaunchSampleDemo()" class="font-bold text-sky-700 hover:underline whitespace-nowrap"><span class="hidden sm:inline">Switch View (Buyer / Agent)</span><span class="sm:hidden">Switch View</span></button>`
-                : `<button type="button" onclick="protoState.viewingReport=false; renderProtoPortal();" class="font-bold text-sky-700 hover:underline whitespace-nowrap"><span class="hidden sm:inline">&larr; Back to Dashboard</span><span class="sm:hidden">&larr; Back</span></button><span class="text-slate-300">|</span><button type="button" onclick="dhiSignOut()" class="font-semibold text-slate-500 hover:text-rose-600 whitespace-nowrap">Sign Out</button>`}
+                : `<button type="button" onclick="dhiLeaveReportRealtime(); protoState.viewingReport=false; renderProtoPortal();" class="font-bold text-sky-700 hover:underline whitespace-nowrap"><span class="hidden sm:inline">&larr; Back to Dashboard</span><span class="sm:hidden">&larr; Back</span></button><span class="text-slate-300">|</span><button type="button" onclick="dhiSignOut()" class="font-semibold text-slate-500 hover:text-rose-600 whitespace-nowrap">Sign Out</button>`}
               ${activeExtraDoc ? `<span class="text-slate-300 hidden md:inline">|</span><span class="text-xs font-bold text-slate-700 truncate max-w-xs hidden md:inline">${escapeHtml(insp.address)}</span>` : ''}
             </div>
             <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-1.5 no-print">
@@ -8000,10 +8000,8 @@ function submitInspectionQuoteRequest(payload) {
                 <span class="font-bold text-slate-900">${doc.title}</span>
                 ${!doc.pdfPreviewUrl ? `<span>•</span><span>Page ${doc.currentPage} of ${doc.totalPages}</span><button type="button" onclick="protoStepDocPage('${doc.id}', -1)" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 font-bold">Prev</button><button type="button" onclick="protoStepDocPage('${doc.id}', 1)" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 font-bold">Next</button>` : '<span class="text-slate-400">• Scroll inside viewer below</span>'}
               </div>
-              <div class="flex flex-wrap items-center gap-1.5">
-                ${protoState.demoMode
-                  ? `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-900 text-white"><span class="w-2 h-2 rounded-full" style="background:${COLLAB_COLORS[protoState.activeCollaborator] || '#0ea5e9'}"></span>Demo View: ${escapeHtml(protoState.activeCollaborator)}</span>`
-                  : `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-900 text-white"><span class="w-2 h-2 rounded-full" style="background:${dhiGetLiveCollabColor()}"></span>Live Co-Viewing: ${escapeHtml(dhiGetLiveCollabLabel())}</span>`}
+              <div class="dhi-live-viewers-bar flex flex-wrap items-center gap-1.5">
+                ${dhiRenderLiveViewerPillsHTML()}
               </div>
             </div>
 
@@ -8155,12 +8153,16 @@ function submitInspectionQuoteRequest(payload) {
                       </div>
                       <div class="text-[11px] text-slate-500 font-semibold">${escapeHtml(activePhoto.label || 'Inspection Video Clip')}</div>
                     ` : `
-                      <div class="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-900">
+                      <div class="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-900 group">
                         <canvas id="photoCanvas-${f.id}" width="320" height="220" class="w-full h-auto cursor-crosshair block" data-finding-id="${f.id}" data-label="${activePhoto.label}"></canvas>
+                        <button type="button" onclick="dhiOpenPhotoLightbox('${f.id}')" title="Expand photo to full view" class="absolute top-2 right-2 px-2 py-1 rounded-lg bg-slate-900/75 hover:bg-slate-900 text-white text-[11px] font-bold shadow backdrop-blur-xs transition">Expand &#x2922;</button>
                       </div>
-                      <div class="flex items-center justify-between text-[11px] text-slate-500">
-                        <span>Tap or drag to circle (${protoState.activeCollaborator.split(' ')[0]})</span>
-                        <button type="button" onclick="protoClearMarks('${f.id}')" class="text-sky-700 font-semibold hover:underline">Clear Marks</button>
+                      <div class="flex items-center justify-between gap-2 text-[11px] text-slate-500">
+                        <span class="truncate">Tap or drag to circle (${protoState.activeCollaborator.split(' ')[0]})</span>
+                        <div class="flex items-center gap-2.5 shrink-0">
+                          <button type="button" onclick="dhiOpenPhotoLightbox('${f.id}')" class="text-davis-navy font-bold hover:underline">Expand</button>
+                          <button type="button" onclick="protoClearMarks('${f.id}')" class="text-sky-700 font-semibold hover:underline">Clear Marks</button>
+                        </div>
                       </div>
                     `}
                     ${thumbsHTML}
@@ -8386,10 +8388,8 @@ function submitInspectionQuoteRequest(payload) {
                   </div>
                 `}
               </div>
-              <div class="flex flex-wrap items-center gap-1.5">
-                ${protoState.demoMode
-                  ? `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-900 text-white"><span class="w-2 h-2 rounded-full" style="background:${COLLAB_COLORS[protoState.activeCollaborator] || '#0ea5e9'}"></span>Demo View: ${escapeHtml(protoState.activeCollaborator)}</span>`
-                  : `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-900 text-white"><span class="w-2 h-2 rounded-full" style="background:${dhiGetLiveCollabColor()}"></span>Live Co-Viewing: ${escapeHtml(dhiGetLiveCollabLabel())}</span>`}
+              <div class="dhi-live-viewers-bar flex flex-wrap items-center gap-1.5">
+                ${dhiRenderLiveViewerPillsHTML()}
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-1.5">
@@ -8699,15 +8699,24 @@ function submitInspectionQuoteRequest(payload) {
     }
 
     function attachCanvasDraw(canvas, marksArr, redrawFn) {
+      if (canvas._dhiDrawBound) return;
+      canvas._dhiDrawBound = true;
       let drawing = false;
       let currentStroke = null;
+      const isFindingCanvas = () => !!canvas.getAttribute('data-finding-id');
       const getPos = (e) => {
         const rect = canvas.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        if (isFindingCanvas()) {
+          return {
+            x: Math.max(0, Math.min(1, (clientX - rect.left) / (rect.width || 1))),
+            y: Math.max(0, Math.min(1, (clientY - rect.top) / (rect.height || 1)))
+          };
+        }
         return {
-          x: (clientX - rect.left) * (canvas.width / rect.width),
-          y: (clientY - rect.top) * (canvas.height / rect.height)
+          x: (clientX - rect.left) * (canvas.width / (rect.width || 1)),
+          y: (clientY - rect.top) * (canvas.height / (rect.height || 1))
         };
       };
       const startDraw = (e) => {
@@ -8716,7 +8725,12 @@ function submitInspectionQuoteRequest(payload) {
         const findingId = canvas.getAttribute('data-finding-id');
         const fObj = findingId ? (protoState.findings || []).find(x => x.id === findingId) : null;
         const activePhotoIdx = fObj ? (fObj.activePhotoIdx || 0) : 0;
-        currentStroke = { color: dhiGetLiveCollabColor(), photoIdx: activePhotoIdx, pts: [getPos(e)] };
+        currentStroke = {
+          normalized: isFindingCanvas(),
+          color: dhiGetLiveCollabColor(),
+          photoIdx: activePhotoIdx,
+          pts: [getPos(e)]
+        };
         const liveMarks = fObj ? (Array.isArray(fObj.marks) ? fObj.marks : (fObj.marks = [])) : marksArr;
         liveMarks.push(currentStroke);
         redrawFn();
@@ -8822,56 +8836,73 @@ function submitInspectionQuoteRequest(payload) {
     }
 
     const _protoImgCache = {};
-    function drawSingleReportCanvas(findingId) {
-      const canvas = document.getElementById('photoCanvas-' + findingId);
-      const f = protoState.findings.find(x => x.id === findingId);
-      if (!canvas || !f) return;
+    function dhiDrawFindingToCanvas(canvas, f, maxWidthPx) {
+      if (!f || !canvas) return;
       const ctx = canvas.getContext('2d');
+      const activePhObj = (Array.isArray(f.photos) && f.photos.length) ? (f.photos[f.activePhotoIdx || 0] || f.photos[0]) : null;
+      const activeUrl = (activePhObj && activePhObj.dataUrl) ? activePhObj.dataUrl : (f.photoDataUrl || '');
+      const activeLbl = (activePhObj && activePhObj.label) ? activePhObj.label : (f.photoLabel || f.title || '');
 
       const renderOverlays = () => {
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
-        ctx.fillRect(0, canvas.height - 24, canvas.width, 24);
+        const barH = Math.max(24, Math.round(canvas.width * 0.042));
+        const fontPx = Math.max(11, Math.round(canvas.width * 0.022));
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.68)';
+        ctx.fillRect(0, canvas.height - barH, canvas.width, barH);
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 11px Inter, sans-serif';
-        ctx.fillText(f.photoLabel, 10, canvas.height - 8);
+        ctx.font = 'bold ' + fontPx + 'px Inter, sans-serif';
+        ctx.fillText(activeLbl, Math.round(barH * 0.45), canvas.height - Math.round(barH * 0.3));
 
         const activePhotoIdx = f.activePhotoIdx || 0;
+        const strokeW = Math.max(3, canvas.width * 0.0068);
+        const dotR = Math.max(14, canvas.width * 0.032);
+        const mapPt = (pt, isNorm) => {
+          if (isNorm) return { x: pt.x * canvas.width, y: pt.y * canvas.height };
+          const legacyScale = canvas.width / 480;
+          return { x: pt.x * legacyScale, y: pt.y * legacyScale };
+        };
         (f.marks || []).forEach(stroke => {
           if (!stroke.pts || !stroke.pts.length) return;
           if ((stroke.photoIdx || 0) !== activePhotoIdx) return;
-          ctx.strokeStyle = stroke.color;
-          ctx.lineWidth = 3.5;
+          const isNorm = !!stroke.normalized || stroke.pts.every(p => p.x >= 0 && p.x <= 1.05 && p.y >= 0 && p.y <= 1.05);
+          ctx.strokeStyle = stroke.color || '#ef4444';
+          ctx.lineWidth = strokeW;
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
           ctx.beginPath();
           if (stroke.pts.length === 1) {
-            ctx.arc(stroke.pts[0].x, stroke.pts[0].y, 16, 0, Math.PI * 2);
+            const p0 = mapPt(stroke.pts[0], isNorm);
+            ctx.arc(p0.x, p0.y, dotR, 0, Math.PI * 2);
           } else {
-            ctx.moveTo(stroke.pts[0].x, stroke.pts[0].y);
-            for (let i = 1; i < stroke.pts.length; i++) ctx.lineTo(stroke.pts[i].x, stroke.pts[i].y);
+            const p0 = mapPt(stroke.pts[0], isNorm);
+            ctx.moveTo(p0.x, p0.y);
+            for (let i = 1; i < stroke.pts.length; i++) {
+              const pi = mapPt(stroke.pts[i], isNorm);
+              ctx.lineTo(pi.x, pi.y);
+            }
           }
           ctx.stroke();
         });
       };
 
       const fitAndDraw = (img) => {
-        const nw = img.naturalWidth || 480;
-        const nh = img.naturalHeight || 360;
-        const targetW = 480;
+        const nw = img.naturalWidth || 960;
+        const nh = img.naturalHeight || 720;
+        const capW = maxWidthPx || 1600;
+        const targetW = Math.min(Math.max(nw, 480), capW);
         const targetH = Math.max(160, Math.round(targetW * (nh / nw)));
         if (canvas.width !== targetW || canvas.height !== targetH) {
           canvas.width = targetW;
           canvas.height = targetH;
         }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         renderOverlays();
       };
 
-      const activePhObj = (Array.isArray(f.photos) && f.photos.length) ? (f.photos[f.activePhotoIdx || 0] || f.photos[0]) : null;
-      const activeUrl = (activePhObj && activePhObj.dataUrl) ? activePhObj.dataUrl : (f.photoDataUrl || '');
       if (activeUrl) {
-        const cacheKey = findingId + '_' + (f.activePhotoIdx || 0) + '_' + activeUrl.slice(-24);
+        const cacheKey = f.id + '_' + (f.activePhotoIdx || 0) + '_' + activeUrl.slice(-24);
         if (_protoImgCache[cacheKey] && _protoImgCache[cacheKey].complete && _protoImgCache[cacheKey].naturalWidth > 0) {
           fitAndDraw(_protoImgCache[cacheKey]);
         } else {
@@ -8889,6 +8920,90 @@ function submitInspectionQuoteRequest(payload) {
         renderOverlays();
       }
     }
+
+    function drawSingleReportCanvas(findingId) {
+      const f = protoState.findings.find(x => x.id === findingId);
+      const canvas = document.getElementById('photoCanvas-' + findingId);
+      if (!f || !canvas) return;
+      dhiDrawFindingToCanvas(canvas, f, 1600);
+    }
+
+    let dhiLightboxFindingId = null;
+
+    function dhiRedrawOpenLightbox() {
+      if (!dhiLightboxFindingId) return;
+      const modal = document.getElementById('dhiPhotoLightbox');
+      if (!modal || modal.classList.contains('hidden')) return;
+      const f = (protoState.findings || []).find(x => x.id === dhiLightboxFindingId);
+      const lbCanvas = document.getElementById('dhiLightboxCanvas');
+      if (!f || !lbCanvas) return;
+      const photos = (f.photos || []).filter(p => p && p.mediaType !== 'video');
+      const total = (f.photos || []).length;
+      const idx = f.activePhotoIdx || 0;
+      const titleEl = document.getElementById('dhiLightboxTitle');
+      const countEl = document.getElementById('dhiLightboxCounter');
+      const prevBtn = document.getElementById('dhiLightboxPrevBtn');
+      const nextBtn = document.getElementById('dhiLightboxNextBtn');
+      if (titleEl) titleEl.textContent = (f.code ? f.code + ' ' : '') + (f.title || '');
+      if (countEl) countEl.textContent = total > 1 ? ('Photo ' + (idx + 1) + ' of ' + total) : 'Full View';
+      if (prevBtn) prevBtn.classList.toggle('hidden', total <= 1);
+      if (nextBtn) nextBtn.classList.toggle('hidden', total <= 1);
+      lbCanvas.setAttribute('data-finding-id', f.id);
+      dhiDrawFindingToCanvas(lbCanvas, f, 1600);
+    }
+
+    function dhiOpenPhotoLightbox(findingId) {
+      const f = (protoState.findings || []).find(x => x.id === findingId);
+      const modal = document.getElementById('dhiPhotoLightbox');
+      const lbCanvas = document.getElementById('dhiLightboxCanvas');
+      if (!f || !modal || !lbCanvas) return;
+      dhiLightboxFindingId = findingId;
+      lbCanvas.setAttribute('data-finding-id', findingId);
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      attachCanvasDraw(lbCanvas, f.marks, () => {
+        dhiRedrawOpenLightbox();
+        if (dhiLightboxFindingId) drawSingleReportCanvas(dhiLightboxFindingId);
+      });
+      dhiRedrawOpenLightbox();
+    }
+
+    function dhiClosePhotoLightbox() {
+      const modal = document.getElementById('dhiPhotoLightbox');
+      if (modal) modal.classList.add('hidden');
+      document.body.style.overflow = '';
+      if (dhiLightboxFindingId) drawSingleReportCanvas(dhiLightboxFindingId);
+      dhiLightboxFindingId = null;
+    }
+
+    function dhiStepLightboxPhoto(delta) {
+      if (!dhiLightboxFindingId) return;
+      const f = (protoState.findings || []).find(x => x.id === dhiLightboxFindingId);
+      if (!f || !Array.isArray(f.photos) || f.photos.length <= 1) return;
+      let nextIdx = ((f.activePhotoIdx || 0) + delta + f.photos.length) % f.photos.length;
+      // Skip video items inside the photo drawing lightbox if possible
+      for (let tries = 0; tries < f.photos.length; tries++) {
+        if (f.photos[nextIdx] && f.photos[nextIdx].mediaType !== 'video') break;
+        nextIdx = (nextIdx + (delta >= 0 ? 1 : -1) + f.photos.length) % f.photos.length;
+      }
+      f.activePhotoIdx = nextIdx;
+      f.photoDataUrl = f.photos[nextIdx].dataUrl || '';
+      f.photoLabel = f.photos[nextIdx].label || f.title || '';
+      dhiRedrawOpenLightbox();
+      drawSingleReportCanvas(f.id);
+    }
+
+    async function dhiClearLightboxMarks() {
+      if (!dhiLightboxFindingId) return;
+      await protoClearMarks(dhiLightboxFindingId);
+      dhiRedrawOpenLightbox();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && dhiLightboxFindingId) dhiClosePhotoLightbox();
+      else if (e.key === 'ArrowLeft' && dhiLightboxFindingId) dhiStepLightboxPhoto(-1);
+      else if (e.key === 'ArrowRight' && dhiLightboxFindingId) dhiStepLightboxPhoto(1);
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
       renderProtoPortal();
@@ -9195,29 +9310,114 @@ function submitInspectionQuoteRequest(payload) {
         (protoState.findings || []).forEach(f => {
           f.marks = marksByTarget[f.id] || [];
           drawSingleReportCanvas(f.id);
+          dhiRedrawOpenLightbox();
         });
       } catch (e) {
         console.warn('Error refreshing markups:', e);
       }
     }
 
+    function dhiGetLiveViewerKey() {
+      const em = (protoState.authUser && protoState.authUser.email) ? String(protoState.authUser.email).toLowerCase() : '';
+      return em || (protoState.role + ':' + dhiGetLiveCollabLabel());
+    }
+
+    function dhiRenderLiveViewerPillsHTML() {
+      if (protoState.demoMode) {
+        return `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-900 text-white"><span class="w-2 h-2 rounded-full" style="background:${COLLAB_COLORS[protoState.activeCollaborator] || '#0ea5e9'}"></span>Demo View: ${escapeHtml(protoState.activeCollaborator)}</span>`;
+      }
+      const myKey = dhiGetLiveViewerKey();
+      const myEntry = { key: myKey, label: dhiGetLiveCollabLabel(), color: dhiGetLiveCollabColor() };
+      const list = Array.isArray(protoState.liveViewers) && protoState.liveViewers.length
+        ? protoState.liveViewers.slice()
+        : [myEntry];
+      if (!list.some(v => v.key === myKey)) list.unshift(myEntry);
+      const othersCount = list.filter(v => v.key !== myKey).length;
+      const prefix = othersCount > 0
+        ? `<span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 mr-0.5"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>Viewing live (${list.length}):</span>`
+        : `<span class="text-[11px] font-bold text-slate-400 mr-0.5">Live Co-Viewing:</span>`;
+      const pills = list.map(v => {
+        const isMe = v.key === myKey;
+        const bgCls = isMe ? 'bg-slate-900 text-white' : 'bg-white text-slate-800 border border-slate-300 shadow-xs';
+        return `<span class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold ${bgCls}"><span class="w-2 h-2 rounded-full shrink-0" style="background:${escapeHtml(v.color || '#0ea5e9')}"></span>${escapeHtml(v.label)}${isMe && othersCount > 0 ? ' <span class="opacity-65 font-semibold">(You)</span>' : ''}</span>`;
+      }).join('');
+      return prefix + pills;
+    }
+
+    function dhiUpdateLiveViewerPillsDOM() {
+      const html = dhiRenderLiveViewerPillsHTML();
+      document.querySelectorAll('.dhi-live-viewers-bar').forEach(el => {
+        el.innerHTML = html;
+      });
+    }
+
+    function dhiLeaveReportRealtime() {
+      protoState.liveViewers = [];
+      if (dhiRealtimeChannel && dhiSupabase) {
+        try { dhiRealtimeChannel.untrack(); } catch (_e) {}
+        try { dhiSupabase.removeChannel(dhiRealtimeChannel); } catch (_e) {}
+        dhiRealtimeChannel = null;
+      }
+    }
+
     function dhiSubscribeReportRealtime(inspectionId) {
       if (!dhiIsLiveSession() || !inspectionId || inspectionId === 'insp-demo') return;
-      if (dhiRealtimeChannel) {
-        try { dhiSupabase.removeChannel(dhiRealtimeChannel); } catch (e) {}
-      }
-      dhiRealtimeChannel = dhiSupabase
-        .channel('report-' + inspectionId)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'objection_items', filter: 'inspection_id=eq.' + inspectionId }, () => {
-          dhiLoadInspectionDetails(inspectionId);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'report_markups', filter: 'inspection_id=eq.' + inspectionId }, () => {
-          dhiRefreshMarkupsOnly(inspectionId);
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'report_comments', filter: 'inspection_id=eq.' + inspectionId }, () => {
-          dhiLoadInspectionDetails(inspectionId);
-        })
-        .subscribe();
+      dhiLeaveReportRealtime();
+      const myKey = dhiGetLiveViewerKey();
+      const myPayload = {
+        key: myKey,
+        label: dhiGetLiveCollabLabel(),
+        color: dhiGetLiveCollabColor(),
+        role: protoState.role || 'buyer',
+        joinedAt: new Date().toISOString()
+      };
+      protoState.liveViewers = [myPayload];
+      dhiUpdateLiveViewerPillsDOM();
+
+      const ch = dhiSupabase.channel('report-' + inspectionId, {
+        config: { presence: { key: myKey } }
+      });
+      ch.on('presence', { event: 'sync' }, () => {
+        try {
+          const pState = ch.presenceState() || {};
+          const byKey = new Map();
+          Object.keys(pState).forEach(k => {
+            const entries = pState[k];
+            if (Array.isArray(entries) && entries.length) {
+              const first = entries[0];
+              const vKey = first.key || k;
+              byKey.set(vKey, {
+                key: vKey,
+                label: first.label || 'Viewer',
+                color: first.color || '#0ea5e9',
+                role: first.role || 'buyer'
+              });
+            }
+          });
+          if (!byKey.has(myKey)) byKey.set(myKey, myPayload);
+          // Put self first, then other live viewers alphabetically
+          const others = Array.from(byKey.values())
+            .filter(v => v.key !== myKey)
+            .sort((a, b) => String(a.label).localeCompare(String(b.label)));
+          protoState.liveViewers = [byKey.get(myKey), ...others];
+          dhiUpdateLiveViewerPillsDOM();
+        } catch (_e) {}
+      });
+      ch.on('postgres_changes', { event: '*', schema: 'public', table: 'objection_items', filter: 'inspection_id=eq.' + inspectionId }, () => {
+        dhiLoadInspectionDetails(inspectionId);
+      });
+      ch.on('postgres_changes', { event: '*', schema: 'public', table: 'report_markups', filter: 'inspection_id=eq.' + inspectionId }, () => {
+        dhiRefreshMarkupsOnly(inspectionId);
+      });
+      ch.on('postgres_changes', { event: '*', schema: 'public', table: 'report_comments', filter: 'inspection_id=eq.' + inspectionId }, () => {
+        dhiLoadInspectionDetails(inspectionId);
+      });
+      ch.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          try { await ch.track(myPayload); } catch (_e) {}
+        }
+      });
+      dhiRealtimeChannel = ch;
     }
 
     let dhiAccountSubUserId = null;
@@ -9788,6 +9988,31 @@ function submitInspectionQuoteRequest(payload) {
       <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
         <button type="button" onclick="document.getElementById('dhiForwardModal').classList.add('hidden')" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">Cancel</button>
         <button type="button" id="dhiForwardSendBtn" onclick="dhiSubmitForwardReport()" class="px-5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Send Magic Link &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full-View Interactive Drawing Photo Lightbox -->
+  <div id="dhiPhotoLightbox" onclick="if(event.target===this) dhiClosePhotoLightbox()" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-2 sm:p-5 no-print">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-w-[95vw] max-h-[94vh] w-full sm:w-auto flex flex-col overflow-hidden">
+      <div class="px-3 sm:px-4 py-2.5 bg-slate-950/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-white">
+        <div class="min-w-0 flex items-center gap-2">
+          <span id="dhiLightboxTitle" class="text-xs sm:text-sm font-extrabold truncate max-w-[200px] sm:max-w-md">Photo View</span>
+          <span id="dhiLightboxCounter" class="px-2 py-0.5 rounded-full bg-white/10 text-[11px] font-bold text-sky-300 shrink-0">Full View</span>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" id="dhiLightboxPrevBtn" onclick="dhiStepLightboxPhoto(-1)" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold transition">&larr; Prev</button>
+          <button type="button" id="dhiLightboxNextBtn" onclick="dhiStepLightboxPhoto(1)" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold transition">Next &rarr;</button>
+          <button type="button" onclick="dhiClearLightboxMarks()" class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 border border-amber-400/30 text-xs font-bold transition">Clear Marks</button>
+          <button type="button" onclick="dhiClosePhotoLightbox()" class="px-2.5 py-1 rounded-lg bg-rose-500/25 hover:bg-rose-500/40 text-rose-100 text-xs font-bold transition">Close &times;</button>
+        </div>
+      </div>
+      <div class="p-2 sm:p-4 flex items-center justify-center bg-slate-900 overflow-auto">
+        <canvas id="dhiLightboxCanvas" class="max-w-full max-h-[78vh] w-auto h-auto rounded-xl cursor-crosshair block shadow-2xl border border-slate-700"></canvas>
+      </div>
+      <div class="px-4 py-2 bg-slate-950/80 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between gap-2">
+        <span>Draw directly on the photo to highlight or circle details. Changes sync live.</span>
+        <span class="hidden sm:inline">Esc to close &bull; Arrow keys for Prev / Next</span>
       </div>
     </div>
   </div>
