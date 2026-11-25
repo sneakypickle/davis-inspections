@@ -6639,6 +6639,67 @@ function submitInspectionQuoteRequest(payload) {
       }
     }
 
+    function dhiOpenAgentProfileModal() {
+      if (protoState.demoMode || !dhiIsLiveSession()) {
+        protoToastMsg('Sign in to your live Agent account to edit your profile.');
+        return;
+      }
+      const email = (protoState.authUser?.email || protoState.loggedInAgentEmail || '').trim();
+      const prof = protoState.agentProfile || {};
+      const sp = dhiSplitFullName(prof.name || protoState.authUser?.user_metadata?.full_name || '', prof.firstName || prof.first_name || '', prof.lastName || prof.last_name || '');
+      document.getElementById('dhiAgentProfEmail').value = email;
+      document.getElementById('dhiAgentProfFirstName').value = sp.firstName || '';
+      document.getElementById('dhiAgentProfLastName').value = sp.lastName || '';
+      document.getElementById('dhiAgentProfPhone').value = prof.phone || '';
+      document.getElementById('dhiAgentProfBrokerage').value = prof.brokerage || '';
+      document.getElementById('dhiAgentProfileModal')?.classList.remove('hidden');
+    }
+
+    function dhiCloseAgentProfileModal() {
+      document.getElementById('dhiAgentProfileModal')?.classList.add('hidden');
+    }
+
+    async function dhiSaveAgentProfile() {
+      if (!dhiSupabase || !dhiIsLiveSession()) return;
+      const email = (protoState.authUser?.email || protoState.loggedInAgentEmail || '').trim().toLowerCase();
+      if (!email) return;
+      const firstName = (document.getElementById('dhiAgentProfFirstName')?.value || '').trim();
+      const lastName = (document.getElementById('dhiAgentProfLastName')?.value || '').trim();
+      const phone = (document.getElementById('dhiAgentProfPhone')?.value || '').trim();
+      const brokerage = (document.getElementById('dhiAgentProfBrokerage')?.value || '').trim();
+      const fullName = [firstName, lastName].filter(Boolean).join(' ') || email;
+      const btn = document.getElementById('dhiAgentProfSaveBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+      try {
+        const { data, error } = await dhiSupabase.from('agents').upsert({
+          email,
+          first_name: firstName,
+          last_name: lastName,
+          name: fullName,
+          phone,
+          brokerage
+        }, { onConflict: 'email' }).select().single();
+        if (error) throw new Error(error.message || 'Could not save profile');
+        protoState.agentProfile = {
+          ...(protoState.agentProfile || {}),
+          ...(data || {}),
+          firstName,
+          lastName,
+          name: fullName,
+          phone,
+          brokerage,
+          email
+        };
+        dhiCloseAgentProfileModal();
+        renderProtoPortal();
+        protoToastMsg('Profile updated!');
+      } catch (err) {
+        protoToastMsg('Could not save profile: ' + (err.message || err));
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save Profile'; }
+      }
+    }
+
     function renderAgentHTML() {
       const userEmail = protoState.authUser?.email || protoState.loggedInAgentEmail || '';
       const hasGoogleLinked = !!(protoState.authUser?.identities || []).some(id => id.provider === 'google');
@@ -6694,6 +6755,7 @@ function submitInspectionQuoteRequest(payload) {
                 ? `<span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-300/40 text-emerald-100 text-xs font-bold">Google Linked</span>`
                 : `<button type="button" onclick="dhiLinkGoogleIdentity()" class="px-3 py-1.5 rounded-xl bg-white text-davis-navy hover:bg-sky-50 text-xs font-bold transition">Link Google Account</button>`
               ) : ''}
+              ${!protoState.demoMode ? `<button type="button" onclick="dhiOpenAgentProfileModal()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Edit Profile</button>` : ''}
               ${!protoState.demoMode ? `<button type="button" onclick="dhiSetAgentPassword()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Set Password</button>` : ''}
               ${!protoState.demoMode ? `<button type="button" onclick="dhiSignOut()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Sign Out</button>` : ''}
             </div>
@@ -10358,6 +10420,45 @@ function submitInspectionQuoteRequest(payload) {
       <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
         <button type="button" onclick="document.getElementById('dhiForwardModal').classList.add('hidden')" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">Cancel</button>
         <button type="button" id="dhiForwardSendBtn" onclick="dhiSubmitForwardReport()" class="px-5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Send Magic Link &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent Self-Edit Profile Modal -->
+  <div id="dhiAgentProfileModal" onclick="if(event.target===this) dhiCloseAgentProfileModal()" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Agent Account</span>
+          <h3 class="text-lg font-extrabold text-slate-900">Edit Your Profile</h3>
+        </div>
+        <button type="button" onclick="dhiCloseAgentProfileModal()" class="text-slate-400 hover:text-slate-700 text-sm font-bold">&times;</button>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">First Name</label>
+          <input id="dhiAgentProfFirstName" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Last Name</label>
+          <input id="dhiAgentProfLastName" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block font-bold text-slate-700 mb-1">Brokerage</label>
+          <input id="dhiAgentProfBrokerage" type="text" placeholder="e.g., Pikes Peak Realty" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block font-bold text-slate-700 mb-1">Phone</label>
+          <input id="dhiAgentProfPhone" type="tel" placeholder="(719) 555-0100" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block font-bold text-slate-500 mb-1">Portal Email (locked to keep your reports linked)</label>
+          <input id="dhiAgentProfEmail" type="email" readonly class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-sm" />
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+        <button type="button" onclick="dhiCloseAgentProfileModal()" class="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold transition">Cancel</button>
+        <button type="button" id="dhiAgentProfSaveBtn" onclick="dhiSaveAgentProfile()" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark disabled:opacity-60 text-white text-xs font-bold transition">Save Profile</button>
       </div>
     </div>
   </div>
