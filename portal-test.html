@@ -3214,15 +3214,8 @@ function submitInspectionQuoteRequest(payload) {
 
     function renderLoginHTML() {
       const sentBanner = protoState.magicLinkSentTo
-        ? `<div class="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs text-emerald-900 space-y-2.5">
-            <div class="font-medium">Sign-in link sent to <strong>${escapeHtml(protoState.magicLinkSentTo)}</strong>. Check your inbox (and spam folder) and click the link to sign in.</div>
-            <div class="pt-2 border-t border-emerald-200/80 space-y-1.5">
-              <div class="text-[11px] text-emerald-800 font-semibold">Link expired or blocked by an email scanner? Enter the 6-digit code from the email:</div>
-              <div class="flex gap-2">
-                <input type="text" id="dhiOtpCodeInput" inputmode="numeric" maxlength="6" placeholder="6-digit code" onkeydown="if(event.key==='Enter') dhiVerifyEmailOtp()" class="w-36 px-3 py-1.5 rounded-lg border border-emerald-300 bg-white text-xs font-mono tracking-widest focus:ring-2 focus:ring-davis-navy focus:outline-none" />
-                <button type="button" onclick="dhiVerifyEmailOtp()" class="px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition">Verify Code</button>
-              </div>
-            </div>
+        ? `<div class="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs text-emerald-900 font-medium">
+            Sign-in link and 6-digit code sent to <strong>${escapeHtml(protoState.magicLinkSentTo)}</strong>. Check your inbox (and spam folder) and either click the link or enter the 6-digit code below.
           </div>`
         : '';
       const authErr = protoState.authErrorMsg
@@ -3247,9 +3240,16 @@ function submitInspectionQuoteRequest(payload) {
               <div class="space-y-3">
                 <div>
                   <label for="protoBuyerMagicEmail" class="block text-xs font-bold text-slate-700 mb-1">Your Email Address</label>
-                  <input type="email" id="protoBuyerMagicEmail" placeholder="you@example.com" onkeydown="if(event.key==='Enter') protoSendBuyerMagicLink()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-davis-navy focus:outline-none" />
+                  <input type="email" id="protoBuyerMagicEmail" value="${escapeHtml(protoState.magicLinkSentTo || (window.localStorage ? (localStorage.getItem('dhi_last_buyer_email') || '') : ''))}" placeholder="you@example.com" onkeydown="if(event.key==='Enter') protoSendBuyerMagicLink()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-davis-navy focus:outline-none" />
                 </div>
-                <button type="button" onclick="protoSendBuyerMagicLink()" ${protoState.authLoading ? 'disabled' : ''} class="w-full py-2.5 px-4 rounded-xl bg-davis-navy hover:bg-davis-dark disabled:opacity-60 text-white text-sm font-bold transition">${protoState.authLoading ? 'Sending...' : 'Send Sign-In Link'}</button>
+                <button type="button" onclick="protoSendBuyerMagicLink()" ${protoState.authLoading ? 'disabled' : ''} class="w-full py-2.5 px-4 rounded-xl bg-davis-navy hover:bg-davis-dark disabled:opacity-60 text-white text-sm font-bold transition">${protoState.authLoading ? 'Sending...' : 'Send Sign-In Link &amp; Code'}</button>
+                <div class="pt-3 border-t border-slate-100 space-y-1.5">
+                  <label for="dhiOtpCodeInput" class="block text-[11px] font-bold text-slate-600">Have a 6-digit code from your email?</label>
+                  <div class="flex gap-2">
+                    <input type="text" id="dhiOtpCodeInput" inputmode="numeric" maxlength="6" placeholder="123456" onkeydown="if(event.key==='Enter') dhiVerifyEmailOtp()" class="flex-1 px-3 py-2 rounded-lg border border-slate-300 bg-slate-50 text-sm font-mono tracking-widest focus:bg-white focus:ring-2 focus:ring-davis-navy focus:outline-none" />
+                    <button type="button" onclick="dhiVerifyEmailOtp()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shrink-0">Verify Code</button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -3317,7 +3317,7 @@ function submitInspectionQuoteRequest(payload) {
       renderProtoPortal();
       const ok = await dhiSendLiveMagicLink(email);
       protoState.authLoading = false;
-      if (ok) protoState.magicLinkSentTo = email;
+      if (ok) { protoState.magicLinkSentTo = email; try { localStorage.setItem('dhi_last_buyer_email', email); } catch (_e) {} }
       renderProtoPortal();
     }
 
@@ -3355,12 +3355,18 @@ function submitInspectionQuoteRequest(payload) {
     }
 
     async function dhiVerifyEmailOtp() {
-      const email = protoState.magicLinkSentTo;
-      const token = (document.getElementById('dhiOtpCodeInput')?.value || '').trim();
-      if (!email || !token) {
+      const emailInputVal = (document.getElementById('protoBuyerMagicEmail')?.value || '').trim().toLowerCase();
+      const email = emailInputVal || protoState.magicLinkSentTo || (window.localStorage ? (localStorage.getItem('dhi_last_buyer_email') || '') : '');
+      const token = (document.getElementById('dhiOtpCodeInput')?.value || '').replace(/\s+/g, '').trim();
+      if (!email) {
+        protoToastMsg('Enter your email address above, then enter your 6-digit code.');
+        return;
+      }
+      if (!token || token.length < 6) {
         protoToastMsg('Enter the 6-digit code from your email.');
         return;
       }
+      try { localStorage.setItem('dhi_last_buyer_email', email); } catch (_e) {}
       if (!dhiSupabase) {
         protoToastMsg('Authentication service unavailable.');
         return;
@@ -4764,7 +4770,6 @@ function submitInspectionQuoteRequest(payload) {
 
       const renderInspTableRows = (list, isScheduled = false) => list.map(insp => {
         const total = insp ? protoTotal(insp) : 0;
-        const docBadges = (insp.extraDocs || []).map(d => `<span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-semibold">${escapeHtml(d.title)}</span>`).join('');
         const pInfo = insp.propertyInfo || {};
         const permitInfo = dhiBuildPermitLink({
           address: insp.address,
@@ -5561,16 +5566,34 @@ function submitInspectionQuoteRequest(payload) {
         const dm = r.preferredDate.match(/(\d{4}-\d{2}-\d{2})/);
         if (dm) dateOnly = dm[1];
       }
+      const isAgentReq = (r.clientRole || '').toLowerCase().includes('agent');
+      const parsedReqAddr = (typeof dhiParseAddrParts === 'function')
+        ? dhiParseAddrParts(r.address || '')
+        : { street: r.address || '', city: '', state: 'CO', zip: '', county: '' };
+      const reqZip5 = String(parsedReqAddr.zip || '').replace(/\D/g, '').slice(0, 5);
+      const mlsMatch = String(r.notes || '').match(/MLS\s*#:\s*([^|\n]+)/i);
+      const reqMls = (mlsMatch && mlsMatch[1] && mlsMatch[1].trim().toUpperCase() !== 'N/A') ? mlsMatch[1].trim() : '';
+
       protoState.convertingRequestId = reqId;
       protoState.newInspDraft = {
         address: r.address || '',
+        street: parsedReqAddr.street || (r.address || '').split(',')[0].trim(),
+        city: parsedReqAddr.city || '',
+        state: parsedReqAddr.state || 'CO',
+        zip: reqZip5,
+        county: parsedReqAddr.county || '',
+        mls: reqMls,
+        yearBuilt: String(r.yearBuilt || '').trim(),
+        sqft: String(r.sqft || '').replace(/\s*sq\.?\s*ft\.?$/i, '').trim(),
+        buildingType: '',
+        coverPhotoDataUrl: '',
         dateOnly,
         timeOnly: '',
-        clientName: r.clientName || '',
-        clientEmail: (r.clientRole || '').toLowerCase().includes('agent') ? '' : (r.clientEmail || ''),
-        clientPhone: (r.clientRole || '').toLowerCase().includes('agent') ? '' : (r.clientPhone || ''),
-        agentEmail: (r.clientRole || '').toLowerCase().includes('agent') ? (r.clientEmail || '') : '',
-        agentName: (r.clientRole || '').toLowerCase().includes('agent') ? (r.clientName || '') : ''
+        clientName: isAgentReq ? '' : (r.clientName || ''),
+        clientEmail: isAgentReq ? '' : (r.clientEmail || ''),
+        clientPhone: isAgentReq ? '' : (r.clientPhone || ''),
+        agentEmail: isAgentReq ? (r.clientEmail || '') : '',
+        agentName: isAgentReq ? (r.clientName || '') : ''
       };
       const preItems = [];
       const findCat = (kw) => (protoState.serviceCatalog || []).find(c => c.name.toLowerCase().includes(kw));
@@ -6651,6 +6674,15 @@ function submitInspectionQuoteRequest(payload) {
       protoState.activeInspectionId = id;
       protoState.activeDocTab = docTab || 'main';
       protoState.viewingReport = true;
+      protoState.reportLoadError = '';
+      if (id && id !== 'insp-demo') {
+        protoState.findings = [];
+        protoState.sections = [];
+        protoState.objectionItems = [];
+        protoState.loadingReport = dhiIsLiveSession();
+      } else {
+        protoState.loadingReport = false;
+      }
       renderProtoPortal();
       if (dhiIsLiveSession() && id && id !== 'insp-demo') {
         dhiLoadInspectionDetails(id);
@@ -8195,7 +8227,11 @@ function submitInspectionQuoteRequest(payload) {
           </div>
 
           <div class="space-y-4">
-            ${sectionsHTML || ((protoState.findings || []).length ? '<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-500">No summary items in this section — switch to All Report Items or choose All Sections above.</div>' : '<div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No main home inspection report has been uploaded for this property yet.</div>')}
+            ${protoState.loadingReport
+              ? '<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm font-semibold text-slate-500">Loading inspection report...</div>'
+              : (protoState.reportLoadError
+                  ? `<div class="bg-rose-50 rounded-2xl border border-rose-200 p-6 text-center text-sm font-semibold text-rose-800">Could not load report: ${escapeHtml(protoState.reportLoadError)}</div>`
+                  : (sectionsHTML || ((protoState.findings || []).length ? '<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-500">No summary items in this section — switch to All Report Items or choose All Sections above.</div>' : '<div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No main home inspection report has been uploaded for this property yet.</div>')))}
           </div>
 
           <div id="objectionListPanel" class="${protoState.role === 'third_party' ? 'hidden' : ''} bg-white rounded-2xl border-2 border-davis-navy/20 shadow-sm p-5 space-y-4 mt-6 no-print">
@@ -8475,7 +8511,9 @@ function submitInspectionQuoteRequest(payload) {
       const f = protoState.findings.find(x => x.id === findingId);
       if (!f) return;
       const activeIdx = f.activePhotoIdx || 0;
-      f.marks = (f.marks || []).filter(s => (s.photoIdx || 0) !== activeIdx);
+      if (!Array.isArray(f.marks)) f.marks = [];
+      const kept = f.marks.filter(s => (s.photoIdx || 0) !== activeIdx);
+      f.marks.splice(0, f.marks.length, ...kept);
       drawSingleReportCanvas(findingId);
       if (dhiIsLiveSession() && protoState.activeInspectionId && protoState.activeInspectionId !== 'insp-demo') {
         const { error } = await dhiSupabase.from('report_markups')
@@ -8508,7 +8546,8 @@ function submitInspectionQuoteRequest(payload) {
         const fObj = findingId ? (protoState.findings || []).find(x => x.id === findingId) : null;
         const activePhotoIdx = fObj ? (fObj.activePhotoIdx || 0) : 0;
         currentStroke = { color: dhiGetLiveCollabColor(), photoIdx: activePhotoIdx, pts: [getPos(e)] };
-        marksArr.push(currentStroke);
+        const liveMarks = fObj ? (Array.isArray(fObj.marks) ? fObj.marks : (fObj.marks = [])) : marksArr;
+        liveMarks.push(currentStroke);
         redrawFn();
       };
       const moveDraw = (e) => {
@@ -8870,9 +8909,14 @@ function submitInspectionQuoteRequest(payload) {
         if (protoState.role !== 'admin' && insp && insp.agreementRequired === false && protoState.activeDocTab === 'main' && (!protoState.findings || !protoState.findings.length) && insp.extraDocs && insp.extraDocs.length > 0) {
           protoState.activeDocTab = insp.extraDocs[0].id;
         }
+        protoState.loadingReport = false;
+        protoState.reportLoadError = '';
         renderProtoPortal();
       } catch (err) {
         console.warn('Error loading inspection details:', err);
+        protoState.loadingReport = false;
+        protoState.reportLoadError = (err && err.message) ? err.message : 'Could not load report details.';
+        renderProtoPortal();
       }
     }
 
@@ -9071,6 +9115,11 @@ function submitInspectionQuoteRequest(payload) {
     async function dhiRefreshAccountData(session) {
       if (!session || !session.user || protoState.demoMode || dhiAuthRefreshInFlight) return;
       dhiAuthRefreshInFlight = true;
+      if (!protoState.viewingReport) {
+        protoState.findings = [];
+        protoState.sections = [];
+        protoState.objectionItems = [];
+      }
       try {
         const email = (session.user.email || '').toLowerCase();
         if (email === 'matt@davis-inspections.com') {
@@ -9217,7 +9266,32 @@ function submitInspectionQuoteRequest(payload) {
     })();
 
     if (dhiSupabase) {
-      const hasAuthRedirect = window.location.hash.includes('access_token=') || window.location.search.includes('code=') || window.location.search.includes('view=portal');
+      // Handle scanner-proof token_hash Magic Links (?view=portal&token_hash=...&type=magiclink)
+      (async function checkTokenHashLogin() {
+        try {
+          const qp = new URLSearchParams(window.location.search);
+          const tokenHash = qp.get('token_hash');
+          const otpType = qp.get('type') || 'magiclink';
+          if (tokenHash) {
+            navigatePage('portal', false);
+            protoState.demoMode = false;
+            protoState.authLoading = true;
+            protoState.authErrorMsg = '';
+            renderProtoPortal();
+            const { data, error } = await dhiSupabase.auth.verifyOtp({ token_hash: tokenHash, type: otpType });
+            protoState.authLoading = false;
+            try { window.history.replaceState(null, '', window.location.pathname + '?view=portal'); } catch (_e) {}
+            if (error) {
+              protoState.authErrorMsg = 'That sign-in link has expired or was already used. Request a fresh link or enter the 6-digit code below.';
+              renderProtoPortal();
+            } else if (data && data.session) {
+              dhiApplyAuthSession(data.session);
+            }
+          }
+        } catch (_e) {}
+      })();
+
+      const hasAuthRedirect = window.location.hash.includes('access_token=') || window.location.search.includes('code=') || window.location.search.includes('token_hash=') || window.location.search.includes('view=portal');
       dhiSupabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_OUT') {
           protoState.authUser = null;
