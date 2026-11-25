@@ -6632,12 +6632,23 @@ function submitInspectionQuoteRequest(payload) {
     }
 
     function dhiLookupDirectoryEmail(name, roleType) {
-      const target = String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
-      if (!target) return '';
+      const norm = (s) => String(s || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      const raw = String(name || '').trim();
+      if (!raw) return '';
+      const candidates = [raw];
+      raw.split(/\s*(?:&|\/|,|\band\b|\n)\s*/i).forEach(part => {
+        const p = part.trim();
+        if (p && !candidates.includes(p)) candidates.push(p);
+      });
+      const normCandidates = candidates.map(norm).filter(Boolean);
       const list = roleType === 'agent' ? (protoState.agents || []) : (protoState.customers || []);
-      for (const p of list) {
-        const full = dhiSplitFullName(p.name, p.firstName, p.lastName).name.trim().toLowerCase().replace(/\s+/g, ' ');
-        if (full && full === target) return (p.email || '').trim().toLowerCase();
+      for (const cand of normCandidates) {
+        for (const p of list) {
+          const full = norm(dhiSplitFullName(p.name, p.firstName, p.lastName).name);
+          if (full && full === cand && (p.email || '').trim()) {
+            return (p.email || '').trim().toLowerCase();
+          }
+        }
       }
       return '';
     }
@@ -6646,29 +6657,107 @@ function submitInspectionQuoteRequest(payload) {
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlText, 'text/html');
       const clean = (s) => String(s || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+      const elLines = (el) => {
+        if (!el) return [];
+        const clone = el.cloneNode(true);
+        clone.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+        return String(clone.textContent || '')
+          .replace(/\u00a0/g, ' ')
+          .split(/\r?\n/)
+          .map(x => x.replace(/\s+/g, ' ').trim())
+          .filter(Boolean);
+      };
+      const formatHgAddress = (lines) => {
+        const joined = lines.map(clean).filter(Boolean).join(', ');
+        return joined
+          .replace(/,\s*,+/g, ', ')
+          .replace(/([A-Za-z])\s+(CO|[A-Z]{2})\s+(\d{5}(?:-\d{4})?)\b/, '$1, $2 $3')
+          .replace(/\s+,/g, ',')
+          .trim();
+      };
       const bodyText = clean(doc.body ? doc.body.textContent : '');
 
-      // 1. Address
+      // Parse all HomeGauge Intro Page / General Info / Inspection Details key-value blocks
+      const genFields = {};
+      const genLines = {};
+      doc.querySelectorAll('div.sm-whole').forEach(box => {
+        const hEl = box.querySelector('span.sm-gen-header, .sm-gen-header');
+        const aEl = box.querySelector('span.sm-gen-answer, .sm-gen-answer');
+        if (!hEl || !aEl) return;
+        const key = clean(hEl.textContent).replace(/:+$/, '').toLowerCase();
+        const lines = elLines(aEl);
+        if (key && lines.length && !genFields[key]) {
+          genFields[key] = lines.join(', ');
+          genLines[key] = lines;
+        }
+      });
+      const getField = (...keys) => {
+        for (const k of keys) {
+          const lk = k.toLowerCase();
+          if (genFields[lk]) return genFields[lk];
+          for (const gk of Object.keys(genFields)) {
+            if (gk.includes(lk)) return genFields[gk];
+          }
+        }
+        return '';
+      };
+      const getFieldLines = (...keys) => {
+        for (const k of keys) {
+          const lk = k.toLowerCase();
+          if (genLines[lk]) return genLines[lk];
+          for (const gk of Object.keys(genLines)) {
+            if (gk.includes(lk)) return genLines[gk];
+          }
+        }
+        return [];
+      };
+
+      const coverSection = doc.querySelector('div[name="sec-id-Cover Page"], div[name*="Cover Page" i]');
+
+      // 1. Property Address
       let address = '';
-      const addrSelectors = ['span.cover-address', '.cover-address', '#cover-address', '.property-address', 'h1', 'h2'];
-      for (const sel of addrSelectors) {
-        const el = doc.querySelector(sel);
-        const t = clean(el ? el.textContent : '');
-        if (t && /^\d+\s+/.test(t) && t.length < 140) { address = t; break; }
+      const introAddrLines = getFieldLines('property address');
+      if (introAddrLines.length) {
+        address = formatHgAddress(introAddrLines);
+      }
+      if (!address && coverSection) {
+        const strongs = Array.from(coverSection.querySelectorAll('strong, b'));
+        const propStrong = strongs.find(s => /property\s+address/i.test(s.textContent || ''));
+        if (propStrong && propStrong.parentElement) {
+          const lines = elLines(propStrong.parentElement).filter(l => !/^property\s+address:?$/i.test(l));
+          if (lines.length) address = formatHgAddress(lines);
+        }
       }
       if (!address) {
-        const mAddr = bodyText.match(/\b(\d{1,6}\s+[A-Za-z0-9.\s]{3,45},\s*[A-Za-z\s]{2,25},\s*CO\s*\d{5})/);
-        if (mAddr) address = clean(mAddr[1]);
+        const titleEl = doc.querySelector('title');
+        const titlePart = clean(titleEl ? titleEl.textContent : '').split('/')[0].trim();
+        if (titlePart && /^\d+\s+/.test(titlePart) && titlePart.length < 140) {
+          address = titlePart;
+        }
+      }
+      if (!address) {
+        const addrSelectors = ['span.cover-address', '.cover-address', '#cover-address', '.property-address'];
+        for (const sel of addrSelectors) {
+          const el = doc.querySelector(sel);
+          const t = clean(el ? el.textContent : '');
+          if (t && /^\d+\s+/.test(t) && t.length < 140) { address = t; break; }
+        }
+      }
+      if (!address) {
+        const mAddr = bodyText.match(/\b(\d{1,6}\s+[A-Za-z0-9.\s]{3,45},\s*[A-Za-z\s]{2,25},?\s*CO\s*\d{5})/);
+        if (mAddr) address = formatHgAddress([mAddr[1]]);
       }
       if (!address) address = clean(folderName).replace(/^\d{4}[-_]\d{2}[-_]\d{2}[-_\s]*/, '').replace(/_/g, ' ');
 
-      // 2. Inspection Date
+      // 2. Inspection Date & Time
       let dateObj = null;
       let dateDisplay = '';
+      const timeStr = clean(getField('time of inspection', 'inspection time')).replace(/^0(\d:)/, '$1');
       const dateEl = doc.querySelector('.cover-date, .inspection-date, span.date');
       const dateCandidates = [
+        getField('date of inspection', 'inspection date'),
         clean(dateEl ? dateEl.textContent : ''),
-        (bodyText.match(/(?:Inspection\s+Date|Date\s+of\s+Inspection|Date)[:\s]+([A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i) || [])[1] || '',
+        (bodyText.match(/(?:Inspection\s+Date|Date\s+of\s+Inspection)[:\s]+([A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i) || [])[1] || '',
         (bodyText.match(/\b((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},\s+20\d{2})\b/i) || [])[1] || '',
         (bodyText.match(/\b(\d{1,2}\/\d{1,2}\/20\d{2})\b/) || [])[1] || ''
       ];
@@ -6685,13 +6774,31 @@ function submitInspectionQuoteRequest(payload) {
         dateObj = new Date(fileLastModified || Date.now());
         dateDisplay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       }
+      const dateDisplayWithTime = timeStr ? `${dateDisplay} at ${timeStr}` : dateDisplay;
 
-      // 3. Client & Agent Names + Emails
-      let clientName = '', clientEmail = '', agentName = '', agentEmail = '';
-      const preparedFor = bodyText.match(/Prepared\s+For\s*[:\-]\s*([A-Za-z][A-Za-z\s.&'\-]{1,45}?)(?:\s+(?:Concerning|By|Date|Property|Address|Agent|Real\s+Estate)|$)/i);
-      if (preparedFor) clientName = clean(preparedFor[1]);
-      const repMatch = bodyText.match(/(?:Real\s+Estate\s+(?:Agent|Professional|Rep)|Agent|Buyer'?s\s+Agent)\s*[:\-]\s*([A-Za-z][A-Za-z\s.&'\-]{1,45}?)(?:\s+(?:Company|Brokerage|Phone|Email|Date|Prepared|Property)|$)/i);
-      if (repMatch) agentName = clean(repMatch[1]);
+      // 3. Client & Agent Names + Brokerage + Emails
+      let clientName = '', clientEmail = '', agentName = '', agentBrokerage = '', agentEmail = '';
+      const custLines = getFieldLines('customer(s)', 'customer', 'client(s)', 'client');
+      if (custLines.length) {
+        clientName = custLines.join(' & ');
+      } else if (coverSection) {
+        const h2 = coverSection.querySelector('h2');
+        const h2Lines = elLines(h2).filter(l => !/inspection\s+report/i.test(l) && !/davis\s+home\s+inspections/i.test(l));
+        if (h2Lines.length) clientName = h2Lines.join(' & ');
+      }
+      if (!clientName) {
+        const preparedFor = bodyText.match(/Prepared\s+For\s*[:\-]\s*([A-Za-z][A-Za-z\s.&'\-]{1,45}?)(?:\s+(?:Concerning|By|Date|Property|Address|Agent|Real\s+Estate)|$)/i);
+        if (preparedFor) clientName = clean(preparedFor[1]);
+      }
+
+      const agentLines = getFieldLines('real estate agent', 'buyer\'s agent', 'agent', 'real estate rep');
+      if (agentLines.length) {
+        agentName = agentLines[0];
+        if (agentLines.length > 1) agentBrokerage = agentLines.slice(1).join(', ');
+      } else {
+        const repMatch = bodyText.match(/(?:Real\s+Estate\s+(?:Agent|Professional|Rep)|Buyer'?s\s+Agent)\s*[:\-]\s*([A-Za-z][A-Za-z\s.&'\-]{1,45}?)(?:\s+(?:Company|Brokerage|Phone|Email|Date|Prepared|Property)|$)/i);
+        if (repMatch) agentName = clean(repMatch[1]);
+      }
 
       const mailtos = Array.from(doc.querySelectorAll('a[href^="mailto:"]'))
         .map(a => (a.getAttribute('href') || '').replace(/^mailto:/i, '').split('?')[0].trim().toLowerCase())
@@ -6701,14 +6808,65 @@ function submitInspectionQuoteRequest(payload) {
       if (!clientEmail && mailtos.length) clientEmail = mailtos[0];
       if (!agentEmail && mailtos.length > 1) agentEmail = mailtos[1];
 
-      // 4. Cover photo filename if present
+      // 4. Cover photo filename (look inside Cover Page first, skipping logo/signature/watermark)
       let coverFilename = '';
-      const coverImg = doc.querySelector('.cover-photo img, #cover-photo img, .cover-image img, img[src*="cover" i]');
-      if (coverImg && coverImg.getAttribute('src')) {
-        coverFilename = coverImg.getAttribute('src').trim().split('/').pop();
+      const isNonCoverImg = (srcStr) => /(logo|signature|watermark|hgis|spacer|icon)/i.test(String(srcStr || ''));
+      if (coverSection) {
+        const coverImgs = Array.from(coverSection.querySelectorAll('img'));
+        const picImg = coverImgs.find(img => {
+          const s = (img.getAttribute('src') || '').trim();
+          return s && !isNonCoverImg(s);
+        });
+        if (picImg) coverFilename = (picImg.getAttribute('src') || '').trim().split('/').pop();
+      }
+      if (!coverFilename) {
+        const fallbackImg = doc.querySelector('.cover-photo img, #cover-photo img, .cover-image img, img[src*="cover" i]');
+        if (fallbackImg && fallbackImg.getAttribute('src') && !isNonCoverImg(fallbackImg.getAttribute('src'))) {
+          coverFilename = fallbackImg.getAttribute('src').trim().split('/').pop();
+        }
       }
 
-      return { address, dateObj, dateDisplay, clientName, clientEmail, agentName, agentEmail, coverFilename };
+      // 5. General Info / Property Details for Cover Page
+      const buildingType = getField('type of building', 'building type', 'style of home');
+      const yearBuilt = getField('year built', 'approximate age of building', 'approximate age');
+      const sqft = getField('square footage', 'approx. sq. ft.', 'sq. ft.', 'square feet');
+      const inAttendance = getField('in attendance');
+      const weather = getField('weather');
+      const temperature = getField('temperature');
+      const groundRaw = getField('ground/soil surface condition', 'ground/soil', 'ground condition', 'soil surface');
+      const precip3Days = getField('precipitation in last 3 days', 'rain in last 3 days');
+      const groundConditions = groundRaw && precip3Days
+        ? `${groundRaw} (Precip. last 3 days: ${precip3Days})`
+        : groundRaw;
+      const standardsOfPractice = getField('standards of practice') || 'ASHI';
+      const reportId = getField('report id');
+      const mls = getField('mls #', 'mls number', 'mls');
+
+      return {
+        address,
+        dateObj,
+        dateDisplay: dateDisplayWithTime,
+        dateShort: dateDisplay,
+        clientName,
+        clientEmail,
+        agentName,
+        agentBrokerage,
+        agentEmail,
+        coverFilename,
+        propertyDetails: {
+          buildingType,
+          yearBuilt,
+          sqft,
+          inAttendance,
+          weather,
+          temperature,
+          groundConditions,
+          standardsOfPractice,
+          reportId,
+          mls,
+          agentBrokerage
+        }
+      };
     }
 
     function dhiBulkHgPickFolder() {
@@ -6738,9 +6896,16 @@ function submitInspectionQuoteRequest(payload) {
         dhiBulkHgState.currentLabel = 'Scanning ' + zipFiles.length + ' report ZIP files...';
         dhiRenderBulkHgModal();
 
+        const normDateKey = (dVal) => {
+          if (!dVal) return '';
+          const dt = dVal instanceof Date ? dVal : new Date(String(dVal).replace(/\s+at\s+.*$/i, '').trim());
+          if (isNaN(dt.getTime())) return '';
+          return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+        };
         const existingKeys = new Set((protoState.inspections || []).filter(i => !i.isDemo).map(i => {
           const st = (i.address || '').split(',')[0].trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-          return st;
+          const dk = normDateKey(i.date);
+          return st ? (dk ? `${st}|${dk}` : st) : '';
         }).filter(Boolean));
 
         const twoYearsAgo = new Date();
@@ -6767,7 +6932,8 @@ function submitInspectionQuoteRequest(payload) {
             const htmlText = await htmlEntry.async('string');
             const meta = dhiExtractHomeGaugeCoverMeta(htmlText, folderName, file.lastModified);
             const normStreet = (meta.address || '').split(',')[0].trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-            const isDup = !!(normStreet && existingKeys.has(normStreet));
+            const dk = normDateKey(meta.dateObj);
+            const isDup = !!(normStreet && (existingKeys.has(dk ? `${normStreet}|${dk}` : normStreet) || existingKeys.has(normStreet)));
             const withinTwoYears = meta.dateObj ? (meta.dateObj >= twoYearsAgo) : true;
             scanned.push({
               id: 'bhg-' + idxF,
@@ -6880,6 +7046,29 @@ function submitInspectionQuoteRequest(payload) {
           const cSplit = dhiSplitFullName(item.clientName, '', '');
           const aSplit = dhiSplitFullName(item.agentName, '', '');
 
+          const pd = item.propertyDetails || {};
+          const propInfoObj = {
+            address: item.address || '',
+            street: parsedAddr.street || '',
+            city: parsedAddr.city || '',
+            state: parsedAddr.state || 'CO',
+            zip: parsedAddr.zip || '',
+            county: parsedAddr.county || '',
+            buildingType: pd.buildingType || '',
+            yearBuilt: pd.yearBuilt || '',
+            sqft: pd.sqft || '',
+            inAttendance: pd.inAttendance || '',
+            weather: pd.weather || '',
+            temperature: pd.temperature || '',
+            groundConditions: pd.groundConditions || '',
+            standardsOfPractice: pd.standardsOfPractice || 'ASHI',
+            mls: pd.mls || '',
+            reportId: pd.reportId || '',
+            agentBrokerage: pd.agentBrokerage || '',
+            permitShare: { agent: true, buyer: true },
+            migratedFromHomeGauge: true
+          };
+
           // Create inspection record first to get its UUID
           const { data: newInsp, error: insErr } = await dhiSupabase.from('inspections').insert({
             address: item.address || item.folderName,
@@ -6893,22 +7082,12 @@ function submitInspectionQuoteRequest(payload) {
             agent_name: aSplit.name || '',
             agent_email: item.agentEmail || '',
             services: [{ name: 'Home Inspection (Migrated from HomeGauge)', price: 0 }],
-            agreement_required: false,
+            agreement_required: true,
             agreement_signed: true,
             paid: true,
             report_notified: true,
             report_sections: sections,
-            property_info: {
-              address: item.address || '',
-              street: parsedAddr.street || '',
-              city: parsedAddr.city || '',
-              state: parsedAddr.state || 'CO',
-              zip: parsedAddr.zip || '',
-              county: parsedAddr.county || '',
-              standardsOfPractice: 'ASHI',
-              permitShare: { agent: true, buyer: true },
-              migratedFromHomeGauge: true
-            }
+            property_info: propInfoObj
           }).select().single();
           if (insErr || !newInsp) throw new Error(insErr ? insErr.message : 'Failed to create inspection');
           const inspId = newInsp.id;
@@ -6936,8 +7115,9 @@ function submitInspectionQuoteRequest(payload) {
           }
 
           if (item.coverFilename && uploadedPathByLow.has(item.coverFilename.toLowerCase())) {
+            propInfoObj.coverPhotoPath = uploadedPathByLow.get(item.coverFilename.toLowerCase());
             await dhiSupabase.from('inspections').update({
-              cover_photo_path: uploadedPathByLow.get(item.coverFilename.toLowerCase())
+              property_info: propInfoObj
             }).eq('id', inspId);
           }
 
