@@ -521,6 +521,16 @@
               <label for="reqClientPhone" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Phone Number <span class="text-rose-600">*</span></label>
               <input type="tel" id="reqClientPhone" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-davis-navy outline-none" />
             </div>
+            <div class="sm:col-span-2 space-y-2.5 pt-1 border-t border-slate-100">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-600">Additional Customers or Agents (Optional)</span>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" onclick="dhiAddReqExtraPerson('customer')" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-[11px] font-bold transition">+ Add Another Customer</button>
+                  <button type="button" onclick="dhiAddReqExtraPerson('agent')" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-[11px] font-bold transition">+ Add Another Agent</button>
+                </div>
+              </div>
+              <div id="reqExtraPeopleList" class="space-y-2"></div>
+            </div>
             <div class="sm:col-span-2">
               <span class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Preferred Response Method <span class="text-rose-600">*</span></span>
               <div class="grid grid-cols-3 gap-2.5">
@@ -2093,6 +2103,30 @@ function submitInspectionQuoteRequest(payload) {
     // =========================================================================
     // PUBLIC INSPECTION REQUEST / QUOTE FORM HANDLER
     // =========================================================================
+    function dhiAddReqExtraPerson(roleType) {
+      const wrap = document.getElementById('reqExtraPeopleList');
+      if (!wrap) return;
+      const isAgent = roleType === 'agent';
+      const row = document.createElement('div');
+      row.className = 'dhi-req-extra-row grid grid-cols-1 sm:grid-cols-12 gap-2 items-center p-2.5 rounded-xl bg-slate-50 border border-slate-200';
+      row.setAttribute('data-role', isAgent ? 'agent' : 'customer');
+      row.innerHTML = `
+        <div class="sm:col-span-4">
+          <input type="text" placeholder="${isAgent ? 'Additional Agent Name' : 'Additional Customer Name'}" class="dhi-extra-name w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs bg-white" />
+        </div>
+        <div class="sm:col-span-4">
+          <input type="email" placeholder="Email Address" class="dhi-extra-email w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs bg-white" />
+        </div>
+        <div class="sm:col-span-3">
+          <input type="tel" placeholder="Phone (optional)" class="dhi-extra-phone w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs bg-white" />
+        </div>
+        <div class="sm:col-span-1 flex justify-end">
+          <button type="button" onclick="this.closest('.dhi-req-extra-row').remove()" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold">✕</button>
+        </div>
+      `;
+      wrap.appendChild(row);
+    }
+
     async function handleInspectionQuoteSubmit(event) {
       event.preventDefault();
       const alertEl = document.getElementById('reqQuoteAlert');
@@ -2124,6 +2158,25 @@ function submitInspectionQuoteRequest(payload) {
         return;
       }
 
+      const extraCustomers = [];
+      const extraAgents = [];
+      document.querySelectorAll('#reqExtraPeopleList .dhi-req-extra-row').forEach(row => {
+        const rType = row.getAttribute('data-role') || 'customer';
+        const rName = (row.querySelector('.dhi-extra-name')?.value || '').trim();
+        const rEmail = (row.querySelector('.dhi-extra-email')?.value || '').trim().toLowerCase();
+        const rPhone = (row.querySelector('.dhi-extra-phone')?.value || '').trim();
+        if (!rName && !rEmail) return;
+        const entry = { name: rName, email: rEmail, phone: rPhone };
+        if (rType === 'agent') extraAgents.push(entry);
+        else extraCustomers.push(entry);
+      });
+      const fmtExtraList = (arr) => arr.map(p => `${p.name || p.email}${p.email ? ' <' + p.email + '>' : ''}${p.phone ? ' (' + p.phone + ')' : ''}`).join('; ');
+      const extraNoteParts = [];
+      if (extraCustomers.length) extraNoteParts.push('Additional Customers: ' + fmtExtraList(extraCustomers));
+      if (extraAgents.length) extraNoteParts.push('Additional Agents: ' + fmtExtraList(extraAgents));
+      const notesWithExtras = [notes && notes !== 'None' ? notes : '', ...extraNoteParts].filter(Boolean).join(' | ');
+      const extraContactsObj = { customers: extraCustomers, agents: extraAgents };
+
       const payload = {
         client_name: clientName,
         client_role: clientRole,
@@ -2135,7 +2188,8 @@ function submitInspectionQuoteRequest(payload) {
         property_year: propYear,
         preferred_date: prefDate || 'Flexible',
         interested_addons: addons.length > 0 ? addons.join(', ') : 'None selected',
-        notes: notes || 'None'
+        additional_contacts: extraContactsObj,
+        notes: notesWithExtras || 'None'
       };
 
       if (typeof protoState !== 'undefined' && Array.isArray(protoState.requests)) {
@@ -2155,7 +2209,9 @@ function submitInspectionQuoteRequest(payload) {
           yearBuilt: propYear,
           preferredDate: prefDate || 'Flexible',
           addons,
-          notes: notes || 'None',
+          additionalCustomers: extraCustomers,
+          additionalAgents: extraAgents,
+          notes: notesWithExtras || 'None',
           status: 'New'
         });
       }
@@ -2182,7 +2238,8 @@ function submitInspectionQuoteRequest(payload) {
               property_mls: propMls || 'N/A',
               preferred_date: prefDate || 'Flexible',
               interested_addons: addons,
-              raw_notes: rawNotes
+              additional_contacts: extraContactsObj,
+              raw_notes: [rawNotes, ...extraNoteParts].filter(Boolean).join(' | ')
             }
           });
           if (fnErr || !fnData || !fnData.ok) {
@@ -3238,14 +3295,117 @@ function submitInspectionQuoteRequest(payload) {
       }
     }
 
+    function dhiParseInspDateMs(dateStr, fallbackIso) {
+      const s = String(dateStr || '').trim();
+      if (s) {
+        const cleaned = s.replace(/\s+at\s+/i, ' ').trim();
+        const d1 = new Date(cleaned);
+        if (!isNaN(d1.getTime())) return d1.getTime();
+        const dateOnly = s.replace(/\s+at\s+.*$/i, '').trim();
+        const d2 = new Date(dateOnly);
+        if (!isNaN(d2.getTime())) return d2.getTime();
+      }
+      if (fallbackIso) {
+        const d3 = new Date(fallbackIso);
+        if (!isNaN(d3.getTime())) return d3.getTime();
+      }
+      return 0;
+    }
+
+    function dhiGetInspCustomers(insp) {
+      if (!insp) return [];
+      const pi = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
+      if (Array.isArray(pi.customers) && pi.customers.length) {
+        return pi.customers.filter(c => c && ((c.name || '').trim() || (c.email || '').trim()));
+      }
+      const list = [];
+      const rawName = String(insp.clientName || '').trim();
+      const primaryEmail = String(insp.clientEmail || '').trim().toLowerCase();
+      const extraEmails = Array.isArray(insp.additionalClientEmails) ? insp.additionalClientEmails : [];
+      const nameParts = rawName ? rawName.split(/\s*(?:&|\/|\band\b)\s*/i).map(x => x.trim()).filter(Boolean) : [];
+      if (nameParts.length > 1) {
+        nameParts.forEach((nm, idx) => {
+          let em = idx === 0 ? primaryEmail : (extraEmails[idx - 1] || '');
+          if (!em && typeof dhiLookupDirectoryEmail === 'function') em = dhiLookupDirectoryEmail(nm, 'customer');
+          list.push({ name: nm, email: em });
+        });
+      } else if (rawName || primaryEmail) {
+        list.push({ name: rawName || primaryEmail, email: primaryEmail });
+        extraEmails.forEach(em => {
+          const ce = String(em || '').trim().toLowerCase();
+          if (ce && !list.some(x => (x.email || '').toLowerCase() === ce)) list.push({ name: ce, email: ce });
+        });
+      }
+      return list;
+    }
+
+    function dhiGetInspAgents(insp) {
+      if (!insp) return [];
+      const pi = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
+      if (Array.isArray(pi.agents) && pi.agents.length) {
+        return pi.agents.filter(a => a && ((a.name || '').trim() || (a.email || '').trim()));
+      }
+      const list = [];
+      const rawName = String(insp.agentName || '').trim();
+      const primaryEmail = String(insp.agentEmail || '').trim().toLowerCase();
+      const extraEmails = Array.isArray(insp.additionalAgentEmails) ? insp.additionalAgentEmails : [];
+      const nameParts = rawName ? rawName.split(/\s*(?:&|\/|\band\b)\s*/i).map(x => x.trim()).filter(Boolean) : [];
+      if (nameParts.length > 1) {
+        nameParts.forEach((nm, idx) => {
+          let em = idx === 0 ? primaryEmail : (extraEmails[idx - 1] || '');
+          if (!em && typeof dhiLookupDirectoryEmail === 'function') em = dhiLookupDirectoryEmail(nm, 'agent');
+          list.push({ name: nm, email: em });
+        });
+      } else if (rawName || primaryEmail) {
+        list.push({ name: rawName || primaryEmail, email: primaryEmail });
+        extraEmails.forEach(em => {
+          const ce = String(em || '').trim().toLowerCase();
+          if (ce && !list.some(x => (x.email || '').toLowerCase() === ce)) list.push({ name: ce, email: ce });
+        });
+      }
+      return list;
+    }
+
+    function dhiInspMatchesPerson(insp, type, email, name) {
+      if (!insp || insp.isDemo) return false;
+      const people = type === 'agent' ? dhiGetInspAgents(insp) : dhiGetInspCustomers(insp);
+      const ce = String(email || '').trim().toLowerCase();
+      const norm = (s) => String(s || '').trim().toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      const cn = norm(name);
+      return people.some(p => {
+        if (ce && (p.email || '').trim().toLowerCase() === ce) return true;
+        if (cn && norm(p.name) === cn) return true;
+        return false;
+      });
+    }
+
     function renderProtoPortal() {
       const root = document.getElementById('protoPortalRoot');
       if (!root) return;
       dhiSyncMainHeaderSticky();
 
+      // Capture active input focus & cursor position so typing in any search/input never drops focus
+      const prevEl = document.activeElement;
+      const restoreFocus = (prevEl && prevEl.id && root.contains(prevEl) && (prevEl.tagName === 'INPUT' || prevEl.tagName === 'TEXTAREA'))
+        ? { id: prevEl.id, start: prevEl.selectionStart, end: prevEl.selectionEnd }
+        : null;
+      const applyRestoreFocus = () => {
+        if (!restoreFocus) return;
+        const nextEl = document.getElementById(restoreFocus.id);
+        if (nextEl && typeof nextEl.focus === 'function') {
+          nextEl.focus({ preventScroll: true });
+          try {
+            if (typeof restoreFocus.start === 'number' && typeof nextEl.setSelectionRange === 'function') {
+              nextEl.setSelectionRange(restoreFocus.start, restoreFocus.end);
+            }
+          } catch (_e) {}
+        }
+      };
+
       if (protoState.viewingReport) {
         root.innerHTML = renderReportViewerHTML();
         initReportCanvases();
+        applyRestoreFocus();
         return;
       }
 
@@ -3286,6 +3446,7 @@ function submitInspectionQuoteRequest(payload) {
         initAgreementSigPad();
         initDhiSquareCard();
       }
+      applyRestoreFocus();
     }
 
     function renderLoginHTML() {
@@ -4463,6 +4624,10 @@ function submitInspectionQuoteRequest(payload) {
         qty: Number(s.qty) || 1,
         unitPrice: typeof s.unitPrice === 'number' ? s.unitPrice : (Number(s.price) || 0)
       }));
+      const allEditCusts = dhiGetInspCustomers(insp);
+      const allEditAgs = dhiGetInspAgents(insp);
+      window.dhiEditExtraCustomers = allEditCusts.slice(1).map(c => ({ name: c.name || '', email: c.email || '' }));
+      window.dhiEditExtraAgents = allEditAgs.slice(1).map(a => ({ name: a.name || '', email: a.email || '' }));
       const p = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
       const parsed = dhiParseAddrParts(insp.address || '');
       const street = p.street || parsed.street || '';
@@ -4569,6 +4734,33 @@ function submitInspectionQuoteRequest(payload) {
               <label class="block font-bold text-slate-700 mb-1">Agent Email</label>
               <input id="editInspAgentEmail" type="email" value="${escapeHtml(insp.agentEmail || '')}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
             </div>
+            <div class="sm:col-span-2 space-y-2 pt-2 border-t border-slate-100">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="font-bold text-slate-700">Additional Customers &amp; Agents</span>
+                <div class="flex gap-1.5">
+                  <button type="button" onclick="dhiEditAddExtraContact('customer')" class="px-2 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-[11px] font-bold">+ Add Customer</button>
+                  <button type="button" onclick="dhiEditAddExtraContact('agent')" class="px-2 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-[11px] font-bold">+ Add Agent</button>
+                </div>
+              </div>
+              <div id="editInspExtraContactsList" class="space-y-1.5">
+                ${(window.dhiEditExtraCustomers || []).map((c, idx) => `
+                  <div class="dhi-edit-extra-row flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-2 rounded-lg bg-slate-50 border border-slate-200" data-role="customer">
+                    <span class="px-1.5 py-0.5 rounded bg-sky-100 text-davis-navy text-[10px] font-bold shrink-0">Customer</span>
+                    <input type="text" value="${escapeHtml(c.name || '')}" placeholder="Name" class="dhi-ex-name flex-1 min-w-[110px] px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+                    <input type="email" value="${escapeHtml(c.email || '')}" placeholder="Email" class="dhi-ex-email flex-1 min-w-[130px] px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+                    <button type="button" onclick="this.closest('.dhi-edit-extra-row').remove()" class="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold">✕</button>
+                  </div>
+                `).join('')}
+                ${(window.dhiEditExtraAgents || []).map((a, idx) => `
+                  <div class="dhi-edit-extra-row flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-2 rounded-lg bg-slate-50 border border-slate-200" data-role="agent">
+                    <span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">Agent</span>
+                    <input type="text" value="${escapeHtml(a.name || '')}" placeholder="Name" class="dhi-ex-name flex-1 min-w-[110px] px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+                    <input type="email" value="${escapeHtml(a.email || '')}" placeholder="Email" class="dhi-ex-email flex-1 min-w-[130px] px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+                    <button type="button" onclick="this.closest('.dhi-edit-extra-row').remove()" class="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold">✕</button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
             <div class="sm:col-span-2">
               <label class="inline-flex items-center gap-2 font-bold text-slate-700 cursor-pointer">
                 <input id="editInspStandalone" type="checkbox" ${insp.agreementRequired === false ? 'checked' : ''} class="rounded border-slate-300" />
@@ -4621,6 +4813,22 @@ function submitInspectionQuoteRequest(payload) {
       dhiEditingInspId = null;
     }
 
+    function dhiEditAddExtraContact(roleType) {
+      const wrap = document.getElementById('editInspExtraContactsList');
+      if (!wrap) return;
+      const isAgent = roleType === 'agent';
+      const row = document.createElement('div');
+      row.className = 'dhi-edit-extra-row flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-2 rounded-lg bg-slate-50 border border-slate-200';
+      row.setAttribute('data-role', isAgent ? 'agent' : 'customer');
+      row.innerHTML = `
+        <span class="px-1.5 py-0.5 rounded ${isAgent ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-davis-navy'} text-[10px] font-bold shrink-0">${isAgent ? 'Agent' : 'Customer'}</span>
+        <input type="text" placeholder="Name" class="dhi-ex-name flex-1 min-w-[110px] px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+        <input type="email" placeholder="Email" class="dhi-ex-email flex-1 min-w-[130px] px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+        <button type="button" onclick="this.closest('.dhi-edit-extra-row').remove()" class="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold">✕</button>
+      `;
+      wrap.appendChild(row);
+    }
+
     async function dhiSaveEditInspModal() {
       const insp = (protoState.inspections || []).find(i => i.id === dhiEditingInspId);
       if (!insp) return;
@@ -4649,7 +4857,22 @@ function submitInspectionQuoteRequest(payload) {
         .filter(li => (li.name || '').trim())
         .map(li => ({ name: li.name.trim(), qty: 1, unitPrice: Number(li.unitPrice) || 0, price: Number((Number(li.unitPrice) || 0).toFixed(2)) }));
       const totalCents = Math.round(services.reduce((s, x) => s + (Number(x.price) || 0), 0) * 100);
-      const mergedPropInfo = { ...(insp.propertyInfo || {}), address: fullAddr, street, city, state: stateVal, zip, county, mls, yearBuilt, sqft, buildingType };
+      const extraCustsEdit = [];
+      const extraAgsEdit = [];
+      document.querySelectorAll('#editInspExtraContactsList .dhi-edit-extra-row').forEach(row => {
+        const rType = row.getAttribute('data-role') || 'customer';
+        const nm = (row.querySelector('.dhi-ex-name')?.value || '').trim();
+        let em = (row.querySelector('.dhi-ex-email')?.value || '').trim().toLowerCase();
+        if (!nm && !em) return;
+        if (!em && nm && typeof dhiLookupDirectoryEmail === 'function') em = dhiLookupDirectoryEmail(nm, rType);
+        if (rType === 'agent') extraAgsEdit.push({ name: nm || em, email: em });
+        else extraCustsEdit.push({ name: nm || em, email: em });
+      });
+      const allCustsEdit = [{ name: clientName, email: clientEmail }, ...extraCustsEdit];
+      const allAgsEdit = (agentName || agentEmail) ? [{ name: agentName || agentEmail, email: agentEmail }, ...extraAgsEdit] : extraAgsEdit;
+      const addlClientEmailsEdit = extraCustsEdit.map(c => (c.email || '').toLowerCase()).filter(e => e && e !== clientEmail);
+      const addlAgentEmailsEdit = extraAgsEdit.map(a => (a.email || '').toLowerCase()).filter(e => e && e !== agentEmail);
+      const mergedPropInfo = { ...(insp.propertyInfo || {}), address: fullAddr, street, city, state: stateVal, zip, county, mls, yearBuilt, sqft, buildingType, customers: allCustsEdit, agents: allAgsEdit };
       let nextCoverUrl = insp.coverPhotoUrl || '';
       if (dhiEditCoverState && dhiEditCoverState.removed) {
         mergedPropInfo.coverPhotoPath = '';
@@ -4666,7 +4889,7 @@ function submitInspectionQuoteRequest(payload) {
       const aSplit = dhiSplitFullName(agentName);
 
       if (dhiIsLiveSession() && insp.id !== 'insp-demo') {
-        const { error } = await dhiSupabase.from('inspections').update({
+        const editPayload = {
           address: fullAddr,
           inspection_date: dateStr,
           client_first_name: cSplit.firstName,
@@ -4677,12 +4900,27 @@ function submitInspectionQuoteRequest(payload) {
           agent_last_name: aSplit.lastName,
           agent_name: aSplit.name,
           agent_email: agentEmail || null,
+          additional_client_emails: addlClientEmailsEdit,
+          additional_agent_emails: addlAgentEmailsEdit,
           agreement_required: !standalone,
           services,
           total_cents: totalCents,
           property_info: mergedPropInfo
-        }).eq('id', insp.id);
+        };
+        let { error } = await dhiSupabase.from('inspections').update(editPayload).eq('id', insp.id);
+        if (error && /additional_.*_emails/i.test(error.message || '')) {
+          delete editPayload.additional_client_emails;
+          delete editPayload.additional_agent_emails;
+          ({ error } = await dhiSupabase.from('inspections').update(editPayload).eq('id', insp.id));
+        }
         if (error) { protoToastMsg('Could not save changes: ' + error.message); return; }
+        extraCustsEdit.forEach(c => { if (c.email) protoUpsertCustomer({ name: c.name, email: c.email, lastAddress: fullAddr }); });
+        extraAgsEdit.forEach(a => {
+          if (a.email && dhiSupabase) {
+            const sp = dhiSplitFullName(a.name);
+            dhiSupabase.from('agents').upsert({ email: a.email, first_name: sp.firstName, last_name: sp.lastName, name: sp.name || a.email }, { onConflict: 'email' });
+          }
+        });
         dhiFireActivityEvent(insp.id, 'inspection_edited', 'Updated inspection details/invoice in Admin Portal.');
       }
 
@@ -4694,6 +4932,8 @@ function submitInspectionQuoteRequest(payload) {
       insp.agentEmail = agentEmail;
       insp.agreementRequired = !standalone;
       insp.services = services;
+      insp.additionalClientEmails = addlClientEmailsEdit;
+      insp.additionalAgentEmails = addlAgentEmailsEdit;
       insp.propertyInfo = mergedPropInfo;
       insp.coverPhotoPath = mergedPropInfo.coverPhotoPath || '';
       insp.coverPhotoUrl = nextCoverUrl;
@@ -4983,8 +5223,16 @@ function submitInspectionQuoteRequest(payload) {
 
               <!-- Middle: Client / Agent + Status Pills -->
               <div class="space-y-1.5 text-xs min-w-[210px]">
-                ${(insp.clientName || insp.clientEmail) ? `<div class="text-slate-600">Customer: <button type="button" onclick="dhiOpenPersonFromCard('customer', '${(insp.clientEmail || '').replace(/'/g, "\'")}', '${(insp.clientName || '').replace(/'/g, "\'")}')" class="font-bold text-davis-navy hover:underline text-left">${escapeHtml(insp.clientName || insp.clientEmail)}</button></div>` : ''}
-                ${(insp.agentName || insp.agentEmail) ? `<div class="text-slate-600">Agent: <button type="button" onclick="dhiOpenPersonFromCard('agent', '${(insp.agentEmail || '').replace(/'/g, "\'")}', '${(insp.agentName || '').replace(/'/g, "\'")}')" class="font-bold text-davis-navy hover:underline text-left">${escapeHtml(insp.agentName || insp.agentEmail)}</button></div>` : ''}
+                ${(() => {
+                  const custs = dhiGetInspCustomers(insp);
+                  if (!custs.length) return '';
+                  return '<div class="text-slate-600">Customer: ' + custs.map(c => `<button type="button" onclick="dhiOpenPersonFromCard('customer', '${(c.email || '').replace(/'/g, "\\'")}', '${(c.name || '').replace(/'/g, "\\'")}')" class="font-bold text-davis-navy hover:underline text-left">${escapeHtml(c.name || c.email)}</button>`).join('<span class="text-slate-400">, </span>') + '</div>';
+                })()}
+                ${(() => {
+                  const ags = dhiGetInspAgents(insp);
+                  if (!ags.length) return '';
+                  return '<div class="text-slate-600">Agent: ' + ags.map(a => `<button type="button" onclick="dhiOpenPersonFromCard('agent', '${(a.email || '').replace(/'/g, "\\'")}', '${(a.name || '').replace(/'/g, "\\'")}')" class="font-bold text-davis-navy hover:underline text-left">${escapeHtml(a.name || a.email)}</button>`).join('<span class="text-slate-400">, </span>') + '</div>';
+                })()}
                 <div class="flex flex-wrap gap-1 pt-0.5">
                   ${insp.agreementRequired === false
                     ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">Standalone</span>`
@@ -5042,11 +5290,21 @@ function submitInspectionQuoteRequest(payload) {
       let bodyHTML = '';
 
       const inspSearchQ = (protoState.adminInspSearch || '').trim().toLowerCase();
-      const filterByInspSearch = (arr) => !inspSearchQ ? arr : arr.filter(i =>
-        ((i.address || '') + ' ' + (i.clientName || '') + ' ' + (i.clientEmail || '') + ' ' + (i.agentName || '') + ' ' + (i.agentEmail || '')).toLowerCase().includes(inspSearchQ)
-      );
-      const filteredScheduled = filterByInspSearch(scheduledInspections);
-      const filteredReleased = filterByInspSearch(releasedReports);
+      const filterByInspSearch = (arr) => !inspSearchQ ? arr : arr.filter(i => {
+        const custTxt = dhiGetInspCustomers(i).map(c => (c.name || '') + ' ' + (c.email || '')).join(' ');
+        const agTxt = dhiGetInspAgents(i).map(a => (a.name || '') + ' ' + (a.email || '')).join(' ');
+        return ((i.address || '') + ' ' + (i.clientName || '') + ' ' + (i.clientEmail || '') + ' ' + (i.agentName || '') + ' ' + (i.agentEmail || '') + ' ' + custTxt + ' ' + agTxt).toLowerCase().includes(inspSearchQ);
+      });
+      const filteredScheduled = filterByInspSearch(scheduledInspections).slice().sort((a, b) => {
+        const ta = dhiParseInspDateMs(a.date, a.createdAt) || Number.MAX_SAFE_INTEGER;
+        const tb = dhiParseInspDateMs(b.date, b.createdAt) || Number.MAX_SAFE_INTEGER;
+        return ta - tb; // Soonest upcoming first
+      });
+      const filteredReleased = filterByInspSearch(releasedReports).slice().sort((a, b) => {
+        const ta = dhiParseInspDateMs(a.date, a.createdAt);
+        const tb = dhiParseInspDateMs(b.date, b.createdAt);
+        return tb - ta; // Newest inspection date first
+      });
 
       if (protoState.adminTab === 'scheduled') {
         bodyHTML = `
@@ -5057,7 +5315,7 @@ function submitInspectionQuoteRequest(payload) {
                 <p class="text-xs text-slate-500">Upcoming and in-progress inspections whose reports have not been released yet.</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <input type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-56" />
+                <input id="dhiScheduledSearch" type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-56" />
                 <button type="button" onclick="protoState.newInspDraft=null; protoState.adminTab='new'; renderProtoPortal();" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">+ New Inspection</button>
               </div>
             </div>
@@ -5085,7 +5343,7 @@ function submitInspectionQuoteRequest(payload) {
                 <p class="text-xs text-slate-500">Completed inspections that have been released to clients and agents.</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <input type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; protoState.reportsPage=1; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-52 sm:w-56" />
+                <input id="dhiReportsSearch" type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; protoState.reportsPage=1; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-52 sm:w-56" />
                 <button type="button" onclick="dhiOpenBulkHgModal()" class="px-3.5 py-2 rounded-xl border border-sky-300 bg-sky-50 hover:border-davis-navy hover:bg-sky-100 text-davis-navy text-xs font-extrabold transition whitespace-nowrap">Bulk Import HG Folder</button>
               </div>
             </div>
@@ -5098,7 +5356,12 @@ function submitInspectionQuoteRequest(payload) {
           </div>
         `;
       } else if (protoState.adminTab === 'requests') {
-        const reqCards = (protoState.requests || []).map(r => `
+        const sortedReqs = (protoState.requests || []).slice().sort((a, b) => {
+          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return ta - tb; // Oldest received first
+        });
+        const reqCards = sortedReqs.map(r => `
           <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
             <div class="flex flex-wrap items-start justify-between gap-2">
               <div>
@@ -5410,7 +5673,7 @@ function submitInspectionQuoteRequest(payload) {
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-base font-extrabold text-slate-900">Agent Directory (${filteredAgents.length})</h3>
-                <input type="search" value="${escapeHtml(protoState.agentSearch || '')}" oninput="protoState.agentSearch=this.value; protoState.agentPage=1; renderProtoPortal();" placeholder="Search agents..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-56" />
+                <input id="dhiAgentsSearch" type="search" value="${escapeHtml(protoState.agentSearch || '')}" oninput="protoState.agentSearch=this.value; protoState.agentPage=1; renderProtoPortal();" placeholder="Search agents..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-56" />
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
@@ -5464,7 +5727,7 @@ function submitInspectionQuoteRequest(payload) {
                 <p class="text-xs text-slate-500">Automatically populates when buyers submit requests or when you create inspections. You can also import your HomeGauge customer CSV.</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <input type="search" value="${escapeHtml(protoState.customerSearch || '')}" oninput="protoState.customerSearch=this.value; protoState.customerPage=1; renderProtoPortal();" placeholder="Search customers..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-52" />
+                <input id="dhiCustomersSearch" type="search" value="${escapeHtml(protoState.customerSearch || '')}" oninput="protoState.customerSearch=this.value; protoState.customerPage=1; renderProtoPortal();" placeholder="Search customers..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-52" />
                 <button type="button" onclick="protoImportHomeGaugeCSV('customers')" class="px-3.5 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Import HomeGauge CSV</button>
               </div>
             </div>
@@ -5676,6 +5939,33 @@ function submitInspectionQuoteRequest(payload) {
                   <label class="block font-bold text-slate-700 mb-1">Agent Name (auto-fills Calendar event)</label>
                   <input id="protoNewAgentName" type="text" placeholder="Auto-filled from saved agents" value="${escapeHtml(matchedAgent ? dhiDisplayName(matchedAgent) : (pre.agentName || ''))}" oninput="protoUpdateCalPreview()" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
                 </div>
+                <div class="sm:col-span-2 space-y-2 pt-2 border-t border-slate-200">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="font-bold text-slate-700">Additional Customers &amp; Agents (Optional)</span>
+                    <div class="flex gap-2">
+                      <button type="button" onclick="dhiNewInspAddExtraContact('customer')" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-xs font-bold transition">+ Add Customer</button>
+                      <button type="button" onclick="dhiNewInspAddExtraContact('agent')" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-xs font-bold transition">+ Add Agent</button>
+                    </div>
+                  </div>
+                  <div id="protoNewExtraContactsList" class="space-y-2">
+                    ${(pre.additionalCustomers || []).map(c => `
+                      <div class="dhi-new-extra-row flex flex-wrap sm:flex-nowrap items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200" data-role="customer">
+                        <span class="px-2 py-0.5 rounded bg-sky-100 text-davis-navy text-[10px] font-bold shrink-0">Customer</span>
+                        <input type="text" value="${escapeHtml(c.name || '')}" placeholder="Customer Name" class="dhi-ex-name flex-1 min-w-[130px] px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                        <input type="email" value="${escapeHtml(c.email || '')}" placeholder="Customer Email" class="dhi-ex-email flex-1 min-w-[160px] px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                        <button type="button" onclick="this.closest('.dhi-new-extra-row').remove()" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
+                      </div>
+                    `).join('')}
+                    ${(pre.additionalAgents || []).map(a => `
+                      <div class="dhi-new-extra-row flex flex-wrap sm:flex-nowrap items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200" data-role="agent">
+                        <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">Agent</span>
+                        <input type="text" value="${escapeHtml(a.name || '')}" placeholder="Agent Name" class="dhi-ex-name flex-1 min-w-[130px] px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                        <input type="email" list="dhiAgentEmailList" value="${escapeHtml(a.email || '')}" placeholder="Agent Email" class="dhi-ex-email flex-1 min-w-[160px] px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                        <button type="button" onclick="this.closest('.dhi-new-extra-row').remove()" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
                 <div class="sm:col-span-2 pt-1">
                   <label class="flex items-start gap-2.5 p-3 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer">
                     <input type="checkbox" id="protoNewStandalone" ${pre.standalone ? 'checked' : ''} onchange="protoSaveNewInspDraftInputs()" class="mt-0.5 rounded border-slate-300" />
@@ -5826,6 +6116,34 @@ function submitInspectionQuoteRequest(payload) {
       }
     }
 
+    function dhiReadNewInspExtraContacts(roleFilter) {
+      const out = [];
+      document.querySelectorAll('#protoNewExtraContactsList .dhi-new-extra-row').forEach(row => {
+        const rType = row.getAttribute('data-role') || 'customer';
+        if (roleFilter && rType !== roleFilter) return;
+        const name = (row.querySelector('.dhi-ex-name')?.value || '').trim();
+        const email = (row.querySelector('.dhi-ex-email')?.value || '').trim().toLowerCase();
+        if (name || email) out.push({ name, email });
+      });
+      return out;
+    }
+
+    function dhiNewInspAddExtraContact(roleType) {
+      const wrap = document.getElementById('protoNewExtraContactsList');
+      if (!wrap) return;
+      const isAgent = roleType === 'agent';
+      const row = document.createElement('div');
+      row.className = 'dhi-new-extra-row flex flex-wrap sm:flex-nowrap items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200';
+      row.setAttribute('data-role', isAgent ? 'agent' : 'customer');
+      row.innerHTML = `
+        <span class="px-2 py-0.5 rounded ${isAgent ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-davis-navy'} text-[10px] font-bold shrink-0">${isAgent ? 'Agent' : 'Customer'}</span>
+        <input type="text" placeholder="${isAgent ? 'Agent Name' : 'Customer Name'}" class="dhi-ex-name flex-1 min-w-[130px] px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+        <input type="email" ${isAgent ? 'list="dhiAgentEmailList"' : ''} placeholder="${isAgent ? 'Agent Email' : 'Customer Email'}" class="dhi-ex-email flex-1 min-w-[160px] px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+        <button type="button" onclick="this.closest('.dhi-new-extra-row').remove()" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">✕</button>
+      `;
+      wrap.appendChild(row);
+    }
+
     function protoSaveNewInspDraftInputs() {
       const streetEl = document.getElementById('protoNewStreet');
       if (!streetEl) return;
@@ -5849,7 +6167,9 @@ function submitInspectionQuoteRequest(payload) {
         clientPhone: document.getElementById('protoNewClientPhone')?.value || '',
         agentEmail: document.getElementById('protoNewAgentEmail')?.value || '',
         agentName: document.getElementById('protoNewAgentName')?.value || '',
-        standalone: !!document.getElementById('protoNewStandalone')?.checked
+        standalone: !!document.getElementById('protoNewStandalone')?.checked,
+        additionalCustomers: dhiReadNewInspExtraContacts('customer'),
+        additionalAgents: dhiReadNewInspExtraContacts('agent')
       };
     }
 
@@ -6035,7 +6355,9 @@ function submitInspectionQuoteRequest(payload) {
         clientEmail: isAgentReq ? '' : (r.clientEmail || ''),
         clientPhone: isAgentReq ? '' : (r.clientPhone || ''),
         agentEmail: isAgentReq ? (r.clientEmail || '') : '',
-        agentName: isAgentReq ? (r.clientName || '') : ''
+        agentName: isAgentReq ? (r.clientName || '') : '',
+        additionalCustomers: Array.isArray(r.additionalCustomers) ? r.additionalCustomers.slice() : [],
+        additionalAgents: Array.isArray(r.additionalAgents) ? r.additionalAgents.slice() : []
       };
       const preItems = [];
       const findCat = (kw) => (protoState.serviceCatalog || []).find(c => c.name.toLowerCase().includes(kw));
@@ -6068,6 +6390,14 @@ function submitInspectionQuoteRequest(payload) {
       const buildingType = (document.getElementById('protoNewBuildingType')?.value || '').trim();
       const pendingCoverDataUrl = (protoState.newInspDraft && protoState.newInspDraft.coverPhotoDataUrl) || '';
       const addr = protoComposeAdminAddress(street, city, stateVal, zip);
+      const extraCustsNew = dhiReadNewInspExtraContacts('customer').map(c => ({
+        name: c.name || c.email,
+        email: c.email || (c.name ? dhiLookupDirectoryEmail(c.name, 'customer') : '')
+      }));
+      const extraAgsNew = dhiReadNewInspExtraContacts('agent').map(a => ({
+        name: a.name || a.email,
+        email: a.email || (a.name ? dhiLookupDirectoryEmail(a.name, 'agent') : '')
+      }));
       const propInfoObj = { address: addr, street, city, state: stateVal, zip, county, mls, yearBuilt, sqft, buildingType, standardsOfPractice: 'ASHI', permitShare: { buyer: true, agent: true } };
       dhiRememberAddrHistory({ city, state: stateVal, county, zip });
       const dateOnly = (document.getElementById('protoNewDateOnly')?.value || '').trim();
@@ -6134,8 +6464,22 @@ function submitInspectionQuoteRequest(payload) {
       await protoUpsertCustomer({ firstName: clientSplit.firstName, lastName: clientSplit.lastName, name: clientSplit.name, email, phone, lastAddress: addr });
 
       let newId = 'insp-' + Date.now();
+      const allCustsNew = [{ name: clientSplit.name || email, email: email.toLowerCase() }, ...extraCustsNew];
+      const allAgsNew = (agentSplit.name || agentEmail) ? [{ name: agentSplit.name || agentEmail, email: agentEmail.toLowerCase() }, ...extraAgsNew] : extraAgsNew;
+      const addlClientEmailsNew = extraCustsNew.map(c => (c.email || '').toLowerCase()).filter(e => e && e !== email.toLowerCase());
+      const addlAgentEmailsNew = extraAgsNew.map(a => (a.email || '').toLowerCase()).filter(e => e && e !== agentEmail.toLowerCase());
+      propInfoObj.customers = allCustsNew;
+      propInfoObj.agents = allAgsNew;
+      extraCustsNew.forEach(c => { if (c.email) protoUpsertCustomer({ name: c.name, email: c.email, lastAddress: addr }); });
+      extraAgsNew.forEach(a => {
+        if (a.email && dhiSupabase) {
+          const sp = dhiSplitFullName(a.name);
+          dhiSupabase.from('agents').upsert({ email: a.email, first_name: sp.firstName, last_name: sp.lastName, name: sp.name || a.email }, { onConflict: 'email' });
+        }
+      });
+
       if (dhiIsLiveSession()) {
-        const { data: inserted, error: insErr } = await dhiSupabase.from('inspections').insert({
+        const createPayload = {
           address: addr,
           inspection_date: dateStr,
           client_first_name: clientSplit.firstName,
@@ -6146,11 +6490,19 @@ function submitInspectionQuoteRequest(payload) {
           agent_last_name: agentSplit.lastName,
           agent_name: agentSplit.name,
           agent_email: agentEmail ? agentEmail.toLowerCase() : null,
+          additional_client_emails: addlClientEmailsNew,
+          additional_agent_emails: addlAgentEmailsNew,
           services,
           total_cents: totalCents,
           agreement_required: !document.getElementById('protoNewStandalone')?.checked,
           property_info: propInfoObj
-        }).select().single();
+        };
+        let { data: inserted, error: insErr } = await dhiSupabase.from('inspections').insert(createPayload).select().single();
+        if (insErr && /additional_.*_emails/i.test(insErr.message || '')) {
+          delete createPayload.additional_client_emails;
+          delete createPayload.additional_agent_emails;
+          ({ data: inserted, error: insErr } = await dhiSupabase.from('inspections').insert(createPayload).select().single());
+        }
         if (insErr) {
           protoToastMsg('Error saving inspection to Supabase: ' + insErr.message);
           return;
@@ -6212,20 +6564,23 @@ function submitInspectionQuoteRequest(payload) {
       }
 
       if (dhiSupabase) {
-        try {
-          await dhiSupabase.functions.invoke('send-portal-email', {
-            body: {
-              type: 'agreement_ready',
-              to: email,
-              recipientName: client,
-              address: addr,
-              inspectionDate: dateStr,
-              standalone: !!document.getElementById('protoNewStandalone')?.checked,
-              portalLink: dhiGetRedirectUrl()
-            }
-          });
-        } catch (err) {
-          console.warn('Email send fallback:', err);
+        const recipients = allCustsNew.filter(c => c.email);
+        for (const rec of recipients) {
+          try {
+            await dhiSupabase.functions.invoke('send-portal-email', {
+              body: {
+                type: 'agreement_ready',
+                to: rec.email,
+                recipientName: rec.name || client,
+                address: addr,
+                inspectionDate: dateStr,
+                standalone: !!document.getElementById('protoNewStandalone')?.checked,
+                portalLink: dhiGetRedirectUrl()
+              }
+            });
+          } catch (err) {
+            console.warn('Email send fallback:', err);
+          }
         }
       }
       protoToastMsg('Inspection scheduled, Google Calendar opened, & confirmation sent to ' + email + '!');
@@ -6622,20 +6977,28 @@ function submitInspectionQuoteRequest(payload) {
             return;
           }
         }
-        const { error: fnErr } = await dhiSupabase.functions.invoke('send-portal-email', {
-          body: {
-            type: emailType,
-            to: insp.clientEmail,
-            recipientName: insp.clientName || 'Customer',
-            address: insp.address,
-            inspectionDate: insp.date || '',
-            standalone: insp.agreementRequired === false,
-            portalLink: dhiGetRedirectUrl()
-          }
-        });
-        if (fnErr) {
-          protoToastMsg('Email send failed: ' + fnErr.message);
+        const targetCusts = dhiGetInspCustomers(insp).filter(c => c.email);
+        const recipients = targetCusts.length ? targetCusts : (insp.clientEmail ? [{ name: insp.clientName || 'Customer', email: insp.clientEmail }] : []);
+        if (!recipients.length) {
+          protoToastMsg('No customer email address on this inspection.');
           return;
+        }
+        for (const rec of recipients) {
+          const { error: fnErr } = await dhiSupabase.functions.invoke('send-portal-email', {
+            body: {
+              type: emailType,
+              to: rec.email,
+              recipientName: rec.name || insp.clientName || 'Customer',
+              address: insp.address,
+              inspectionDate: insp.date || '',
+              standalone: insp.agreementRequired === false,
+              portalLink: dhiGetRedirectUrl()
+            }
+          });
+          if (fnErr) {
+            protoToastMsg('Email send failed for ' + rec.email + ': ' + fnErr.message);
+            return;
+          }
         }
       }
       if (isReportRelease) {
@@ -6825,37 +7188,59 @@ function submitInspectionQuoteRequest(payload) {
       }
       const dateDisplayWithTime = timeStr ? `${dateDisplay} at ${timeStr}` : dateDisplay;
 
-      // 3. Client & Agent Names + Brokerage + Emails
+      // 3. Client(s) & Agent(s) Names + Brokerage + Individual Directory Email Lookups
       let clientName = '', clientEmail = '', agentName = '', agentBrokerage = '', agentEmail = '';
-      const custLines = getFieldLines('customer(s)', 'customer', 'client(s)', 'client');
-      if (custLines.length) {
-        clientName = custLines.join(' & ');
-      } else if (coverSection) {
+      let rawCustNames = getFieldLines('customer(s)', 'customer', 'client(s)', 'client');
+      if (!rawCustNames.length && coverSection) {
         const h2 = coverSection.querySelector('h2');
-        const h2Lines = elLines(h2).filter(l => !/inspection\s+report/i.test(l) && !/davis\s+home\s+inspections/i.test(l));
-        if (h2Lines.length) clientName = h2Lines.join(' & ');
+        rawCustNames = elLines(h2).filter(l => !/inspection\s+report/i.test(l) && !/davis\s+home\s+inspections/i.test(l));
       }
-      if (!clientName) {
+      if (!rawCustNames.length) {
         const preparedFor = bodyText.match(/Prepared\s+For\s*[:\-]\s*([A-Za-z][A-Za-z\s.&'\-]{1,45}?)(?:\s+(?:Concerning|By|Date|Property|Address|Agent|Real\s+Estate)|$)/i);
-        if (preparedFor) clientName = clean(preparedFor[1]);
+        if (preparedFor) rawCustNames = [clean(preparedFor[1])];
       }
+      // Split any combined "Name 1 & Name 2" lines into individual customer entries
+      const splitPeople = (arr) => {
+        const out = [];
+        arr.forEach(line => {
+          String(line || '').split(/\s*(?:&|\/|\band\b)\s*/i).forEach(part => {
+            const p = clean(part);
+            if (p && !out.includes(p)) out.push(p);
+          });
+        });
+        return out;
+      };
+      const customerNameList = splitPeople(rawCustNames);
 
       const agentLines = getFieldLines('real estate agent', 'buyer\'s agent', 'agent', 'real estate rep');
+      let agentNameList = [];
       if (agentLines.length) {
-        agentName = agentLines[0];
+        agentNameList = splitPeople([agentLines[0]]);
         if (agentLines.length > 1) agentBrokerage = agentLines.slice(1).join(', ');
       } else {
         const repMatch = bodyText.match(/(?:Real\s+Estate\s+(?:Agent|Professional|Rep)|Buyer'?s\s+Agent)\s*[:\-]\s*([A-Za-z][A-Za-z\s.&'\-]{1,45}?)(?:\s+(?:Company|Brokerage|Phone|Email|Date|Prepared|Property)|$)/i);
-        if (repMatch) agentName = clean(repMatch[1]);
+        if (repMatch) agentNameList = splitPeople([clean(repMatch[1])]);
       }
 
       const mailtos = Array.from(doc.querySelectorAll('a[href^="mailto:"]'))
         .map(a => (a.getAttribute('href') || '').replace(/^mailto:/i, '').split('?')[0].trim().toLowerCase())
         .filter(e => e && e.includes('@') && !e.includes('davis-inspections.com'));
-      if (clientName) clientEmail = dhiLookupDirectoryEmail(clientName, 'customer');
-      if (agentName) agentEmail = dhiLookupDirectoryEmail(agentName, 'agent');
-      if (!clientEmail && mailtos.length) clientEmail = mailtos[0];
-      if (!agentEmail && mailtos.length > 1) agentEmail = mailtos[1];
+
+      const customersArr = customerNameList.map(nm => ({
+        name: nm,
+        email: dhiLookupDirectoryEmail(nm, 'customer') || ''
+      }));
+      if (customersArr.length && !customersArr[0].email && mailtos.length) customersArr[0].email = mailtos[0];
+      const agentsArr = agentNameList.map(nm => ({
+        name: nm,
+        email: dhiLookupDirectoryEmail(nm, 'agent') || ''
+      }));
+      if (agentsArr.length && !agentsArr[0].email && mailtos.length > 1) agentsArr[0].email = mailtos[1];
+
+      clientName = customersArr.map(c => c.name).join(' & ');
+      clientEmail = (customersArr.find(c => c.email) || {}).email || '';
+      agentName = agentsArr.map(a => a.name).join(' & ');
+      agentEmail = (agentsArr.find(a => a.email) || {}).email || '';
 
       // 4. Cover photo filename (look inside Cover Page first, skipping logo/signature/watermark)
       let coverFilename = '';
@@ -6901,6 +7286,8 @@ function submitInspectionQuoteRequest(payload) {
         agentName,
         agentBrokerage,
         agentEmail,
+        customers: customersArr,
+        agents: agentsArr,
         coverFilename,
         propertyDetails: {
           buildingType,
@@ -7114,22 +7501,32 @@ function submitInspectionQuoteRequest(payload) {
             mls: pd.mls || '',
             reportId: pd.reportId || '',
             agentBrokerage: pd.agentBrokerage || '',
+            customers: Array.isArray(item.customers) && item.customers.length ? item.customers : (item.clientName ? [{ name: item.clientName, email: item.clientEmail || '' }] : []),
+            agents: Array.isArray(item.agents) && item.agents.length ? item.agents : (item.agentName ? [{ name: item.agentName, email: item.agentEmail || '' }] : []),
             permitShare: { agent: true, buyer: true },
             migratedFromHomeGauge: true
           };
+          const primaryCustHg = propInfoObj.customers[0] || { name: item.clientName || '', email: item.clientEmail || '' };
+          const primaryAgHg = propInfoObj.agents[0] || { name: item.agentName || '', email: item.agentEmail || '' };
+          const cSplitHg = dhiSplitFullName(primaryCustHg.name || item.clientName, '', '');
+          const aSplitHg = dhiSplitFullName(primaryAgHg.name || item.agentName, '', '');
+          const addlClientEmailsHg = propInfoObj.customers.slice(1).map(c => (c.email || '').toLowerCase()).filter(e => e && e !== (primaryCustHg.email || '').toLowerCase());
+          const addlAgentEmailsHg = propInfoObj.agents.slice(1).map(a => (a.email || '').toLowerCase()).filter(e => e && e !== (primaryAgHg.email || '').toLowerCase());
 
           // Create inspection record first to get its UUID
-          const { data: newInsp, error: insErr } = await dhiSupabase.from('inspections').insert({
+          const hgInsertPayload = {
             address: item.address || item.folderName,
             inspection_date: item.dateDisplay || '',
-            client_first_name: cSplit.firstName || '',
-            client_last_name: cSplit.lastName || '',
-            client_name: cSplit.name || item.clientEmail || 'HomeGauge Client',
-            client_email: item.clientEmail || '',
-            agent_first_name: aSplit.firstName || '',
-            agent_last_name: aSplit.lastName || '',
-            agent_name: aSplit.name || '',
-            agent_email: item.agentEmail || '',
+            client_first_name: cSplitHg.firstName || '',
+            client_last_name: cSplitHg.lastName || '',
+            client_name: item.clientName || cSplitHg.name || primaryCustHg.email || 'HomeGauge Client',
+            client_email: (primaryCustHg.email || item.clientEmail || '').toLowerCase(),
+            agent_first_name: aSplitHg.firstName || '',
+            agent_last_name: aSplitHg.lastName || '',
+            agent_name: item.agentName || aSplitHg.name || '',
+            agent_email: (primaryAgHg.email || item.agentEmail || '').toLowerCase(),
+            additional_client_emails: addlClientEmailsHg,
+            additional_agent_emails: addlAgentEmailsHg,
             services: [{ name: 'Home Inspection (Migrated from HomeGauge)', price: 0 }],
             agreement_required: true,
             agreement_signed: true,
@@ -7137,7 +7534,13 @@ function submitInspectionQuoteRequest(payload) {
             report_notified: true,
             report_sections: sections,
             property_info: propInfoObj
-          }).select().single();
+          };
+          let { data: newInsp, error: insErr } = await dhiSupabase.from('inspections').insert(hgInsertPayload).select().single();
+          if (insErr && /additional_.*_emails/i.test(insErr.message || '')) {
+            delete hgInsertPayload.additional_client_emails;
+            delete hgInsertPayload.additional_agent_emails;
+            ({ data: newInsp, error: insErr } = await dhiSupabase.from('inspections').insert(hgInsertPayload).select().single());
+          }
           if (insErr || !newInsp) throw new Error(insErr ? insErr.message : 'Failed to create inspection');
           const inspId = newInsp.id;
 
@@ -8519,8 +8922,8 @@ function submitInspectionQuoteRequest(payload) {
         const coverPInfo = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
         const coverSpecs = [
           ['Inspection Date', insp.date || ''],
-          ['Prepared For', insp.clientName || ''],
-          ['Real Estate Agent', insp.agentName || ''],
+          ['Prepared For', dhiGetInspCustomers(insp).map(c => c.name || c.email).join(', ') || insp.clientName || ''],
+          ['Real Estate Agent', dhiGetInspAgents(insp).map(a => a.name || a.email).join(', ') || insp.agentName || ''],
           ['Type of Building', coverPInfo.buildingType || ''],
           ['Year Built', coverPInfo.yearBuilt || ''],
           ['Square Footage', coverPInfo.sqft || ''],
@@ -9334,8 +9737,8 @@ function submitInspectionQuoteRequest(payload) {
       const coverPInfo = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
       const coverSpecs = [
         ['Inspection Date', insp.date || ''],
-        ['Prepared For', insp.clientName || ''],
-        ['Real Estate Agent', insp.agentName || ''],
+        ['Prepared For', dhiGetInspCustomers(insp).map(c => c.name || c.email).join(', ') || insp.clientName || ''],
+        ['Real Estate Agent', dhiGetInspAgents(insp).map(a => a.name || a.email).join(', ') || insp.agentName || ''],
         ['Type of Building', coverPInfo.buildingType || ''],
         ['Year Built', coverPInfo.yearBuilt || ''],
         ['Square Footage', coverPInfo.sqft || ''],
@@ -10317,7 +10720,27 @@ function submitInspectionQuoteRequest(payload) {
       };
     }
 
+    function dhiParseExtraContactsFromNotes(notesStr, label) {
+      const m = String(notesStr || '').match(new RegExp(label + ':\\s*([^|\\n]+)', 'i'));
+      if (!m || !m[1]) return [];
+      return m[1].split(';').map(chunk => {
+        const s = chunk.trim();
+        if (!s) return null;
+        const emM = s.match(/<([^>]+)>/);
+        const phM = s.match(/\(([^)]+)\)/);
+        const name = s.replace(/<[^>]+>/g, '').replace(/\([^)]+\)/g, '').trim();
+        return { name, email: emM ? emM[1].trim().toLowerCase() : '', phone: phM ? phM[1].trim() : '' };
+      }).filter(x => x && (x.name || x.email));
+    }
+
     function dhiMapRequestRow(r) {
+      const ac = (r.additional_contacts && typeof r.additional_contacts === 'object') ? r.additional_contacts : null;
+      const addlCusts = (ac && Array.isArray(ac.customers) && ac.customers.length)
+        ? ac.customers
+        : dhiParseExtraContactsFromNotes(r.notes, 'Additional Customers');
+      const addlAgs = (ac && Array.isArray(ac.agents) && ac.agents.length)
+        ? ac.agents
+        : dhiParseExtraContactsFromNotes(r.notes, 'Additional Agents');
       return {
         id: r.id,
         createdAt: r.created_at || r.createdAt || '',
@@ -10331,6 +10754,8 @@ function submitInspectionQuoteRequest(payload) {
         yearBuilt: r.property_year || r.yearBuilt || '',
         preferredDate: r.preferred_date || r.preferredDate || '',
         addons: Array.isArray(r.interested_addons) ? r.interested_addons : (Array.isArray(r.addons) ? r.addons : []),
+        additionalCustomers: addlCusts,
+        additionalAgents: addlAgs,
         notes: r.notes || '',
         status: r.status || 'New'
       };
@@ -10340,8 +10765,11 @@ function submitInspectionQuoteRequest(payload) {
       return {
         id: r.id,
         isDemo: false,
+        createdAt: r.created_at || '',
         address: r.address || '',
         date: r.inspection_date || '',
+        additionalClientEmails: Array.isArray(r.additional_client_emails) ? r.additional_client_emails : [],
+        additionalAgentEmails: Array.isArray(r.additional_agent_emails) ? r.additional_agent_emails : [],
         clientName: r.client_name || ((r.client_first_name || '') + ' ' + (r.client_last_name || '')).trim(),
         clientEmail: r.client_email || '',
         buyerName: r.client_name || '',
@@ -10638,8 +11066,12 @@ function submitInspectionQuoteRequest(payload) {
             shareByInsp[sr.inspection_id] = cur;
           });
 
+          const hasAddlEmail = (arr) => Array.isArray(arr) && arr.some(e => String(e || '').toLowerCase() === email);
           const ownData = allVisible.filter(r =>
-            (r.client_email || '').toLowerCase() === email || (r.agent_email || '').toLowerCase() === email
+            (r.client_email || '').toLowerCase() === email
+            || (r.agent_email || '').toLowerCase() === email
+            || hasAddlEmail(r.additional_client_emails)
+            || hasAddlEmail(r.additional_agent_emails)
           );
           const sharedOnlyData = allVisible.filter(r => !ownData.some(o => o.id === r.id) && shareByInsp[r.id]);
 
@@ -10654,7 +11086,7 @@ function submitInspectionQuoteRequest(payload) {
           });
 
           protoState.agentProfile = agentRes && agentRes.data ? dhiMapAgentRow(agentRes.data) : null;
-          const isAgent = !!protoState.agentProfile || ownData.some(r => (r.agent_email || '').toLowerCase() === email);
+          const isAgent = !!protoState.agentProfile || ownData.some(r => (r.agent_email || '').toLowerCase() === email || hasAddlEmail(r.additional_agent_emails));
           const isThirdPartyOnly = !isAgent && ownData.length === 0 && sharedOnlyData.length > 0;
           protoState.role = isThirdPartyOnly ? 'third_party' : (isAgent ? 'agent' : 'buyer');
 
@@ -10814,12 +11246,7 @@ function submitInspectionQuoteRequest(payload) {
       }
       const listEl = document.getElementById('protoPersonReportsList');
       if (listEl) {
-        const related = (protoState.inspections || []).filter(i => {
-          if (i.isDemo) return false;
-          const eMatch = cleanEmail && ((type === 'agent' ? i.agentEmail : i.clientEmail) || '').toLowerCase() === cleanEmail;
-          const nMatch = fallbackName && ((type === 'agent' ? i.agentName : i.clientName) || '').toLowerCase() === fallbackName.toLowerCase();
-          return eMatch || nMatch;
-        });
+        const related = (protoState.inspections || []).filter(i => dhiInspMatchesPerson(i, type, cleanEmail, fallbackName));
         listEl.innerHTML = related.length
           ? related.map(i => `<div class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs"><div><div class="font-bold text-slate-900">${escapeHtml(i.address)}</div><div class="text-[11px] text-slate-500">${escapeHtml(i.date || '')}</div></div><button type="button" onclick="protoClosePersonModal(); protoOpenInspection('${i.id}')" class="px-2.5 py-1 rounded-lg bg-davis-navy text-white text-[11px] font-bold">Open</button></div>`).join('')
           : '<p class="text-xs text-slate-400">No linked inspections found.</p>';
