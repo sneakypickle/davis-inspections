@@ -218,12 +218,15 @@
         </button>
         <button type="button" id="nav-portal" onclick="navigatePage('portal', false)" class="nav-btn px-2.5 py-1.5 rounded-lg text-slate-700 hover:text-davis-navy hover:bg-slate-100 font-medium transition inline-flex items-center gap-1">
           <svg class="w-3.5 h-3.5 text-davis-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-          <span>Client Portal</span>
+          <span>Login</span>
         </button>
-        <a href="tel:7196604724" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark text-white font-bold transition ml-1" title="Call or Text Matt">
-          <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-          <span>(719) 660-4724</span>
-        </a>
+        <div class="inline-flex flex-col items-end gap-1 ml-1">
+          <button type="button" id="dhiHeaderFeedbackBtn" onclick="dhiOpenFeedbackModal(protoState.role === 'agent' ? 'Agent' : 'Buyer')" class="hidden text-[11px] font-bold text-davis-blue hover:text-davis-navy hover:underline leading-none px-1">Report Issue / Feedback</button>
+          <a href="tel:7196604724" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark text-white font-bold transition" title="Call or Text Matt">
+            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            <span>(719) 660-4724</span>
+          </a>
+        </div>
       </nav>
     </div>
   </header>
@@ -3457,6 +3460,12 @@ function submitInspectionQuoteRequest(payload) {
       const root = document.getElementById('protoPortalRoot');
       if (!root) return;
       dhiSyncMainHeaderSticky();
+      const hdrFbBtn = document.getElementById('dhiHeaderFeedbackBtn');
+      if (hdrFbBtn) {
+        const showFb = !!(dhiIsLiveSession() && (protoState.role === 'buyer' || protoState.role === 'agent'));
+        hdrFbBtn.classList.toggle('hidden', !showFb);
+        if (showFb) hdrFbBtn.textContent = protoState.role === 'agent' ? 'Feedback & Ideas' : 'Report Issue / Feedback';
+      }
 
       // Capture active input focus & cursor position so typing in any search/input never drops focus
       const prevEl = document.activeElement;
@@ -3483,6 +3492,18 @@ function submitInspectionQuoteRequest(payload) {
         return;
       }
 
+      if (protoState.authLoading) {
+        root.innerHTML = `
+          <div class="relative min-h-[340px] flex items-center justify-center">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-lg px-8 py-10 text-center max-w-sm w-full space-y-3">
+              <div class="w-10 h-10 mx-auto rounded-full border-4 border-slate-200 border-t-davis-navy animate-spin"></div>
+              <div class="text-base font-extrabold text-slate-900">Signing you in...</div>
+              <p class="text-xs text-slate-500">Verifying your link and loading your inspection portal. Please wait a moment.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
       if (protoState.role === 'login') root.innerHTML = renderLoginHTML();
       else if (protoState.role === 'third_party') {
         const userEmail = (protoState.authUser?.email || '').toLowerCase();
@@ -8113,7 +8134,10 @@ function submitInspectionQuoteRequest(payload) {
       `;
 
       return `
-        <div class="space-y-5">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between gap-2 px-1">
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Agent Dashboard</h1>
+          </div>
           <div class="bg-davis-navy text-white rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
             <div>
               <div class="text-[11px] font-bold uppercase tracking-wider text-sky-300">Agent Portal • ${escapeHtml(userEmail)}</div>
@@ -8128,7 +8152,7 @@ function submitInspectionQuoteRequest(payload) {
               ) : ''}
               ${!protoState.demoMode ? `<button type="button" onclick="dhiOpenAgentProfileModal()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Edit Profile</button>` : ''}
               ${!protoState.demoMode ? `<button type="button" onclick="dhiSetAgentPassword()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Set Password</button>` : ''}
-              ${!protoState.demoMode ? `<button type="button" onclick="dhiOpenFeedbackModal('Agent')" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Portal Feedback &amp; Ideas</button>` : ''}
+
               ${!protoState.demoMode ? `<button type="button" onclick="dhiSignOut()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Sign Out</button>` : ''}
             </div>
           </div>
@@ -8154,14 +8178,17 @@ function submitInspectionQuoteRequest(payload) {
       const list = buyerInsps.length ? buyerInsps : (protoState.demoMode && protoState.inspections.length ? [protoState.inspections[0]] : []);
       if (!list.length) {
         return `
-          <div class="space-y-6">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between gap-2 px-1">
+              <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Buyer Dashboard</h1>
+            </div>
             <div class="bg-davis-navy text-white rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div class="text-[11px] font-bold uppercase tracking-wider text-sky-300">Signed In • ${escapeHtml(activeEmail)}</div>
                 <h2 class="text-xl font-extrabold">Your Inspections (0)</h2>
               </div>
               <div class="flex flex-wrap items-center gap-2">
-                <button type="button" onclick="dhiOpenFeedbackModal('Buyer')" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Report an Issue / Feedback</button>
+
                 <button type="button" onclick="dhiSignOut()" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Sign Out</button>
               </div>
             </div>
@@ -8200,7 +8227,10 @@ function submitInspectionQuoteRequest(payload) {
       `).join('');
 
       return `
-        <div class="space-y-6">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between gap-2 px-1">
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Buyer Dashboard</h1>
+          </div>
           <div class="bg-davis-navy text-white rounded-2xl p-5 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div class="flex items-center gap-3.5">
@@ -8212,8 +8242,8 @@ function submitInspectionQuoteRequest(payload) {
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 ${canViewReport ? `<button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-extrabold shadow transition">Open Reports &amp; Co-View →</button><button type="button" onclick="dhiOpenForwardModal('${insp.id}')" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Forward Report</button>` : `<span class="px-3 py-1.5 rounded-xl bg-white/10 text-xs font-bold">Complete steps below to unlock reports</span>`}
-                ${!protoState.demoMode ? `<button type="button" onclick="dhiOpenFeedbackModal('Buyer')" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Report an Issue / Feedback</button>` : ''}
-                ${insp.paid ? `<button type="button" onclick="dhiDownloadReceiptPDF('${insp.id}')" class="px-3 py-2 rounded-xl bg-white text-davis-navy hover:bg-sky-50 text-xs font-bold transition">Receipt PDF</button>` : ''}
+
+                ${insp.paid ? `<button type="button" onclick="dhiDownloadReceiptPDF('${insp.id}')" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Receipt PDF</button>` : ''}
                 ${!protoState.demoMode ? `<button type="button" onclick="dhiSignOut()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Sign Out</button>` : ''}
               </div>
             </div>
@@ -8305,14 +8335,10 @@ function submitInspectionQuoteRequest(payload) {
                         <span>Square Secure Checkout</span>
                         <span class="text-slate-400">Card • Apple Pay • Google Pay</span>
                       </div>
-                      ${protoState.demoMode ? `
-                        <input type="text" value="4242 •••• •••• 4242" readonly class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm font-mono" />
-                      ` : `
-                        <div id="dhi-square-card-container" class="min-h-[96px] bg-white rounded-lg p-2 border border-slate-200"></div>
-                        <div id="dhi-square-status" class="text-xs text-rose-600 font-medium hidden"></div>
-                      `}
+                      <p class="text-xs text-slate-500 leading-relaxed">Click below to complete payment on Square's secure checkout page (Card, Apple Pay, Google Pay, or Cash App Pay). You will return here automatically and your reports will unlock immediately.</p>
+                      <div id="dhi-square-status" class="text-xs text-rose-600 font-medium hidden"></div>
                     </div>
-                    <button type="button" id="dhiSquarePayBtn" onclick="protoPaySquare()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-extrabold shadow transition">Pay $${total.toFixed(2)} &amp; Unlock Reports</button>
+                    <button type="button" id="dhiSquarePayBtn" onclick="protoPaySquare()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-extrabold shadow transition">Pay $${total.toFixed(2)} via Square &rarr;</button>
                   </div>
                 `))}
               </div>
@@ -8429,31 +8455,40 @@ function submitInspectionQuoteRequest(payload) {
       const btn = document.getElementById('dhiSquarePayBtn');
       const statusEl = document.getElementById('dhi-square-status');
       if (statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
-      if (!dhiSquareCardInstance) {
-        protoToastMsg('Payment form is still loading. Please wait a moment and try again.');
-        return;
-      }
-      if (btn) { btn.disabled = true; btn.textContent = 'Processing Payment...'; }
+      if (btn) { btn.disabled = true; btn.textContent = 'Opening Square Checkout...'; }
       try {
-        const tokenResult = await dhiSquareCardInstance.tokenize();
-        if (tokenResult.status !== 'OK' || !tokenResult.token) {
-          const errMsg = (tokenResult.errors && tokenResult.errors[0]?.message) || 'Card verification failed.';
-          throw new Error(errMsg);
-        }
+        const returnBaseUrl = window.location.origin + window.location.pathname;
         const { data, error } = await dhiSupabase.functions.invoke('process-square-payment', {
-          body: { inspectionId: insp.id, sourceId: tokenResult.token }
+          body: { action: 'create_checkout', inspectionId: insp.id, returnBaseUrl }
         });
-        if (error) throw new Error(error.message || 'Payment service error');
-        if (data && data.error) throw new Error(data.error);
-        insp.paid = true;
-        insp.paidAt = new Date().toISOString();
-        dhiFireActivityEvent(insp.id, 'invoice_paid', 'Paid $' + protoTotal(insp).toFixed(2) + ' via Square online checkout.');
-        renderProtoPortal();
-        protoToastMsg('Square payment confirmed! All reports are now unlocked.');
+        if (error) {
+          let detail = error.message || 'Payment service error';
+          try {
+            if (error.context && typeof error.context.json === 'function') {
+              const errBody = await error.context.json();
+              if (errBody && errBody.error) detail = errBody.error;
+            }
+          } catch (_e) {}
+          throw new Error(detail);
+        }
+        if (data && data.alreadyPaid) {
+          insp.paid = true;
+          renderProtoPortal();
+          protoToastMsg('This inspection is already marked paid! Reports unlocked.');
+          return;
+        }
+        if (data && data.zeroBalance) {
+          insp.paid = true;
+          renderProtoPortal();
+          protoToastMsg('Balance confirmed ($0.00). Reports unlocked.');
+          return;
+        }
+        if (!data || !data.checkoutUrl) throw new Error((data && data.error) || 'Could not open Square checkout.');
+        window.location.href = data.checkoutUrl;
       } catch (err) {
-        if (statusEl) { statusEl.textContent = err.message || 'Payment failed.'; statusEl.classList.remove('hidden'); }
+        if (statusEl) { statusEl.textContent = err.message || 'Could not start checkout.'; statusEl.classList.remove('hidden'); }
         protoToastMsg('Payment error: ' + (err.message || 'Failed'));
-        if (btn) { btn.disabled = false; btn.textContent = 'Pay $' + protoTotal(insp).toFixed(2) + ' & Unlock Reports'; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Pay $' + protoTotal(insp).toFixed(2) + ' via Square →'; }
       }
     }
 
@@ -8564,6 +8599,107 @@ function submitInspectionQuoteRequest(payload) {
       navigatePage('samples', false);
     }
 
+    const dhiViewedDocsSession = new Set();
+    function dhiNotifyDocViewedOnce(inspId, docTab) {
+      if (!dhiIsLiveSession() || !inspId || inspId === 'insp-demo' || protoState.role === 'admin') return;
+      const tabKey = String(docTab || 'main');
+      const dedupKey = inspId + ':' + tabKey;
+      if (dhiViewedDocsSession.has(dedupKey)) return;
+      dhiViewedDocsSession.add(dedupKey);
+      const insp = (protoState.inspections || []).find(i => i.id === inspId);
+      let docLabel = 'Main Home Inspection Report';
+      if (tabKey !== 'main') {
+        const matched = insp && Array.isArray(insp.extraDocs) ? insp.extraDocs.find(d => String(d.id) === tabKey) : null;
+        docLabel = matched && matched.title ? matched.title : 'Attached PDF Document';
+      }
+      dhiFireActivityEvent(inspId, 'report_viewed', 'Opened ' + docLabel + '.');
+    }
+
+    function dhiSwitchReportDocTab(docTab) {
+      protoState.activeDocTab = docTab || 'main';
+      renderProtoPortal();
+      if (protoState.activeInspectionId) {
+        dhiNotifyDocViewedOnce(protoState.activeInspectionId, protoState.activeDocTab);
+      }
+    }
+
+    function dhiPatchFindingCommentsDOM(findingId) {
+      const f = (protoState.findings || []).find(x => x.id === findingId);
+      const wrap = document.getElementById('dhiCommentsList-' + findingId);
+      if (!f || !wrap) return false;
+      wrap.innerHTML = (f.comments || []).map(c => `
+        <div class="flex items-start gap-2 text-xs bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100">
+          <span class="w-2 h-2 rounded-full mt-1 shrink-0" style="background:${c.color}"></span>
+          <div><span class="font-bold text-slate-800">${escapeHtml(c.author)}:</span> <span class="text-slate-700">${escapeHtml(c.text)}</span></div>
+        </div>
+      `).join('');
+      return true;
+    }
+
+    function dhiPatchObjectionButtonDOM(findingId) {
+      const btn = document.getElementById('dhiObjBtn-' + findingId);
+      if (!btn) return false;
+      const inObj = (protoState.objectionItems || []).some(o => o.findingId === findingId);
+      const isBuyerView = protoState.role === 'buyer';
+      btn.className = 'no-print px-3 py-1.5 rounded-xl text-xs font-bold transition ' + (inObj
+        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+        : 'bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200');
+      btn.textContent = inObj
+        ? (isBuyerView ? '✓ Requested for Agent Review' : '✓ On Objection List')
+        : (isBuyerView ? '+ Request for Objection List' : '+ Add to Objection List');
+      return true;
+    }
+
+    async function dhiRefreshCommentsOnly(inspectionId) {
+      if (!dhiIsLiveSession() || !inspectionId || inspectionId === 'insp-demo') return;
+      try {
+        const { data, error } = await dhiSupabase
+          .from('report_comments')
+          .select('*')
+          .eq('inspection_id', inspectionId)
+          .order('created_at', { ascending: true });
+        if (error || !Array.isArray(data)) return;
+        const byTarget = {};
+        data.forEach(c => {
+          const k = c.target_id;
+          if (!byTarget[k]) byTarget[k] = [];
+          byTarget[k].push({ author: c.author_name || 'Viewer', color: c.author_color || '#0ea5e9', text: c.body || '' });
+        });
+        (protoState.findings || []).forEach(f => {
+          f.comments = byTarget[f.id] || [];
+          dhiPatchFindingCommentsDOM(f.id);
+        });
+      } catch (_e) {}
+    }
+
+    async function dhiRefreshObjectionsOnly(inspectionId) {
+      if (!dhiIsLiveSession() || !inspectionId || inspectionId === 'insp-demo') return;
+      try {
+        const { data, error } = await dhiSupabase
+          .from('objection_items')
+          .select('*')
+          .eq('inspection_id', inspectionId);
+        if (error || !Array.isArray(data)) return;
+        protoState.objectionItems = data.map(o => ({
+          findingId: o.finding_id,
+          mode: o.mode || 'repair',
+          creditAmount: o.credit_amount || '',
+          customText: o.custom_text || '',
+          requestedByBuyer: !!o.requested_by_buyer,
+          approvedByAgent: !!o.approved_by_agent,
+          aiGenerated: !!o.ai_generated
+        }));
+        (protoState.findings || []).forEach(f => dhiPatchObjectionButtonDOM(f.id));
+        const objSec = document.getElementById('dhiReportSec-__objections__');
+        if (objSec) {
+          const tmp = document.createElement('div');
+          tmp.innerHTML = renderReportViewerHTML();
+          const freshObjSec = tmp.querySelector('#dhiReportSec-__objections__');
+          if (freshObjSec) objSec.innerHTML = freshObjSec.innerHTML;
+        }
+      } catch (_e) {}
+    }
+
     function protoOpenReport(id, docTab) {
       protoState.activeInspectionId = id;
       protoState.activeDocTab = docTab || 'main';
@@ -8581,9 +8717,7 @@ function submitInspectionQuoteRequest(payload) {
       if (dhiIsLiveSession() && id && id !== 'insp-demo') {
         dhiLoadInspectionDetails(id);
         dhiSubscribeReportRealtime(id);
-        if (protoState.role !== 'admin') {
-          dhiFireActivityEvent(id, 'report_viewed', 'Opened ' + (docTab && docTab !== 'main' ? 'attached PDF document' : 'Main Home Inspection Report') + '.');
-        }
+        dhiNotifyDocViewedOnce(id, docTab || 'main');
       }
     }
 
@@ -9640,9 +9774,9 @@ function submitInspectionQuoteRequest(payload) {
         protoState.activeDocTab = extraDocs[0].id;
       }
       const docTabs = (allowMainTab ? [
-        `<button type="button" onclick="protoState.activeDocTab='main'; renderProtoPortal();" class="px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition shrink-0 whitespace-nowrap ${protoState.activeDocTab === 'main' ? 'bg-davis-navy text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}"><span class="hidden sm:inline">Main Home Inspection</span><span class="sm:hidden">Main Inspection</span></button>`
+        `<button type="button" onclick="dhiSwitchReportDocTab('main')" class="px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition shrink-0 whitespace-nowrap ${protoState.activeDocTab === 'main' ? 'bg-davis-navy text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}"><span class="hidden sm:inline">Main Home Inspection</span><span class="sm:hidden">Main Inspection</span></button>`
       ] : []).concat(extraDocs.map(d => `
-        <button type="button" onclick="protoState.activeDocTab='${d.id}'; renderProtoPortal();" class="px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition shrink-0 whitespace-nowrap ${protoState.activeDocTab === d.id ? 'bg-davis-navy text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">${d.title} <span class="opacity-75">(PDF)</span></button>
+        <button type="button" onclick="dhiSwitchReportDocTab('${d.id}')" class="px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition shrink-0 whitespace-nowrap ${protoState.activeDocTab === d.id ? 'bg-davis-navy text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}">${d.title} <span class="opacity-75">(PDF)</span></button>
       `)).join('');
 
       const collabPills = Object.keys(COLLAB_COLORS).map(name => `
@@ -9664,12 +9798,12 @@ function submitInspectionQuoteRequest(payload) {
       }).join('');
 
       const headerAndDocsBar = `
-        <div id="dhiStickyReportBar" class="sticky top-0 z-30 bg-white/95 backdrop-blur rounded-2xl border border-slate-200 px-2.5 sm:px-4 py-2 sm:py-2.5 space-y-2 shadow-md no-print">
+        <div id="dhiStickyReportBar" class="sticky top-0 z-30 bg-emerald-50/95 backdrop-blur rounded-2xl border border-emerald-200 px-2.5 sm:px-4 py-2 sm:py-2.5 space-y-2 shadow-md no-print">
           <div class="flex flex-wrap items-center justify-between gap-1.5 sm:gap-2">
             <div class="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs">
               ${protoState.demoMode
                 ? `<button type="button" onclick="protoExitDemoToSamples()" class="font-bold text-slate-600 hover:text-davis-navy whitespace-nowrap"><span class="hidden sm:inline">&larr; Back to Sample Reports</span><span class="sm:hidden">&larr; Back</span></button><span class="text-slate-300">|</span><button type="button" onclick="protoLaunchSampleDemo()" class="font-bold text-sky-700 hover:underline whitespace-nowrap"><span class="hidden sm:inline">Switch View (Buyer / Agent)</span><span class="sm:hidden">Switch View</span></button>`
-                : `<button type="button" onclick="dhiLeaveReportRealtime(); protoState.viewingReport=false; renderProtoPortal();" class="font-bold text-sky-700 hover:underline whitespace-nowrap"><span class="hidden sm:inline">&larr; Back to Dashboard</span><span class="sm:hidden">&larr; Back</span></button><span class="text-slate-300">|</span><button type="button" onclick="dhiSignOut()" class="font-semibold text-slate-500 hover:text-rose-600 whitespace-nowrap">Sign Out</button>`}
+                : `<button type="button" onclick="dhiLeaveReportRealtime(); protoState.viewingReport=false; renderProtoPortal();" class="font-bold text-sky-700 hover:underline whitespace-nowrap"><span class="hidden sm:inline">&larr; Back to Dashboard</span><span class="sm:hidden">&larr; Back</span></button><span class="text-slate-300">|</span><button type="button" onclick="dhiSignOut()" class="font-semibold text-emerald-800 hover:text-rose-700 whitespace-nowrap">Sign Out</button>`}
               ${activeExtraDoc ? `<span class="text-slate-300 hidden md:inline">|</span><span class="text-xs font-bold text-slate-700 truncate max-w-xs hidden md:inline">${escapeHtml(insp.address)}</span>` : ''}
             </div>
             <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-1.5 no-print">
@@ -9691,7 +9825,7 @@ function submitInspectionQuoteRequest(payload) {
                 ${(protoState.role !== 'third_party' && !protoState.demoMode && (protoState.role !== 'buyer' || insp.paid)) ? `<button type="button" onclick="dhiOpenForwardModal('${insp.id}')" class="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-[11px] sm:text-xs font-bold transition whitespace-nowrap">Forward</button>` : ''}
                 ${protoState.activeDocTab === 'main'
                   ? `<details class="relative inline-block">
-                       <summary id="dhiSavePdfSummaryBtn" class="list-none cursor-pointer px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-davis-navy bg-davis-navy hover:bg-davis-dark text-white text-[11px] sm:text-xs font-bold transition select-none whitespace-nowrap">Save PDF &#9662;</summary>
+                       <summary id="dhiSavePdfSummaryBtn" class="list-none cursor-pointer px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-[11px] sm:text-xs font-bold transition select-none whitespace-nowrap">Save PDF &#9662;</summary>
                        <div class="absolute left-0 sm:left-auto sm:right-0 mt-1 z-40 w-48 rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 space-y-1 text-xs">
                          <button type="button" onclick="this.closest('details').open=false; dhiSaveInspectionPdf('full')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-800">Full Report PDF</button>
                          <button type="button" onclick="this.closest('details').open=false; dhiSaveInspectionPdf('summary')" class="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 font-bold text-slate-800">Summary Only PDF</button>
@@ -9711,9 +9845,9 @@ function submitInspectionQuoteRequest(payload) {
               ${(protoState.activeDocTab === 'main' && protoState.role !== 'third_party') ? `<button type="button" onclick="dhiJumpToReportSection('__objections__')" class="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-[11px] sm:text-xs font-bold whitespace-nowrap shrink-0 ml-auto sm:ml-0"><span class="hidden sm:inline">Jump to Objection List &darr;</span><span class="sm:hidden">Objections &darr;</span></button>` : ''}
             </div>
           </div>
-          <div class="flex items-center justify-between gap-2 pt-1.5 border-t border-slate-100">
+          <div class="flex items-center justify-between gap-2 pt-1.5 border-t border-emerald-200/80">
             <div class="flex items-center gap-1.5 overflow-x-auto dhi-no-scrollbar min-w-0 flex-1 py-0.5">
-              <span class="hidden sm:inline text-[11px] font-bold text-slate-400 uppercase mr-1 shrink-0">Documents:</span>
+              <span class="hidden sm:inline text-[11px] font-bold text-emerald-900 uppercase mr-1 shrink-0">Documents:</span>
               ${docTabs}
             </div>
             ${protoState.activeDocTab === 'main' && jumpSectionItemsHTML ? `
@@ -9894,7 +10028,7 @@ function submitInspectionQuoteRequest(payload) {
                   <h4 class="text-base font-extrabold text-slate-900">${f.title}</h4>
                 </div>
                 ${(f.isSummary || f.narrative) && protoState.role !== 'third_party' ? `
-                  <button type="button" onclick="protoToggleObjection('${f.id}')" class="no-print px-3 py-1.5 rounded-xl text-xs font-bold transition ${inObj ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200'}">
+                  <button type="button" id="dhiObjBtn-${f.id}" onclick="protoToggleObjection('${f.id}')" class="no-print px-3 py-1.5 rounded-xl text-xs font-bold transition ${inObj ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200'}">
                     ${inObj ? (isBuyerView ? '✓ Requested for Agent Review' : '✓ On Objection List') : (isBuyerView ? '+ Request for Objection List' : '+ Add to Objection List')}
                   </button>
                 ` : ''}
@@ -9926,7 +10060,7 @@ function submitInspectionQuoteRequest(payload) {
                   </div>
                   <div class="md:col-span-2 space-y-3">
                     ${narrativeHTML}
-                    <div class="space-y-1.5">${commentsHTML}</div>
+                    <div id="dhiCommentsList-${f.id}" class="space-y-1.5">${commentsHTML}</div>
                     ${protoState.role !== 'third_party' ? `
                       <div class="flex gap-2">
                         <input type="text" id="commentInput-${f.id}" placeholder="Add a live note as ${protoState.activeCollaborator.split(' ')[0]}..." class="flex-grow px-3 py-2 rounded-lg border border-slate-200 text-xs" />
@@ -10258,14 +10392,32 @@ function submitInspectionQuoteRequest(payload) {
       const inspId = protoState.activeInspectionId;
       if (idx >= 0) {
         const removed = protoState.objectionItems.splice(idx, 1)[0];
-        renderProtoPortal();
+        const patched1 = dhiPatchObjectionButtonDOM(findingId);
+        const objSec1 = document.getElementById('dhiReportSec-__objections__');
+        if (patched1 && objSec1) {
+          const tmp = document.createElement('div');
+          tmp.innerHTML = renderReportViewerHTML();
+          const fresh = tmp.querySelector('#dhiReportSec-__objections__');
+          if (fresh) objSec1.innerHTML = fresh.innerHTML;
+        } else {
+          renderProtoPortal();
+        }
         if (dhiIsLiveSession() && inspId && inspId !== 'insp-demo') {
           try { await dhiSupabase.from('objection_items').delete().eq('inspection_id', inspId).eq('finding_id', findingId); } catch (e) {}
         }
       } else {
         const newItem = { findingId, mode: 'repair', creditAmount: '', customText: '', requestedByBuyer: protoState.role === 'buyer', approvedByAgent: protoState.role !== 'buyer', aiGenerated: false };
         protoState.objectionItems.push(newItem);
-        renderProtoPortal();
+        const patched2 = dhiPatchObjectionButtonDOM(findingId);
+        const objSec2 = document.getElementById('dhiReportSec-__objections__');
+        if (patched2 && objSec2) {
+          const tmp = document.createElement('div');
+          tmp.innerHTML = renderReportViewerHTML();
+          const fresh = tmp.querySelector('#dhiReportSec-__objections__');
+          if (fresh) objSec2.innerHTML = fresh.innerHTML;
+        } else {
+          renderProtoPortal();
+        }
         if (dhiIsLiveSession() && inspId && inspId !== 'insp-demo') {
           try {
             await dhiSupabase.from('objection_items').insert({
@@ -10410,7 +10562,8 @@ function submitInspectionQuoteRequest(payload) {
       const f = protoState.findings.find(x => x.id === findingId);
       if (f) {
         f.comments.push({ author: authorLabel, color, text });
-        renderProtoPortal();
+        input.value = '';
+        if (!dhiPatchFindingCommentsDOM(findingId)) renderProtoPortal();
         if (dhiIsLiveSession() && protoState.activeInspectionId && protoState.activeInspectionId !== 'insp-demo') {
           try {
             await dhiSupabase.from('report_comments').insert({
@@ -11190,13 +11343,13 @@ function submitInspectionQuoteRequest(payload) {
         } catch (_e) {}
       });
       ch.on('postgres_changes', { event: '*', schema: 'public', table: 'objection_items', filter: 'inspection_id=eq.' + inspectionId }, () => {
-        dhiLoadInspectionDetails(inspectionId);
+        dhiRefreshObjectionsOnly(inspectionId);
       });
       ch.on('postgres_changes', { event: '*', schema: 'public', table: 'report_markups', filter: 'inspection_id=eq.' + inspectionId }, () => {
         dhiRefreshMarkupsOnly(inspectionId);
       });
       ch.on('postgres_changes', { event: '*', schema: 'public', table: 'report_comments', filter: 'inspection_id=eq.' + inspectionId }, () => {
-        dhiLoadInspectionDetails(inspectionId);
+        dhiRefreshCommentsOnly(inspectionId);
       });
       ch.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
@@ -11214,13 +11367,43 @@ function submitInspectionQuoteRequest(payload) {
       if (dhiAccountChannel) {
         try { dhiSupabase.removeChannel(dhiAccountChannel); } catch (e) {}
       }
+      const isAdminDashIdle = () => {
+        if (protoState.role !== 'admin' || protoState.viewingReport || protoState.adminTab === 'new') return false;
+        const activeTag = (document.activeElement && document.activeElement.tagName || '').toUpperCase();
+        if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return false;
+        const modalIds = ['dhiEditInspModal', 'protoPersonModal', 'dhiBulkHgModal', 'dhiHistoryModal', 'dhiCatalogModal', 'dhiForwardModal', 'dhiFeedbackModal'];
+        if (modalIds.some(mid => { const el = document.getElementById(mid); return el && !el.classList.contains('hidden'); })) return false;
+        return true;
+      };
       dhiAccountChannel = dhiSupabase
         .channel('account-sync-' + (session.user.id || 'user'))
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'inspections' }, () => {
-          dhiRefreshAccountData(session);
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'inspections' }, (payload) => {
+          if (payload && payload.eventType === 'UPDATE' && payload.new && payload.new.id) {
+            const idx = (protoState.inspections || []).findIndex(i => i.id === payload.new.id);
+            if (idx >= 0) {
+              const prev = protoState.inspections[idx];
+              const mapped = dhiMapInspectionRow(payload.new);
+              mapped.coverPhotoUrl = prev.coverPhotoUrl || '';
+              mapped.extraDocs = prev.extraDocs || [];
+              protoState.inspections[idx] = mapped;
+              if (protoState.role === 'admin') {
+                if (isAdminDashIdle()) renderProtoPortal();
+              } else if (!protoState.viewingReport) {
+                renderProtoPortal();
+              }
+              return;
+            }
+          }
+          if (protoState.role === 'admin') {
+            if (isAdminDashIdle()) dhiRefreshAccountData(session);
+          } else if (!protoState.viewingReport) {
+            dhiRefreshAccountData(session);
+          }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'inspection_requests' }, () => {
-          dhiRefreshAccountData(session);
+          if (protoState.role === 'admin' && isAdminDashIdle()) {
+            dhiRefreshAccountData(session);
+          }
         })
         .subscribe();
     }
@@ -11406,6 +11589,28 @@ function submitInspectionQuoteRequest(payload) {
       }
       dhiSubscribeAccountRealtime(session);
       await dhiRefreshAccountData(session);
+      protoState.authLoading = false;
+      try {
+        const sqParams = new URLSearchParams(window.location.search);
+        const sqReturnId = sqParams.get('sq_return');
+        if (sqReturnId && dhiSupabase) {
+          window.history.replaceState(null, '', window.location.pathname + '?view=portal');
+          const { data: vData } = await dhiSupabase.functions.invoke('process-square-payment', {
+            body: { action: 'verify_checkout', inspectionId: sqReturnId }
+          });
+          if (vData && (vData.paid || vData.alreadyPaid)) {
+            const target = (protoState.inspections || []).find(i => i.id === sqReturnId);
+            if (target) {
+              target.paid = true;
+              target.paidAt = new Date().toISOString();
+              protoState.activeInspectionId = target.id;
+              dhiFireActivityEvent(target.id, 'invoice_paid', 'Paid $' + protoTotal(target).toFixed(2) + ' via Square online checkout.');
+            }
+            renderProtoPortal();
+            protoToastMsg('Payment confirmed! All reports are now unlocked.');
+          }
+        }
+      } catch (_e) {}
     }
 
     // Surface Supabase auth redirect errors (e.g. expired or pre-fetched Magic Link)
@@ -11438,13 +11643,18 @@ function submitInspectionQuoteRequest(payload) {
             protoState.authErrorMsg = '';
             renderProtoPortal();
             const { data, error } = await dhiSupabase.auth.verifyOtp({ token_hash: tokenHash, type: otpType });
-            protoState.authLoading = false;
             try { window.history.replaceState(null, '', window.location.pathname + '?view=portal'); } catch (_e) {}
             if (error) {
+              protoState.authLoading = false;
               protoState.authErrorMsg = 'That sign-in link has expired or was already used. Request a fresh link or enter the 6-digit code below.';
               renderProtoPortal();
             } else if (data && data.session) {
-              dhiApplyAuthSession(data.session);
+              await dhiApplyAuthSession(data.session);
+              protoState.authLoading = false;
+              renderProtoPortal();
+            } else {
+              protoState.authLoading = false;
+              renderProtoPortal();
             }
           }
         } catch (_e) {}
