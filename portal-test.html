@@ -9502,54 +9502,63 @@ function submitInspectionQuoteRequest(payload) {
 
     const DHI_SECTION_SOP = {
       'Roofing': {
-        intro: 'Observed: roof coverings, roof drainage systems, flashings, skylights, chimneys, roof penetrations, and signs of leaks or abnormal condensation. Described: roof covering materials and the method used to observe the roof. Not required: walking on the roof surface or inspecting attached accessories such as solar systems, antennas, or lightning arrestors.',
-        footer: 'While every effort is made to identify areas of concern, some defects can remain concealed. Roof coverings and skylights may appear leak-free during dry weather or at the time of inspection. Review all recommended repairs before closing and have a qualified roofing contractor evaluate or repair any noted items.'
+        intro: 'Visually observed readily accessible roof coverings, roof drainage systems, flashings, skylights, chimneys, roof penetrations, and visible signs of leaks or abnormal condensation. Described roof covering materials and the inspection method used. Not required to walk on roofs when pitch, surface material, height, or weather create a safety or damage risk, predict remaining roof life, or inspect attached accessories such as solar systems, antennas, or lightning arrestors.',
+        footer: 'This roof evaluation is a limited visual inspection of readily accessible surfaces as they existed on the day of inspection and is not a warranty against future leaks or a prediction of remaining service life. Roof coverings, flashings, and skylights can appear watertight during dry weather while concealing intermittent leaks or hidden damage. Have a qualified roofing contractor further evaluate and address any noted items.'
       },
       'Exterior': {
-        intro: 'Observed: wall cladding, flashings, trim, entryway doors, a representative number of windows, garage door operators, decks, balconies, stoops, steps, areaways, porches, railings, eaves, soffits, fascias, and site vegetation, grading, drainage, driveways, patios, walkways, and retaining walls where they affect the building. Operated: entryway doors, a representative number of windows, and garage doors (checking automatic reverse safety). Probed exterior wood where deterioration was suspected. Not required: storm doors or windows, screens, shutters, awnings, fences, safety glazing verification, remote transmitters, soil or geological conditions, recreational facilities, detached structures, buried fuel tanks, or moving personal items, snow, ice, or debris.',
-        footer: 'The exterior was inspected visually from accessible areas; concealed or obstructed components may go unnoticed. Review all noted items before closing and consult qualified contractors for further evaluation or repairs.'
+        intro: 'Visually observed readily accessible exterior wall cladding, flashings, trim, entry doors, a representative number of windows, decks, balconies, stoops, steps, porches, patios, railings, eaves, soffits, fascia, and adjacent grading, drainage, vegetation, driveways, walkways, and retaining walls as they affect the structure. Operated entry doors and a representative number of windows, and gently probed exterior wood where deterioration was suspected. Not required to perform destructive testing, move personal belongings, snow, ice, or debris, verify safety glazing, evaluate geological or soil stability, or inspect storm doors, screens, shutters, awnings, fences, recreational facilities, detached structures, or buried tanks.',
+        footer: 'This exterior evaluation is a limited visual inspection from readily accessible areas as they existed at the time of inspection. Components concealed behind siding, trim, vegetation, snow, or stored items were not observed, and no warranty of future performance is implied. Have a qualified contractor further evaluate and address any noted items.'
       },
       'Garage': {
-        intro: 'Observed: accessible garage ceilings, walls (including firewall separation where visible), floor, vehicle doors, occupant entry door, and garage door operators including automatic reverse safety response. Not required: testing remote transmitters or moving stored personal items and vehicles that obstruct visibility.',
-        footer: 'Stored belongings, vehicles, and finished wall or ceiling surfaces can limit visibility inside the garage. Consult qualified contractors for further evaluation or repair of any noted items before closing.'
+        intro: 'Visually observed readily accessible garage ceilings, walls (including visible fire-separation surfaces between the garage and living space), floor slabs, vehicle doors, occupant entry doors, and permanently installed garage door operators, including automatic safety reverse response where safe to test. Not required to test remote transmitters, verify concealed fire-rated assemblies behind finished surfaces, or move vehicles or stored items that obstruct visibility or access.',
+        footer: 'Vehicles, stored belongings, and finished wall or ceiling surfaces can conceal defects inside the garage. This is a limited visual inspection at the time of inspection and is not a warranty of future door or operator performance. Have a qualified contractor further evaluate and address any noted items.'
       },
       'Interiors': {
-        intro: 'Observed: walls, ceilings, floors, steps, stairways, balconies, railings, countertops, and a representative number of installed cabinets, doors, and windows. Operated: a representative number of interior doors and windows, and reported signs of abnormal water penetration or condensation. Not required: evaluating paint, wallpaper, finish treatments, carpeting, draperies, blinds, or other window coverings.',
-        footer: 'This visual inspection did not involve moving furniture, area rugs, or personal belongings, so concealed areas were not observed. Review all noted items before closing and use qualified contractors for further evaluation or repairs.'
+        intro: 'Visually observed readily accessible ceilings, walls, floors, steps, stairways, balconies, railings, countertops, and a representative number of installed cabinets, interior doors, and windows. Operated a representative number of interior doors and windows and observed for visible signs of abnormal moisture intrusion or condensation. Not required to inspect cosmetic finishes, paint, wallpaper, carpeting, window coverings, furniture, or personal property, or to verify safety glazing.',
+        footer: 'This interior evaluation is a limited visual inspection of readily accessible surfaces at the time of inspection; furniture, area rugs, window coverings, wall hangings, and stored items were not moved. No opinion is expressed regarding concealed defects, cosmetic wear, or future condition. Have a qualified contractor further evaluate and address any noted items.'
       },
       'Structural Components': {
-        intro: 'Observed: visible structural components including foundations, floors, walls, columns or piers, ceilings, and roof framing. Described: structural framing and foundation types, plus the methods used to inspect crawlspaces and attics. Probed structural wood where deterioration was suspected and entered accessible crawlspaces, basements, and attics when safe and unobstructed. Not required: entering unsafe or obstructed areas or performing procedures that could damage the property or risk safety.',
-        footer: 'Structural evaluation is limited to readily visible and accessible framing and foundation surfaces; concealed structural components cannot be verified. Consult a qualified structural specialist or contractor regarding any noted concerns before closing.'
+        intro: 'Visually observed readily accessible visible structural components, including foundations, basements, crawlspaces, floor framing, wall framing, columns or piers, ceiling framing, and roof framing. Described foundation and framing types along with the methods used to observe the attic and crawlspace. Probed structural wood where deterioration was suspected and entered accessible crawlspaces and attics when safe and unobstructed. Not required to provide structural engineering analysis, geological or soil evaluation, or enter areas with insufficient clearance, standing water, pests, or unsafe conditions.',
+        footer: 'Structural evaluation is limited to readily visible and accessible framing and foundation surfaces as they existed at the time of inspection. Components concealed behind finished drywall, paneling, flooring, insulation, or stored belongings cannot be observed, and no structural engineering opinion or warranty of future stability is implied. Have a qualified structural engineer or specialist further evaluate and address any noted concerns.'
       },
       'Plumbing System': {
-        intro: 'Observed: interior water supply and distribution piping, supports, insulation, fixtures, faucets, functional flow, leaks, cross-connections, drain/waste/vent piping, traps, functional drainage, water heating equipment and controls, flues and vents, interior fuel piping, and sump pumps. Described: supply and DWV piping materials, water heating equipment, and main water shutoff location. Operated all accessible plumbing fixtures and exterior hose bibs not connected to appliances. Not required: verifying anti-siphon effectiveness, determining public vs. private utilities, operating automatic safety controls or shutoff valves (other than toilet flush valves and faucets), or inspecting water softeners/conditioners, fire or lawn sprinklers, well quantity/quality, septic systems, pools, solar water heaters, or engineering sizing.',
-        footer: 'Washing machine drain lines cannot be tested under full discharge volume, and older galvanized supply or cast-iron drain lines may perform marginally during an inspection before clogging under normal household use or after sitting vacant. Running fixtures checks basic flow, not main sewer line condition; only a sewer camera scope can confirm line condition or detect root intrusion. Ask the seller about any past drainage history, consider a main sewer scope before closing, and consult a licensed plumber for any noted repairs. No attempt was made to locate buried cleanout caps.'
+        intro: 'Visually observed readily accessible interior water supply and distribution piping, drain, waste, and vent (DWV) piping, fixtures, faucets, functional flow and drainage, water heating equipment and controls, flues and vents, visible interior fuel-gas piping, and sump pumps. Described supply and DWV piping materials, water heating equipment, and the main water shut-off location. Operated accessible plumbing fixtures and exterior hose bibs not connected to appliances or shut off for winterization. Not required to inspect concealed piping, locate buried cleanout caps, operate main or isolation shut-off valves, test water quality or quantity, or evaluate water softeners/filtration, fire or lawn sprinklers, wells, septic systems, pools, or solar water heaters.',
+        footer: 'This plumbing evaluation is a limited visual inspection at the time of inspection and is not a warranty against future leaks, clogs, or pipe failure. Washing machine drains cannot be tested under full discharge volume, and running fixtures only checks basic flow, not the condition of the underground main sewer line; only a sewer camera scope can verify line condition or detect root intrusion or offsets. Older supply and drain lines may perform differently under normal daily household use after a period of vacancy. Have a licensed plumber further evaluate and address any noted items.'
       },
       'Electrical System': {
-        intro: 'Observed: service entrance conductors, service and grounding equipment, main overcurrent device, main and distribution panels, service amperage and voltage ratings, branch circuit conductors and overcurrent compatibility, a representative number of ceiling fans, lights, switches, and receptacles, polarity and grounding of receptacles near plumbing, in garages, and on exteriors, GFCI operation, and smoke detectors. Described: service amperage, voltage, conductor materials, overhead vs. underground service, panel locations, and any observed aluminum branch wiring. Not required: inserting probes into panels, tripping breakers (other than GFCIs), dismantling devices beyond removing panel covers, or inspecting low-voltage, security, carbon monoxide/heat central systems, phone, cable, intercom, or built-in vacuum wiring.',
-        footer: 'Electrical inspection is visual and non-invasive; receptacles were not removed from boxes and outlets blocked by furniture or appliances (such as behind the refrigerator) were not tested. Have a licensed electrician evaluate or repair any noted electrical items before closing.'
+        intro: 'Visually observed readily accessible service entrance conductors, grounding and bonding equipment, main and distribution panels (removing panel covers where safe and unobstructed), overcurrent protection devices, a representative number of switches, lighting fixtures, ceiling fans, and receptacles, polarity and grounding at accessible garage, exterior, and kitchen/bath receptacles, GFCI test operation, and smoke/carbon monoxide alarm presence. Described service amperage, voltage, conductor materials, and panel locations. Not required to insert probes into live panels, trip standard or AFCI breakers, dismantle wiring devices, measure voltage/amperage under load, or inspect low-voltage, security, solar, generator transfer, phone, cable, or intercom systems.',
+        footer: 'This electrical evaluation is a limited visual inspection of readily accessible components at the time of inspection and is not a code-compliance inspection or a warranty of future safety or operation. Outlets blocked by furniture or appliances were not tested, and concealed wiring inside walls or ceilings was not observed. Have a licensed electrician further evaluate and repair any noted electrical items.'
       },
-      'Heating / Central Air Conditioning': {
-        intro: 'Observed: permanently installed heating and central cooling equipment, normal operating controls, automatic safety controls, readily visible chimneys, flues, and vents, solid-fuel heating devices, distribution fans, pumps, ducts, piping, insulation, filters, registers, and installed heat sources in each room. Described: energy source, equipment type, and distribution type. Operated systems via normal controls and opened routine homeowner maintenance panels. Not required: operating equipment when weather or conditions could cause damage, testing automatic safety controls, lighting solid-fuel fires, or inspecting flue interiors, fireplace insert connections, humidifiers, electronic air cleaners, or room-by-room heat uniformity.',
-        footer: 'This inspection is not technically exhaustive and does not include dismantling equipment or removing sealed service panels beyond routine access doors. Have a licensed HVAC contractor perform a full service evaluation or address any noted defects before closing.'
+      'HVAC': {
+        intro: 'Visually observed permanently installed heating and central cooling equipment, normal operating controls, readily visible chimneys, flues, and vents, solid-fuel or gas fireplaces, distribution fans, ducts, piping, insulation, filters, registers, and installed heat sources in each room. Described equipment types, energy sources, and distribution methods. Operated systems using normal homeowner controls and opened routine maintenance access panels. Not required to dismantle equipment, inspect furnace heat exchangers, operate cooling systems when outdoor temperatures risk compressor damage (below 60°F), light solid-fuel fires, test automatic safety controls, or evaluate humidifiers, electronic air cleaners, or room-by-room heat balance.',
+        footer: 'This HVAC evaluation is a limited visual and operational check at the time of inspection and is not technically exhaustive or a warranty of future operation or remaining equipment life. Concealed ductwork, internal heat exchangers, and components requiring dismantling beyond routine access panels were not inspected. Have a qualified HVAC technician further evaluate, service, or repair any noted items.'
       },
-      'Insulation and Ventilation': {
-        intro: 'Observed: insulation and vapor retarders in unfinished spaces, attic and foundation ventilation, kitchen, bath, and laundry exhaust venting, and readily accessible attic fans or thermostatic controls when temperatures permit. Described: insulation types and any absence of insulation at unfinished conditioned surfaces. Not required: reporting on concealed insulation or vapor retarders, or venting integral to household appliances.',
-        footer: 'Only visible insulation was inspected. Exhaust fan and clothes dryer ducts concealed behind walls or ceilings cannot be fully inspected for hidden bends, disconnections, or obstructions. Consult a qualified contractor for any noted items before closing.'
+      'Insulation & Ventilation': {
+        intro: 'Visually observed readily accessible insulation and vapor retarders in unfinished spaces, attic and foundation ventilation, kitchen, bath, and laundry exhaust venting, and accessible attic fans or controls where conditions permit. Described insulation materials and noted any observed absence of insulation at unfinished conditioned surfaces. Not required to disturb insulation, inspect concealed insulation or vapor retarders inside finished walls, floors, or ceilings, or determine exact R-values in concealed cavities.',
+        footer: 'This evaluation is limited to readily visible and accessible insulation and ventilation components at the time of inspection. Insulation inside finished framing and exhaust or clothes dryer ducts concealed behind walls, floors, or ceilings cannot be inspected for hidden disconnections, kinks, or obstructions. Have a qualified contractor further evaluate and address any noted items.'
       },
       'Built-In Kitchen Appliances': {
-        intro: 'Observed and operated basic functions of permanently installed dishwashers (normal cycle), ranges, cooktops, ovens, trash compactors, garbage disposals, range hoods, and built-in microwaves. Not required: testing clocks, timers, self-cleaning cycles, oven thermostat calibration, non-built-in appliances, refrigerators, appliances currently in use, or inoperable/shut-down units.',
-        footer: 'Built-in appliances were tested for basic operation at the time of inspection only; long-term reliability and calibration are not guaranteed. Consult a qualified appliance technician for any noted items before closing.'
+        intro: 'Visually observed and operated basic functions of permanently installed dishwashers (normal cycle), ranges, cooktops, ovens, range hoods, food waste disposers, trash compactors, and built-in microwaves where power and water were on. Not required to test clocks, timers, self-cleaning cycles, oven temperature calibration, freestanding or non-built-in appliances, refrigerators, freezers, wine coolers, or units shut down or in use at the time of inspection.',
+        footer: 'Permanently installed appliances were checked for basic operation using normal controls at the time of inspection only; thermostat calibration, specialty features, and future reliability are not warranted. Freestanding appliances and refrigerators are excluded under ASHI Standards of Practice. Have a qualified appliance technician further evaluate and repair any noted items.'
       },
-      'Swimming Pools, Equipment and Safety': {
-        intro: 'Pool safety notice: Swimming pools present serious drowning risks, especially for young children. Proper perimeter fencing, self-closing and self-latching gates, and pool or door alarms are critical safety layers.',
-        footer: 'Unless noted otherwise, pool water was not tested for bacteria or chemical quality. Review all noted pool equipment and safety items before closing and consult a qualified pool specialist for further evaluation or repairs.'
+      'Additional Apartment / Cottage': {
+        intro: 'Limited visual inspection of readily accessible systems and components in the additional dwelling unit under the same Pre-Inspection Agreement and ASHI Standards of Practice scope and limitations.',
+        footer: 'This evaluation is limited to readily visible and accessible components at the time of inspection and is not a warranty of future performance. Have a qualified specialist further evaluate and address any noted items.'
+      },
+      'Outbuilding': {
+        intro: 'Limited visual inspection of readily accessible systems and structural components of the outbuilding under the same Pre-Inspection Agreement and ASHI Standards of Practice scope and limitations.',
+        footer: 'This evaluation is limited to readily visible and accessible components at the time of inspection and is not a warranty of future performance. Have a qualified specialist further evaluate and address any noted items.'
       }
     };
 
     function dhiGetSectionSop(secName) {
       if (!secName) return null;
       if (DHI_SECTION_SOP[secName]) return DHI_SECTION_SOP[secName];
+      const norm = String(secName).toLowerCase();
+      if (norm.includes('heating') && norm.includes('air')) return DHI_SECTION_SOP['HVAC'];
+      if (norm.includes('insulation') && norm.includes('ventilation')) return DHI_SECTION_SOP['Insulation & Ventilation'];
+      if (norm.includes('apartment') || norm.includes('cottage')) return DHI_SECTION_SOP['Additional Apartment / Cottage'];
+      if (norm.includes('outbuilding') || norm.includes('out building')) return DHI_SECTION_SOP['Outbuilding'];
       const lower = String(secName).toLowerCase();
       for (const [k, v] of Object.entries(DHI_SECTION_SOP)) {
         if (lower.includes(k.toLowerCase()) || k.toLowerCase().includes(lower)) return v;
@@ -10176,15 +10185,15 @@ function submitInspectionQuoteRequest(payload) {
         });
         y += tocBoxH + 18;
 
-        // Comment Key & Definitions Card
+        // Report Key & Definitions Card
         const keyCardTop = y;
         const keyItems = [
-          { title: 'Inspected (IN)', desc: 'Visually observed and appeared to function as intended, allowing for normal wear and tear.', bg: [236, 253, 245], bd: [167, 243, 208], tc: [6, 78, 59] },
-          { title: 'Not Inspected (NI)', desc: 'Item was not inspected; no representation is made regarding its condition, and the reason is noted.', bg: [255, 241, 242], bd: [254, 205, 211], tc: [136, 19, 55] },
-          { title: 'Not Present (NP)', desc: 'This item, component, or system is not present in the home or building.', bg: [248, 250, 252], bd: [226, 232, 240], tc: [30, 41, 59] },
-          { title: 'Repair or Replace (RR)', desc: 'Not functioning as intended or requires further evaluation by a qualified contractor.', bg: [255, 251, 235], bd: [253, 230, 138], tc: [120, 53, 15] }
+          { title: 'Inspected (IN)', desc: 'Visually observed in readily accessible areas and appeared to function as intended at the time of inspection, allowing for normal age and wear. Not a warranty of future performance.', bg: [236, 253, 245], bd: [167, 243, 208], tc: [6, 78, 59] },
+          { title: 'Not Inspected (NI)', desc: 'Not inspected due to access, weather, safety, or scope limitations noted in the report. No opinion or representation is made regarding its condition.', bg: [255, 241, 242], bd: [254, 205, 211], tc: [136, 19, 55] },
+          { title: 'Not Present (NP)', desc: 'This item, component, or system was not observed or did not appear to be present at the time of inspection.', bg: [248, 250, 252], bd: [226, 232, 240], tc: [30, 41, 59] },
+          { title: 'Repair or Replace (RR)', desc: 'A visible deficiency, safety concern, or improper operation was observed. Further evaluation, repair, or replacement by a qualified specialist or licensed contractor is recommended.', bg: [255, 251, 235], bd: [253, 230, 138], tc: [120, 53, 15] }
         ];
-        const keyBoxH = 158;
+        const keyBoxH = 186;
         doc.setFillColor(255, 255, 255);
         doc.setDrawColor(203, 213, 225);
         doc.roundedRect(marginX, keyCardTop, contentW, keyBoxH, 6, 6, 'FD');
@@ -10197,12 +10206,12 @@ function submitInspectionQuoteRequest(payload) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10.5);
         doc.setTextColor(15, 41, 66);
-        doc.text('Comment Key & Definitions', marginX + 14, keyCardTop + 17);
+        doc.text('Report Key & Definitions', marginX + 14, keyCardTop + 17);
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8.5);
         doc.setTextColor(71, 85, 105);
-        const keyIntro = doc.splitTextToSize('Consider all inspector comments before purchasing the home. Any recommendation to repair or replace suggests further evaluation or service by a qualified contractor prior to closing.', contentW - 28);
+        const keyIntro = doc.splitTextToSize('This report reflects a limited visual inspection of readily accessible systems and components at the time of inspection, performed per the Pre-Inspection Agreement and ASHI Standards of Practice. Read the entire report, not just the summary; it is not a warranty or guarantee of future performance.', contentW - 28);
         doc.text(keyIntro, marginX + 14, keyCardTop + 40);
 
         const kColW = (contentW - 38) / 2;
@@ -10968,18 +10977,18 @@ function submitInspectionQuoteRequest(payload) {
         <div id="dhiCommentKeyCard" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="text-xs font-extrabold text-slate-800">Comment Key &amp; Definitions</span>
+              <span class="text-xs font-extrabold text-slate-800">Report Key &amp; Definitions</span>
               <span class="text-[11px] text-slate-500">IN = Inspected &bull; NI = Not Inspected &bull; NP = Not Present &bull; RR = Repair or Replace</span>
             </div>
             <button type="button" onclick="protoState.hideCommentKey=!protoState.hideCommentKey; renderProtoPortal();" class="no-print px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy text-[11px] font-bold text-slate-600">${protoState.hideCommentKey ? 'Show' : 'Hide'}</button>
           </div>
           <div id="dhiCommentKeyBody" class="${protoState.hideCommentKey ? 'hidden' : ''} px-4 py-3 space-y-2 text-[11px] text-slate-600">
-            <p class="leading-relaxed">Consider all inspector comments before purchasing the home. Any recommendation to repair or replace suggests further evaluation or service by a qualified contractor prior to closing.</p>
+            <p class="leading-relaxed">This report reflects a limited visual inspection of readily accessible systems and components as they existed at the time of the inspection, performed in accordance with the Pre-Inspection Agreement and ASHI Standards of Practice. Please read the entire report, not just the summary, as it does not constitute a warranty or guarantee of future performance. Any item recommended for further evaluation, repair, or replacement should be addressed by a qualified specialist or licensed contractor.</p>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-              <div class="p-2 rounded-lg bg-emerald-50/60 border border-emerald-200"><strong class="text-emerald-900">Inspected (IN):</strong> Visually observed and appeared to function as intended, allowing for normal wear and tear.</div>
-              <div class="p-2 rounded-lg bg-rose-50/60 border border-rose-200"><strong class="text-rose-900">Not Inspected (NI):</strong> Item was not inspected; no representation is made regarding its condition, and the reason is noted.</div>
-              <div class="p-2 rounded-lg bg-slate-50 border border-slate-200"><strong class="text-slate-800">Not Present (NP):</strong> This item, component, or system is not present in the home or building.</div>
-              <div class="p-2 rounded-lg bg-amber-50/80 border border-amber-200"><strong class="text-amber-900">Repair or Replace (RR):</strong> Not functioning as intended or requires further evaluation by a qualified contractor.</div>
+              <div class="p-2 rounded-lg bg-emerald-50/60 border border-emerald-200"><strong class="text-emerald-900">Inspected (IN):</strong> Visually observed in readily accessible areas and appeared to be functioning as intended at the time of inspection, allowing for normal age and wear. This rating is not a warranty or guarantee of future performance.</div>
+              <div class="p-2 rounded-lg bg-rose-50/60 border border-rose-200"><strong class="text-rose-900">Not Inspected (NI):</strong> Not inspected due to access, weather, safety, or scope limitations noted in the report. No opinion or representation is made regarding the condition of this item.</div>
+              <div class="p-2 rounded-lg bg-slate-50 border border-slate-200"><strong class="text-slate-800">Not Present (NP):</strong> This item, component, or system was not observed or did not appear to be present at the time of inspection.</div>
+              <div class="p-2 rounded-lg bg-amber-50/80 border border-amber-200"><strong class="text-amber-900">Repair or Replace (RR):</strong> A visible deficiency, safety concern, or improper operation was observed. Further evaluation, repair, or replacement by a qualified specialist or licensed contractor is recommended.</div>
             </div>
           </div>
         </div>
