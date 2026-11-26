@@ -146,6 +146,23 @@
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
+  <div id="dhiInstantAuthSplash" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(248,250,252,0.97);align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+    <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,0.12);padding:32px 28px;text-align:center;max-width:340px;width:100%;">
+      <div style="width:40px;height:40px;margin:0 auto 14px auto;border-radius:50%;border:4px solid #e2e8f0;border-top-color:#004677;animation:dhiSplashSpin 0.8s linear infinite;"></div>
+      <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px;">Signing you in...</div>
+      <div style="font-size:12px;color:#64748b;line-height:1.5;">Verifying your link and loading your inspection portal. Please wait a moment.</div>
+    </div>
+    <style>@keyframes dhiSplashSpin{to{transform:rotate(360deg);}}</style>
+  </div>
+  <script>
+    (function(){
+      var s = window.location.search || '', h = window.location.hash || '';
+      if (s.indexOf('token_hash=') !== -1 || s.indexOf('code=') !== -1 || h.indexOf('access_token=') !== -1) {
+        var el = document.getElementById('dhiInstantAuthSplash');
+        if (el) el.style.display = 'flex';
+      }
+    })();
+  </script>
 
   <!-- Top Inspector Preview Bar (For Previewing Public Site vs. Email-Only Checklist vs. Hosting Setup) -->
   <div id="topAdminBar" class="no-print bg-davis-dark text-white text-xs border-b border-white/10">
@@ -155,7 +172,7 @@
           Preview Mode
         </span>
         <span class="text-slate-300 hidden md:inline">
-          Note: The Buyer Add-On Checklist is hidden from public navigation and only opens via the email link (`?view=addons`).
+          Note: The Customer Add-On Checklist is hidden from public navigation and only opens via the email link (`?view=addons`).
         </span>
       </div>
       <div class="flex flex-wrap items-center gap-1.5">
@@ -163,7 +180,7 @@
           Public Website
         </button>
         <button type="button" id="previewEmailChecklistBtn" onclick="navigatePage('addons', false)" class="px-2.5 py-1 rounded font-medium text-sky-200 bg-white/10 hover:bg-white/20 border border-sky-400/30 transition">
-          Email-Only Buyer Add-On Checklist (`?view=addons`)
+          Email-Only Customer Add-On Checklist (`?view=addons`)
         </button>
         <button type="button" id="previewSetupBtn" onclick="navigatePage('setup', false)" class="px-2.5 py-1 rounded font-medium text-slate-200 hover:bg-white/10 transition">
           Google Hosting &amp; Email Setup
@@ -259,7 +276,7 @@
     <!-- Return Banner When Viewing Info Pages From the Email-Only Buyer Checklist -->
     <div id="returnToChecklistBanner" class="hidden mb-6 p-3.5 rounded-xl bg-davis-navy text-white flex items-center justify-between gap-3 shadow">
       <div class="text-xs sm:text-sm font-medium">
-        You are viewing service details from your <strong>Buyer Add-On Checklist</strong>.
+        You are viewing service details from your <strong>Customer Add-On Checklist</strong>.
       </div>
       <button
         type="button"
@@ -293,7 +310,7 @@
             Thorough, Independent Home Inspections in Colorado Springs
           </h1>
           <p class="text-xs sm:text-base text-slate-200 mt-2.5 max-w-2xl leading-relaxed">
-            <strong>Davis Home Inspections</strong> delivers detailed, easy-to-read digital inspection reports within 24 hours—helping Colorado buyers, sellers, and agents understand every major system of the home.
+            <strong>Davis Home Inspections</strong> brings nearly 15 years of experience and 2500+ completed inspections across Colorado Springs and the Pikes Peak region. Every inspection comes with a clear, photo-rich digital report delivered within 24 hours, helping homeowners, buyers, sellers, and agents understand every major system of the home.
           </p>
           <div class="flex flex-wrap items-center gap-3 mt-5">
             <button
@@ -1125,7 +1142,7 @@
           <!-- Buyer Full Name (Completely Blank) -->
           <div>
             <label for="buyerNameInput" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-              Buyer Name <span class="text-rose-600">*</span>
+              Customer Name <span class="text-rose-600">*</span>
             </label>
             <input
               type="text"
@@ -1652,7 +1669,7 @@ ${INSP_EMAIL}</pre>
           <div>
             <h3 class="text-base font-bold text-slate-900">2. Google Apps Script (`Code.gs`) — Handles Both Forms via `Matt@Davis-Inspections.com`</h3>
             <p class="text-xs text-slate-500 mt-0.5">
-              Automatically emails <strong>Matt@Davis-Inspections.com</strong> for both Public Inspection Quote Requests and Signed Buyer Add-On Checklists, and supports `?view=addons` routing.
+              Automatically emails <strong>Matt@Davis-Inspections.com</strong> for both Public Inspection Quote Requests and Signed Customer Add-On Checklists, and supports `?view=addons` routing.
             </p>
           </div>
           <button
@@ -2138,13 +2155,13 @@ function submitInspectionQuoteRequest(payload) {
       if (!heading || !row || !nameInp) return;
 
       if (isAgent) {
-        heading.innerHTML = 'Home Buyer / Client <span class="text-rose-600">*</span>';
+        heading.innerHTML = 'Customer <span class="text-rose-600">*</span>';
         if (noAgentWrap) noAgentWrap.classList.add('hidden');
         if (noAgentCheck) noAgentCheck.checked = false;
         row.classList.remove('hidden');
         nameInp.required = true;
         nameInp.placeholder = 'Buyer / Client Name *';
-        if (emailInp) emailInp.placeholder = 'Buyer Email (optional)';
+        if (emailInp) emailInp.placeholder = 'Customer Email (optional)';
         if (phoneInp) phoneInp.placeholder = 'Buyer Phone (optional)';
       } else {
         const noAgent = !!(noAgentCheck && noAgentCheck.checked);
@@ -2227,7 +2244,7 @@ function submitInspectionQuoteRequest(payload) {
       }
       if (!noAgentSelected && !cpName) {
         alertEl.textContent = isAgentRole
-          ? 'Please enter the Home Buyer / Client name.'
+          ? 'Please enter the Customer name.'
           : 'Please enter your Real Estate Agent\'s name (or check "No agent / not working with a realtor").';
         alertEl.classList.remove('hidden');
         showToast('Missing Fields', alertEl.textContent, true);
@@ -2621,7 +2638,7 @@ function submitInspectionQuoteRequest(payload) {
 
       const errors = [];
       if (!APP_STATE.buyerName) {
-        errors.push('Please enter your Buyer Name.');
+        errors.push('Please enter your Customer Name.');
       }
       if (!APP_STATE.propertyStreet || !APP_STATE.propertyCity) {
         errors.push('Please enter the Street Address and City of the property being inspected.');
@@ -3138,7 +3155,7 @@ function submitInspectionQuoteRequest(payload) {
         const p = getPos(e);
         ctx.lineTo(p.x, p.y);
         ctx.stroke();
-        protoState.buyerSigDrawn = true;
+        protoState.buyerSigDrawn = true; dhiClearAgreementError();
       };
       const end = () => {
         if (drawing) {
@@ -3350,6 +3367,40 @@ function submitInspectionQuoteRequest(payload) {
       } else {
         mainHeader.classList.remove('md:sticky', 'md:top-0');
         mainHeader.classList.add('sticky', 'top-0');
+      }
+    }
+
+    function dhiJumpToFinding(findingId) {
+      const f = (protoState.findings || []).find(x => String(x.id) === String(findingId));
+      let needsRender = false;
+      if (protoState.activeDocTab !== 'main') {
+        protoState.activeDocTab = 'main';
+        needsRender = true;
+      }
+      if (f && protoState.reportFilter !== 'All' && String(protoState.reportFilter) !== String(f.sectionNum)) {
+        protoState.reportFilter = 'All';
+        needsRender = true;
+      }
+      const isBuyerView = protoState.role === 'buyer' || (protoState.demoMode && protoState.activeCollaborator.includes('Buyer'));
+      const showSummaryOnly = isBuyerView ? (protoState.buyerFilterMode === 'summary') : (protoState.agentViewMode === 'summary');
+      if (f && showSummaryOnly && !f.isSummary) {
+        if (isBuyerView) protoState.buyerFilterMode = 'all';
+        else protoState.agentViewMode = 'full';
+        needsRender = true;
+      }
+      const doScroll = () => {
+        const el = document.getElementById('dhiFindingCard-' + findingId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('ring-2', 'ring-davis-navy');
+          setTimeout(() => el.classList.remove('ring-2', 'ring-davis-navy'), 1600);
+        }
+      };
+      if (needsRender) {
+        renderProtoPortal();
+        setTimeout(doScroll, 60);
+      } else {
+        doScroll();
       }
     }
 
@@ -3706,6 +3757,7 @@ function submitInspectionQuoteRequest(payload) {
       renderProtoPortal();
       const ok = await dhiSendLiveMagicLink(email);
       protoState.authLoading = false;
+      (function(){ var sp = document.getElementById('dhiInstantAuthSplash'); if (sp) sp.style.display = 'none'; })();
       if (ok) { protoState.magicLinkSentTo = email; try { localStorage.setItem('dhi_last_buyer_email', email); } catch (_e) {} }
       renderProtoPortal();
     }
@@ -3723,6 +3775,7 @@ function submitInspectionQuoteRequest(payload) {
       renderProtoPortal();
       const ok = await dhiSendLiveMagicLink(email);
       protoState.authLoading = false;
+      (function(){ var sp = document.getElementById('dhiInstantAuthSplash'); if (sp) sp.style.display = 'none'; })();
       if (ok) protoState.magicLinkSentTo = email;
       renderProtoPortal();
     }
@@ -3739,6 +3792,7 @@ function submitInspectionQuoteRequest(payload) {
       renderProtoPortal();
       const ok = await dhiSendLiveMagicLink(email);
       protoState.authLoading = false;
+      (function(){ var sp = document.getElementById('dhiInstantAuthSplash'); if (sp) sp.style.display = 'none'; })();
       if (ok) protoState.magicLinkSentTo = email;
       renderProtoPortal();
     }
@@ -3791,6 +3845,7 @@ function submitInspectionQuoteRequest(payload) {
       renderProtoPortal();
       const { data, error } = await dhiSupabase.auth.signInWithPassword({ email, password });
       protoState.authLoading = false;
+      (function(){ var sp = document.getElementById('dhiInstantAuthSplash'); if (sp) sp.style.display = 'none'; })();
       if (error) {
         protoState.authErrorMsg = error.message;
         renderProtoPortal();
@@ -3819,6 +3874,7 @@ function submitInspectionQuoteRequest(payload) {
       renderProtoPortal();
       const { data, error } = await dhiSupabase.auth.signInWithPassword({ email, password });
       protoState.authLoading = false;
+      (function(){ var sp = document.getElementById('dhiInstantAuthSplash'); if (sp) sp.style.display = 'none'; })();
       if (error) {
         protoState.authErrorMsg = error.message + ' (Tip: If you have not set a password for this account in Supabase Auth, click "Send Inspector Magic Link instead" above.)';
         renderProtoPortal();
@@ -3980,7 +4036,7 @@ function submitInspectionQuoteRequest(payload) {
       const agentName = (document.getElementById('protoNewAgentName')?.value || '').trim();
       const clientName = (document.getElementById('protoNewClient')?.value || '').trim();
       const suffix = dhiGetCalTagSuffix();
-      el.innerHTML = `Calendar Event Title: <strong class="text-davis-navy">Inspection with ${escapeHtml(agentName || clientName || 'Buyer / Agent')}${escapeHtml(suffix)}</strong>`;
+      el.innerHTML = `Calendar Event Title: <strong class="text-davis-navy">Inspection with ${escapeHtml(agentName || clientName || 'Customer / Agent')}${escapeHtml(suffix)}</strong>`;
     }
 
     function protoUpdateAgentMatchHint() {
@@ -4914,7 +4970,7 @@ function submitInspectionQuoteRequest(payload) {
                 </div>
                 <div class="min-w-0">
                   <div class="text-xs font-bold text-slate-700">Cover Page Photo</div>
-                  <div class="text-[11px] text-slate-500 truncate">Shown on buyer portal &amp; report cover</div>
+                  <div class="text-[11px] text-slate-500 truncate">Shown on customer portal &amp; report cover</div>
                 </div>
               </div>
               <div class="flex flex-col items-end gap-1.5 shrink-0">
@@ -4933,11 +4989,11 @@ function submitInspectionQuoteRequest(payload) {
               <input id="editInspDate" type="text" value="${escapeHtml(insp.date || '')}" placeholder="e.g., November 25, 2026 at 9:00 AM" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
             </div>
             <div class="relative">
-              <label class="block font-bold text-slate-700 mb-1">Buyer Name * <span class="font-normal text-slate-400">(search or type new)</span></label>
+              <label class="block font-bold text-slate-700 mb-1">Customer Name * <span class="font-normal text-slate-400">(search or type new)</span></label>
               <input id="editInspClientName" type="text" autocomplete="off" value="${escapeHtml(insp.clientName || '')}" oninput="dhiEditContactSuggest(this, 'customer', 'primary')" onfocus="dhiEditContactSuggest(this, 'customer', 'primary')" onblur="dhiEditHideContactSuggest(this)" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
             </div>
             <div class="relative">
-              <label class="block font-bold text-slate-700 mb-1">Buyer Email *</label>
+              <label class="block font-bold text-slate-700 mb-1">Customer Email *</label>
               <input id="editInspClientEmail" type="email" autocomplete="off" value="${escapeHtml(insp.clientEmail || '')}" oninput="dhiEditContactSuggest(this, 'customer', 'primary')" onblur="dhiEditHideContactSuggest(this)" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
             </div>
             <div class="relative">
@@ -5004,8 +5060,11 @@ function submitInspectionQuoteRequest(payload) {
             </div>
             <div id="dhiEditLinesContainer" class="space-y-1.5">
               ${dhiEditLineItems.map((li, i) => `
-                <div class="grid grid-cols-12 gap-1.5 items-center">
-                  <input type="text" value="${escapeHtml(li.name)}" oninput="dhiEditLineItems[${i}].name=this.value" placeholder="Service description" class="col-span-7 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                <div draggable="true" ondragstart="dhiDragLineStart(event, 'edit', ${i})" ondragover="dhiDragLineOver(event)" ondragleave="dhiDragLineLeave(event)" ondrop="dhiDragLineDrop(event, 'edit', ${i})" class="grid grid-cols-12 gap-1.5 items-center rounded-lg p-1 transition">
+                  <div class="col-span-7 flex items-center gap-1.5">
+                    <span title="Drag to reorder" class="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-700 font-bold select-none text-sm leading-none">&#8942;&#8942;</span>
+                    <input type="text" value="${escapeHtml(li.name)}" oninput="dhiEditLineItems[${i}].name=this.value" placeholder="Service description" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                  </div>
                   <input type="number" step="0.01" value="${li.unitPrice}" oninput="dhiEditLineItems[${i}].unitPrice=Number(this.value)||0" class="col-span-4 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
                   <button type="button" onclick="dhiEditRemoveLineItem(${i})" class="col-span-1 text-rose-600 font-bold text-sm">&times;</button>
                 </div>
@@ -5018,8 +5077,11 @@ function submitInspectionQuoteRequest(payload) {
         const cont = document.getElementById('dhiEditLinesContainer');
         if (!cont) return;
         cont.innerHTML = dhiEditLineItems.map((li, i) => `
-          <div class="grid grid-cols-12 gap-1.5 items-center">
-            <input type="text" value="${escapeHtml(li.name)}" oninput="dhiEditLineItems[${i}].name=this.value" placeholder="Service description" class="col-span-7 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+          <div draggable="true" ondragstart="dhiDragLineStart(event, 'edit', ${i})" ondragover="dhiDragLineOver(event)" ondragleave="dhiDragLineLeave(event)" ondrop="dhiDragLineDrop(event, 'edit', ${i})" class="grid grid-cols-12 gap-1.5 items-center rounded-lg p-1 transition">
+            <div class="col-span-7 flex items-center gap-1.5">
+              <span title="Drag to reorder" class="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-700 font-bold select-none text-sm leading-none">&#8942;&#8942;</span>
+              <input type="text" value="${escapeHtml(li.name)}" oninput="dhiEditLineItems[${i}].name=this.value" placeholder="Service description" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+            </div>
             <input type="number" step="0.01" value="${li.unitPrice}" oninput="dhiEditLineItems[${i}].unitPrice=Number(this.value)||0" class="col-span-4 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
             <button type="button" onclick="dhiEditRemoveLineItem(${i})" class="col-span-1 text-rose-600 font-bold text-sm">&times;</button>
           </div>
@@ -5027,6 +5089,45 @@ function submitInspectionQuoteRequest(payload) {
       };
       renderEditBody();
       document.getElementById('dhiEditInspModal').classList.remove('hidden');
+    }
+
+    let _dhiDragLineCtx = null;
+    function dhiDragLineStart(ev, mode, idx) {
+      _dhiDragLineCtx = { mode, idx };
+      if (ev && ev.dataTransfer) {
+        ev.dataTransfer.effectAllowed = 'move';
+        try { ev.dataTransfer.setData('text/plain', String(idx)); } catch (_e) {}
+      }
+    }
+    function dhiDragLineOver(ev) {
+      if (!_dhiDragLineCtx) return;
+      ev.preventDefault();
+      if (ev.currentTarget) ev.currentTarget.classList.add('ring-2', 'ring-davis-navy/40', 'bg-sky-50');
+    }
+    function dhiDragLineLeave(ev) {
+      if (ev.currentTarget) ev.currentTarget.classList.remove('ring-2', 'ring-davis-navy/40', 'bg-sky-50');
+    }
+    function dhiDragLineDrop(ev, mode, toIdx) {
+      ev.preventDefault();
+      if (ev.currentTarget) ev.currentTarget.classList.remove('ring-2', 'ring-davis-navy/40', 'bg-sky-50');
+      if (!_dhiDragLineCtx || _dhiDragLineCtx.mode !== mode) return;
+      const fromIdx = _dhiDragLineCtx.idx;
+      _dhiDragLineCtx = null;
+      if (fromIdx === toIdx || fromIdx < 0 || toIdx < 0) return;
+      if (mode === 'new') {
+        protoSaveNewInspDraftInputs();
+        const arr = protoState.draftLineItems || [];
+        if (fromIdx >= arr.length || toIdx >= arr.length) return;
+        const moved = arr.splice(fromIdx, 1)[0];
+        arr.splice(toIdx, 0, moved);
+        renderProtoPortal();
+      } else {
+        const arr = dhiEditLineItems || [];
+        if (fromIdx >= arr.length || toIdx >= arr.length) return;
+        const moved = arr.splice(fromIdx, 1)[0];
+        arr.splice(toIdx, 0, moved);
+        if (window._dhiRefreshEditLines) window._dhiRefreshEditLines();
+      }
     }
 
     function dhiEditAddLineItem() {
@@ -5151,7 +5252,7 @@ function submitInspectionQuoteRequest(payload) {
       const standalone = !!document.getElementById('editInspStandalone')?.checked;
 
       if (!street || (!clientEmail && !agentEmail)) {
-        protoToastMsg('Street Address and at least a Buyer Email or Agent Email are required.');
+        protoToastMsg('Street Address and at least a Customer Email or Agent Email are required.');
         return;
       }
       const fullAddr = protoComposeAdminAddress(street, city, stateVal, zip);
@@ -5553,7 +5654,7 @@ function submitInspectionQuoteRequest(payload) {
         });
         const hasSewer = (insp.services || []).some(s => String(s && s.name || '').toLowerCase().includes('sewer'));
         const sewerBtnCls = hasSewer
-          ? 'border-teal-400 bg-teal-50 hover:border-teal-600 text-teal-900'
+          ? 'border-amber-300 bg-amber-50 hover:border-amber-500 text-amber-900'
           : 'border-slate-300 bg-slate-50 hover:border-davis-navy text-slate-700';
 
         return `
@@ -5645,7 +5746,7 @@ function submitInspectionQuoteRequest(payload) {
                     <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'other')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 font-bold text-slate-700">Other...</button>
                   </div>
                 </details>
-                ${(insp.agreementRequired !== false && insp.agreementSigned) ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 hover:border-emerald-500 text-emerald-800 text-xs font-bold transition">Signed PDF</button>` : ''}
+                ${(insp.agreementRequired !== false && insp.agreementSigned) ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 hover:border-indigo-500 text-indigo-800 text-xs font-bold transition">Signed PDF</button>` : ''}
                 ${!insp.paid
                   ? `<button type="button" onclick="protoMarkInspectionPaidManual('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 hover:border-emerald-600 text-emerald-800 text-xs font-bold transition">Mark Paid</button>`
                   : `<button type="button" onclick="dhiDownloadReceiptPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Receipt PDF</button>`}
@@ -6194,8 +6295,9 @@ function submitInspectionQuoteRequest(payload) {
           const lineTotal = (Number(li.qty) || 0) * (Number(li.unitPrice) || 0);
           const totalStr = lineTotal < 0 ? `-$${Math.abs(lineTotal).toFixed(2)}` : `$${lineTotal.toFixed(2)}`;
           return `
-            <div class="grid grid-cols-12 gap-2 items-center bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs">
-              <div class="col-span-12 sm:col-span-5">
+            <div draggable="true" ondragstart="dhiDragLineStart(event, 'new', ${idx})" ondragover="dhiDragLineOver(event)" ondragleave="dhiDragLineLeave(event)" ondrop="dhiDragLineDrop(event, 'new', ${idx})" class="grid grid-cols-12 gap-2 items-center bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs transition">
+              <div class="col-span-12 sm:col-span-5 flex items-center gap-1.5">
+                <span title="Drag to reorder" class="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-700 font-bold select-none px-0.5 text-sm leading-none">&#8942;&#8942;</span>
                 <input type="text" value="${escapeHtml(li.name)}" oninput="protoUpdateDraftLineItem(${idx}, 'name', this.value)" placeholder="Service or discount description" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold" />
               </div>
               <div class="col-span-3 sm:col-span-2">
@@ -6274,7 +6376,7 @@ function submitInspectionQuoteRequest(payload) {
                       : `<div class="w-16 h-12 rounded-lg border border-dashed border-slate-300 bg-white flex items-center justify-center text-[10px] font-bold text-slate-400 shrink-0">No Photo</div>`}
                     <div class="min-w-0">
                       <div class="text-xs font-bold text-slate-700">Cover Page Photo</div>
-                      <div class="text-[11px] text-slate-500 truncate">Shown on the buyer portal &amp; report cover</div>
+                      <div class="text-[11px] text-slate-500 truncate">Shown on the customer portal &amp; report cover</div>
                     </div>
                   </div>
                   <div class="flex flex-col items-end gap-1.5 shrink-0">
@@ -6300,10 +6402,10 @@ function submitInspectionQuoteRequest(payload) {
                 </div>
                 <div class="sm:col-span-2">
                   <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
-                    <label class="font-bold text-slate-700">Buyer Name ${pre.forAgentOnly ? '<span class="text-slate-400 font-normal">(skipped — For Agent)</span>' : '*'}</label>
+                    <label class="font-bold text-slate-700">Customer Name ${pre.forAgentOnly ? '<span class="text-slate-400 font-normal">(skipped — For Agent)</span>' : '*'}</label>
                     <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-davis-navy cursor-pointer select-none">
                       <input id="protoNewForAgentOnly" type="checkbox" ${pre.forAgentOnly ? 'checked' : ''} onchange="protoSaveNewInspDraftInputs(); renderProtoPortal();" class="rounded border-slate-300 text-davis-navy" />
-                      <span>For Agent (no buyer)</span>
+                      <span>For Agent (no customer)</span>
                     </label>
                   </div>
                   <div class="${pre.forAgentOnly ? 'hidden' : ''}">
@@ -6311,7 +6413,7 @@ function submitInspectionQuoteRequest(payload) {
                   </div>
                 </div>
                 <div class="${pre.forAgentOnly ? 'hidden' : ''}">
-                  <label class="block font-bold text-slate-700 mb-1">Buyer Email *</label>
+                  <label class="block font-bold text-slate-700 mb-1">Customer Email *</label>
                   <input id="protoNewClientEmail" type="email" value="${escapeHtml(pre.clientEmail || '')}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
                 </div>
                 <div class="${pre.forAgentOnly ? 'hidden' : ''}">
@@ -6403,8 +6505,9 @@ function submitInspectionQuoteRequest(payload) {
 
             <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
               <div class="text-base font-extrabold text-slate-900">Invoice Total: <span id="protoNewTotalDisplay" class="text-davis-navy">${calcTotal < 0 ? '-$' + Math.abs(calcTotal).toFixed(2) : '$' + calcTotal.toFixed(2)}</span></div>
-              <div id="protoCalPreviewText" class="text-xs text-slate-600 bg-sky-50 border border-sky-200 rounded-xl px-3.5 py-2 font-medium">Calendar Event Title: <strong class="text-davis-navy">Inspection with ${escapeHtml(matchedAgent ? dhiDisplayName(matchedAgent) : (pre.agentName || pre.clientName || 'Buyer / Agent'))}${escapeHtml(dhiGetCalTagSuffix(pre))}</strong></div>
-              <div class="flex flex-wrap items-center gap-2">
+              <div class="ml-auto flex flex-col items-end gap-2">
+                <div id="protoCalPreviewText" class="text-xs text-slate-600 bg-sky-50 border border-sky-200 rounded-xl px-3.5 py-2 font-medium">Calendar Event Title: <strong class="text-davis-navy">Inspection with ${escapeHtml(matchedAgent ? dhiDisplayName(matchedAgent) : (pre.agentName || pre.clientName || 'Customer / Agent'))}${escapeHtml(dhiGetCalTagSuffix(pre))}</strong></div>
+                <div class="flex flex-wrap items-center justify-end gap-2">
                 <div class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700">
                   <label class="inline-flex items-center gap-1 cursor-pointer select-none">
                     <input id="protoCalTagRadon" type="checkbox" ${pre.calTagRadon ? 'checked' : ''} onchange="protoSaveNewInspDraftInputs(); protoUpdateCalPreview();" class="rounded border-slate-300 text-davis-navy" />
@@ -6420,6 +6523,7 @@ function submitInspectionQuoteRequest(payload) {
                   </label>
                 </div>
                 <button type="button" onclick="protoCreateInspection()" class="px-5 py-2.5 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Create Inspection &amp; Add to Google Calendar</button>
+                </div>
               </div>
             </div>
           </div>
@@ -6874,7 +6978,13 @@ function submitInspectionQuoteRequest(payload) {
           return;
         }
       } else if (!addr || !client || !email) {
-        protoToastMsg('Please enter at least the Property Address, Buyer Name, and Buyer Email.');
+        protoToastMsg('Please enter at least the Property Address, Customer Name, and Customer Email.');
+        return;
+      }
+      if (!dateOnly || !timeOnly) {
+        protoToastMsg('Please select both an Inspection Date and Time.');
+        const missingEl = document.getElementById(!dateOnly ? 'protoNewDateOnly' : 'protoNewTimeOnly');
+        if (missingEl) missingEl.focus();
         return;
       }
 
@@ -8832,7 +8942,7 @@ function submitInspectionQuoteRequest(payload) {
         return `
           <div class="space-y-4">
             <div class="flex items-center justify-between gap-2 px-1">
-              <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Buyer Dashboard</h1>
+              <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Customer Dashboard</h1>
             </div>
             <div class="bg-davis-navy text-white rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -8881,7 +8991,7 @@ function submitInspectionQuoteRequest(payload) {
       return `
         <div class="space-y-4">
           <div class="flex items-center justify-between gap-2 px-1">
-            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Buyer Dashboard</h1>
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Customer Dashboard</h1>
           </div>
           <div class="bg-davis-navy text-white rounded-2xl p-5 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
@@ -8938,7 +9048,7 @@ function submitInspectionQuoteRequest(payload) {
                     ${DHI_AGREEMENT_CLAUSES.map(c => `<p>${c.replace('Ashi.com', '<a href="https://www.ashi.com" target="_blank" rel="noopener noreferrer" class="text-sky-700 underline font-semibold">Ashi.com</a>')}</p>`).join('')}
                   </div>
                   <label class="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
-                    <input type="checkbox" id="protoConsentChk" ${protoState.buyerConsent ? 'checked' : ''} onchange="protoState.buyerConsent = this.checked" class="mt-0.5 rounded border-slate-300" />
+                    <input type="checkbox" id="protoConsentChk" ${protoState.buyerConsent ? 'checked' : ''} onchange="protoState.buyerConsent = this.checked; dhiClearAgreementError();" class="mt-0.5 rounded border-slate-300" />
                     <span>I have read, understand and agree to all terms of this contract and consent to electronic signatures under the ESIGN Act and Colorado UETA.</span>
                   </label>
                   <div class="space-y-1">
@@ -8948,8 +9058,9 @@ function submitInspectionQuoteRequest(payload) {
                     </div>
                     <canvas id="protoAgreementSigCanvas" width="420" height="100" class="w-full h-24 rounded-lg border border-slate-300 bg-white cursor-crosshair touch-none"></canvas>
                   </div>
-                  <input type="text" id="protoSigInput" value="${protoState.buyerSigText}" oninput="protoState.buyerSigText = this.value" placeholder="Printed Name of Client (e.g., John Miller)" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
+                  <input type="text" id="protoSigInput" value="${protoState.buyerSigText}" oninput="protoState.buyerSigText = this.value; dhiClearAgreementError();" placeholder="Printed Name of Client (e.g., John Miller)" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm" />
                   <div class="text-[11px] text-slate-500"><strong>For the Company:</strong> Matt Davis • Dated: ${new Date().toISOString().slice(0,10)}</div>
+                  <div id="dhiAgreementErrBox" class="${protoState.agreementErrorMsg ? '' : 'hidden '}rounded-xl bg-rose-50 border border-rose-200 px-3.5 py-2.5 text-xs text-rose-800 font-semibold text-center">${escapeHtml(protoState.agreementErrorMsg || '')}</div>
                   <button type="button" onclick="protoSignBuyerAgreement()" class="w-full py-2.5 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-sm font-bold transition">Sign Inspection Agreement</button>
                 </div>
               `)}
@@ -9010,20 +9121,35 @@ function submitInspectionQuoteRequest(payload) {
       `;
     }
 
+    function dhiShowAgreementError(msg) {
+      protoState.agreementErrorMsg = msg || '';
+      const box = document.getElementById('dhiAgreementErrBox');
+      if (box) {
+        box.textContent = msg || '';
+        box.classList.toggle('hidden', !msg);
+      }
+    }
+    function dhiClearAgreementError() {
+      if (protoState.agreementErrorMsg) dhiShowAgreementError('');
+    }
+
     async function protoSignBuyerAgreement() {
       const insp = protoGetActiveInsp();
       if (!protoState.buyerConsent) {
-        protoToastMsg('Please check the ESIGN consent box first.');
+        dhiShowAgreementError('Please check the ESIGN consent box first.');
         return;
       }
       if (!protoState.buyerSigDrawn) {
-        protoToastMsg('Please draw your signature in the signature box.');
+        dhiShowAgreementError('Please draw your signature in the signature box.');
         return;
       }
       if (!protoState.buyerSigText.trim()) {
-        protoToastMsg('Please enter your Printed Name.');
+        dhiShowAgreementError('Please enter your Printed Name before submitting.');
+        const sigEl = document.getElementById('protoSigInput');
+        if (sigEl) sigEl.focus();
         return;
       }
+      dhiClearAgreementError();
       const signedAt = new Date().toISOString();
       const rawText = insp.address + '|' + protoTotal(insp) + '|' + protoState.buyerSigText.trim() + '|' + signedAt + '|' + DHI_AGREEMENT_CLAUSES.join(' ');
       const hash = await dhiHashAgreement(rawText);
@@ -9321,7 +9447,30 @@ function submitInspectionQuoteRequest(payload) {
           f.comments = byTarget[f.id] || [];
           dhiPatchFindingCommentsDOM(f.id);
         });
+        const insp = protoGetActiveInsp();
+        if (insp && Array.isArray(insp.extraDocs)) {
+          insp.extraDocs.forEach(doc => {
+            doc.comments = byTarget[doc.id] || [];
+            dhiPatchDocCommentsDOM(doc.id);
+          });
+        }
       } catch (_e) {}
+    }
+
+    function dhiPatchDocCommentsDOM(docId) {
+      const container = document.getElementById('dhiDocCommentsList-' + docId);
+      if (!container) return false;
+      const insp = protoGetActiveInsp();
+      const doc = insp && (insp.extraDocs || []).find(d => String(d.id) === String(docId));
+      if (!doc) return false;
+      const list = doc.comments || [];
+      container.innerHTML = list.length ? list.map(c => `
+        <div class="flex items-start gap-2 text-xs bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-100">
+          <span class="w-2 h-2 rounded-full mt-1 shrink-0" style="background:${c.color}"></span>
+          <div><span class="font-bold text-slate-800">${escapeHtml(c.author)}:</span> <span class="text-slate-700">${escapeHtml(c.text)}</span></div>
+        </div>
+      `).join('') : '<div class="text-xs text-slate-400 italic">No notes on this PDF yet.</div>';
+      return true;
     }
 
     async function dhiRefreshObjectionsOnly(inspectionId) {
@@ -10572,7 +10721,7 @@ function submitInspectionQuoteRequest(payload) {
                 </div>
                 <div class="space-y-2">
                   <div class="text-xs font-bold text-slate-700">Live Co-Viewing Notes</div>
-                  ${docCommentsHTML || '<div class="text-xs text-slate-400 italic">No notes on this PDF yet.</div>'}
+                  <div id="dhiDocCommentsList-${doc.id}" class="space-y-1.5">${docCommentsHTML || '<div class="text-xs text-slate-400 italic">No notes on this PDF yet.</div>'}</div>
                   <div class="flex gap-2 pt-1">
                     <input type="text" id="docCommentInput-${doc.id}" placeholder="Add a live note as ${escapeHtml(dhiGetLiveCollabFirstName())}..." onkeydown="if(event.key==='Enter'){event.preventDefault();protoAddDocComment('${doc.id}');}" class="flex-grow px-3 py-1.5 rounded-lg border border-slate-200 text-xs" />
                     <button type="button" onclick="protoAddDocComment('${doc.id}')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-bold">Post</button>
@@ -10670,7 +10819,7 @@ function submitInspectionQuoteRequest(payload) {
           ` : '';
 
           return `
-            <div class="dhi-finding-card ${hasPhotos ? '' : 'dhi-finding-card-compact'} bg-white rounded-2xl border ${f.isSummary ? 'border-amber-200/90' : 'border-slate-200'} shadow-sm p-4 sm:p-5 space-y-3.5">
+            <div id="dhiFindingCard-${f.id}" class="dhi-finding-card scroll-mt-32 sm:scroll-mt-28 ${hasPhotos ? '' : 'dhi-finding-card-compact'} bg-white rounded-2xl border ${f.isSummary ? 'border-amber-200/90' : 'border-slate-200'} shadow-sm p-4 sm:p-5 space-y-3.5">
               <div class="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <div class="flex flex-wrap items-center gap-1.5 mb-1">
@@ -10772,15 +10921,15 @@ function submitInspectionQuoteRequest(payload) {
         if (!f) return '';
         const formatted = protoFormatObjectionLine(f, item, idx);
         const statusBadge = !item.approvedByAgent
-          ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">Buyer Requested</span>'
+          ? '<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">Customer Requested</span>'
           : (item.aiGenerated
               ? '<span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">AI Ready</span>'
               : '<span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 text-[10px] font-bold">Needs AI Rewrite</span>');
         return `
-          <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-2">
+          <div class="bg-white rounded-xl p-3.5 border border-emerald-200/80 shadow-sm space-y-2">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <div class="flex items-center gap-1.5">
-                <span class="text-xs font-bold text-davis-navy">Item ${f.code || '#' + f.id} • ${f.category}</span>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button type="button" onclick="dhiJumpToFinding('${f.id}')" title="Jump to this item in the report" class="text-left text-xs font-bold text-davis-navy hover:text-sky-700 hover:underline transition">Item ${f.code || '#' + f.id} • ${f.category} &uarr;</button>
                 ${statusBadge}
               </div>
               ${!isBuyerView ? `
@@ -10948,7 +11097,7 @@ function submitInspectionQuoteRequest(payload) {
                   : (sectionsHTML || ((protoState.findings || []).length ? '<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-500">No summary items in this section — switch to All Report Items or choose All Sections above.</div>' : '<div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No main home inspection report has been uploaded for this property yet.</div>')))}
           </div>
 
-          <div id="objectionListPanel" class="${protoState.role === 'third_party' ? 'hidden' : ''} scroll-mt-32 sm:scroll-mt-28 bg-white rounded-2xl border-2 border-davis-navy/20 shadow-sm p-5 space-y-4 mt-6 no-print">
+          <div id="objectionListPanel" class="${protoState.role === 'third_party' ? 'hidden' : ''} scroll-mt-32 sm:scroll-mt-28 bg-emerald-50 rounded-2xl border-2 border-emerald-200 shadow-sm p-5 space-y-4 mt-6 no-print">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">AI-Rewritten for CREC NTC43</span>
@@ -10999,7 +11148,8 @@ function submitInspectionQuoteRequest(payload) {
       if (doc) {
         doc.comments = doc.comments || [];
         doc.comments.push({ author: authorLabel, color, text });
-        renderProtoPortal();
+        input.value = '';
+        if (!dhiPatchDocCommentsDOM(docId)) renderProtoPortal();
         if (dhiIsLiveSession() && protoState.activeInspectionId && protoState.activeInspectionId !== 'insp-demo' && !String(docId).startsWith('doc-')) {
           try {
             await dhiSupabase.from('report_comments').insert({
@@ -12242,6 +12392,7 @@ function submitInspectionQuoteRequest(payload) {
       dhiSubscribeAccountRealtime(session);
       await dhiRefreshAccountData(session);
       protoState.authLoading = false;
+      (function(){ var sp = document.getElementById('dhiInstantAuthSplash'); if (sp) sp.style.display = 'none'; })();
       try {
         const sqParams = new URLSearchParams(window.location.search);
         const sqReturnId = sqParams.get('sq_return');
@@ -12305,14 +12456,17 @@ function submitInspectionQuoteRequest(payload) {
             try { window.history.replaceState(null, '', window.location.pathname + '?view=portal'); } catch (_e) {}
             if (error) {
               protoState.authLoading = false;
+      (function(){ var sp = document.getElementById('dhiInstantAuthSplash'); if (sp) sp.style.display = 'none'; })();
               protoState.authErrorMsg = 'That sign-in link has expired or was already used. Request a fresh link or enter the 6-digit code below.';
               renderProtoPortal();
             } else if (data && data.session) {
               await dhiApplyAuthSession(data.session);
               protoState.authLoading = false;
+      (function(){ var sp = document.getElementById('dhiInstantAuthSplash'); if (sp) sp.style.display = 'none'; })();
               renderProtoPortal();
             } else {
               protoState.authLoading = false;
+      (function(){ var sp = document.getElementById('dhiInstantAuthSplash'); if (sp) sp.style.display = 'none'; })();
               renderProtoPortal();
             }
           }
