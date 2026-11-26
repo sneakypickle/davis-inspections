@@ -618,7 +618,7 @@
             <textarea id="reqNotes" rows="3" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-davis-navy outline-none"></textarea>
           </div>
 
-          <div id="reqQuoteAlert" class="hidden rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 font-medium"></div>
+          <div id="reqQuoteAlert" class="hidden rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 font-medium text-center"></div>
 
           <button type="submit" id="submitQuoteBtn" class="w-full py-3.5 px-6 rounded-xl bg-davis-navy hover:bg-davis-dark text-white font-bold text-sm sm:text-base shadow transition">
             Send Inspection Request to Matt@Davis-Inspections.com
@@ -1491,7 +1491,7 @@
           </div>
 
           <!-- Validation Error Box -->
-          <div id="formValidationAlert" class="hidden rounded-xl bg-rose-50 border border-rose-200 p-3.5 text-xs text-rose-800 font-medium"></div>
+          <div id="formValidationAlert" class="hidden rounded-xl bg-rose-50 border border-rose-200 p-3.5 text-xs text-rose-800 font-medium text-center"></div>
 
           <!-- Submit Button -->
           <div class="pt-2">
@@ -3575,12 +3575,12 @@ function submitInspectionQuoteRequest(payload) {
 
     function renderLoginHTML() {
       const sentBanner = protoState.magicLinkSentTo
-        ? `<div class="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs text-emerald-900 font-medium">
+        ? `<div class="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs text-emerald-900 font-medium text-center">
             Sign-in link and 6-digit code sent to <strong>${escapeHtml(protoState.magicLinkSentTo)}</strong>. Check your inbox (and spam folder) and either click the link or enter the 6-digit code below.
           </div>`
         : '';
       const authErr = protoState.authErrorMsg
-        ? `<div class="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 font-medium">${escapeHtml(protoState.authErrorMsg)}</div>`
+        ? `<div class="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs text-rose-800 font-medium text-center">${escapeHtml(protoState.authErrorMsg)}</div>`
         : '';
       return `
         <div class="space-y-6">
@@ -3931,12 +3931,28 @@ function submitInspectionQuoteRequest(payload) {
       return timeOnly ? `${formattedDate} at ${timeOnly}` : formattedDate;
     }
 
+    function dhiGetCalTagSuffix(draftFallback) {
+      const d = draftFallback || protoState.newInspDraft || {};
+      const rEl = document.getElementById('protoCalTagRadon');
+      const sEl = document.getElementById('protoCalTagScope');
+      const tEl = document.getElementById('protoCalTagTermite');
+      const hasR = rEl ? rEl.checked : !!d.calTagRadon;
+      const hasS = sEl ? sEl.checked : !!d.calTagScope;
+      const hasT = tEl ? tEl.checked : !!d.calTagTermite;
+      const tags = [];
+      if (hasR) tags.push('Radon');
+      if (hasS) tags.push('Scope');
+      if (hasT) tags.push('Termite');
+      return tags.length ? (' - ' + tags.join(' ')) : '';
+    }
+
     function protoUpdateCalPreview() {
       const el = document.getElementById('protoCalPreviewText');
       if (!el) return;
       const agentName = (document.getElementById('protoNewAgentName')?.value || '').trim();
       const clientName = (document.getElementById('protoNewClient')?.value || '').trim();
-      el.innerHTML = `Calendar Event Title: <strong class="text-davis-navy">Inspection with ${agentName || clientName || 'Buyer / Agent'}</strong>`;
+      const suffix = dhiGetCalTagSuffix();
+      el.innerHTML = `Calendar Event Title: <strong class="text-davis-navy">Inspection with ${escapeHtml(agentName || clientName || 'Buyer / Agent')}${escapeHtml(suffix)}</strong>`;
     }
 
     function protoUpdateAgentMatchHint() {
@@ -4817,7 +4833,7 @@ function submitInspectionQuoteRequest(payload) {
               </div>
               <div>
                 <label class="block font-bold text-slate-700 mb-1">ZIP</label>
-                <input id="editInspZip" type="text" value="${escapeHtml(zip)}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+                <input id="editInspZip" type="text" maxlength="5" inputmode="numeric" oninput="this.value=this.value.replace(/\D/g,'').slice(0,5)" value="${escapeHtml(zip)}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
               </div>
             </div>
             <div>
@@ -6036,7 +6052,7 @@ function submitInspectionQuoteRequest(payload) {
                 </div>
                 <div>
                   <label class="block font-bold text-slate-700 mb-1">ZIP (auto-fills City &amp; County)</label>
-                  <input id="protoNewZip" type="text" list="dhiAdminZipList" value="${escapeHtml(pre.zip || '')}" oninput="protoOnNewZipInput(this.value)" placeholder="80908" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+                  <input id="protoNewZip" type="text" maxlength="5" inputmode="numeric" list="dhiAdminZipList" value="${escapeHtml(String(pre.zip || '').replace(/\D/g, '').slice(0, 5))}" oninput="this.value=this.value.replace(/\D/g,'').slice(0,5); protoOnNewZipInput(this.value)" placeholder="80908" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
                   <datalist id="dhiAdminZipList">${zipListOpts}</datalist>
                 </div>
                 <div>
@@ -6210,8 +6226,24 @@ function submitInspectionQuoteRequest(payload) {
 
             <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
               <div class="text-base font-extrabold text-slate-900">Invoice Total: <span id="protoNewTotalDisplay" class="text-davis-navy">${calcTotal < 0 ? '-$' + Math.abs(calcTotal).toFixed(2) : '$' + calcTotal.toFixed(2)}</span></div>
-              <div id="protoCalPreviewText" class="text-xs text-slate-600 bg-sky-50 border border-sky-200 rounded-xl px-3.5 py-2 font-medium">Calendar Event Title: <strong class="text-davis-navy">Inspection with ${escapeHtml(matchedAgent ? dhiDisplayName(matchedAgent) : (pre.agentName || pre.clientName || 'Buyer / Agent'))}</strong></div>
-              <button type="button" onclick="protoCreateInspection()" class="px-5 py-2.5 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Create Inspection &amp; Add to Google Calendar</button>
+              <div id="protoCalPreviewText" class="text-xs text-slate-600 bg-sky-50 border border-sky-200 rounded-xl px-3.5 py-2 font-medium">Calendar Event Title: <strong class="text-davis-navy">Inspection with ${escapeHtml(matchedAgent ? dhiDisplayName(matchedAgent) : (pre.agentName || pre.clientName || 'Buyer / Agent'))}${escapeHtml(dhiGetCalTagSuffix(pre))}</strong></div>
+              <div class="flex flex-wrap items-center gap-2">
+                <div class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700">
+                  <label class="inline-flex items-center gap-1 cursor-pointer select-none">
+                    <input id="protoCalTagRadon" type="checkbox" ${pre.calTagRadon ? 'checked' : ''} onchange="protoSaveNewInspDraftInputs(); protoUpdateCalPreview();" class="rounded border-slate-300 text-davis-navy" />
+                    <span>Radon</span>
+                  </label>
+                  <label class="inline-flex items-center gap-1 cursor-pointer select-none">
+                    <input id="protoCalTagScope" type="checkbox" ${pre.calTagScope ? 'checked' : ''} onchange="protoSaveNewInspDraftInputs(); protoUpdateCalPreview();" class="rounded border-slate-300 text-davis-navy" />
+                    <span>Scope</span>
+                  </label>
+                  <label class="inline-flex items-center gap-1 cursor-pointer select-none">
+                    <input id="protoCalTagTermite" type="checkbox" ${pre.calTagTermite ? 'checked' : ''} onchange="protoSaveNewInspDraftInputs(); protoUpdateCalPreview();" class="rounded border-slate-300 text-davis-navy" />
+                    <span>Termite</span>
+                  </label>
+                </div>
+                <button type="button" onclick="protoCreateInspection()" class="px-5 py-2.5 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Create Inspection &amp; Add to Google Calendar</button>
+              </div>
             </div>
           </div>
         `;
@@ -6226,14 +6258,14 @@ function submitInspectionQuoteRequest(payload) {
               <button type="button" onclick="dhiSignOut()" class="px-3 sm:px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-[11px] sm:text-xs font-bold transition">Sign Out</button>
             </div>
           </div>
-          <div class="sticky top-0 md:static z-20 bg-slate-100/95 md:bg-slate-100 backdrop-blur md:backdrop-blur-none rounded-2xl border border-slate-300/80 p-2.5 sm:p-4 space-y-2 sm:space-y-3 shadow-md md:shadow-sm">
+          <div class="sticky top-0 md:static z-20 bg-slate-200/95 md:bg-slate-200 backdrop-blur md:backdrop-blur-none rounded-2xl border border-slate-300 p-2.5 sm:p-4 space-y-2 sm:space-y-3 shadow-md md:shadow-sm">
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto md:flex-wrap dhi-no-scrollbar min-w-0 flex-1 py-0.5">
                 ${tabBtns}
               </div>
               <button type="button" onclick="protoState.adminTab='new'; renderProtoPortal();" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-extrabold transition shadow-sm shrink-0 whitespace-nowrap ${protoState.adminTab === 'new' ? 'bg-emerald-700 text-white ring-2 ring-emerald-300' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}">+ New Inspection</button>
             </div>
-            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/80">
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-300/80">
               <a href="./inspect.html" class="px-3 sm:px-3.5 py-1.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-[11px] sm:text-xs font-bold transition whitespace-nowrap">Field &amp; Report App &rarr;</a>
             </div>
           </div>
@@ -6299,7 +6331,7 @@ function submitInspectionQuoteRequest(payload) {
       const s = String(street || '').trim();
       const c = String(city || '').trim();
       const st = String(state || '').trim().toUpperCase();
-      const z = String(zip || '').trim();
+      const z = String(zip || '').replace(/\D/g, '').slice(0, 5);
       if (!s && !c && !z) return '';
       const tail = [st, z].filter(Boolean).join(' ');
       return [s, c, tail].filter(Boolean).join(', ');
@@ -6371,6 +6403,9 @@ function submitInspectionQuoteRequest(payload) {
         agentName: document.getElementById('protoNewAgentName')?.value || '',
         standalone: !!document.getElementById('protoNewStandalone')?.checked,
         forAgentOnly: !!document.getElementById('protoNewForAgentOnly')?.checked,
+        calTagRadon: !!document.getElementById('protoCalTagRadon')?.checked,
+        calTagScope: !!document.getElementById('protoCalTagScope')?.checked,
+        calTagTermite: !!document.getElementById('protoCalTagTermite')?.checked,
         additionalCustomers: dhiReadNewInspExtraContacts('customer'),
         additionalAgents: dhiReadNewInspExtraContacts('agent')
       };
@@ -6399,6 +6434,10 @@ function submitInspectionQuoteRequest(payload) {
       }
       protoState.draftLineItems.push({ name: item.name, qty: 1, unitPrice });
       const lowName = (item.name || '').toLowerCase();
+      protoState.newInspDraft = protoState.newInspDraft || {};
+      if (lowName.includes('radon')) protoState.newInspDraft.calTagRadon = true;
+      if (lowName.includes('sewer') || lowName.includes('scope')) protoState.newInspDraft.calTagScope = true;
+      if (lowName.includes('termite') || lowName.includes('wdi')) protoState.newInspDraft.calTagTermite = true;
       if (lowName.includes('without inspection') || lowName.includes('w/o home inspection')) {
         protoState.newInspDraft = protoState.newInspDraft || {};
         protoState.newInspDraft.standalone = true;
@@ -6569,6 +6608,9 @@ function submitInspectionQuoteRequest(payload) {
         agentName: isAgentReq
           ? (r.clientName || '')
           : ((r.additionalAgents && r.additionalAgents[0] && r.additionalAgents[0].name) || ''),
+        calTagRadon: addonsStr.includes('radon'),
+        calTagScope: addonsStr.includes('sewer') || addonsStr.includes('scope'),
+        calTagTermite: addonsStr.includes('termite') || addonsStr.includes('wdi'),
         additionalCustomers: isAgentReq
           ? (Array.isArray(r.additionalCustomers) ? r.additionalCustomers.slice(1) : [])
           : (Array.isArray(r.additionalCustomers) ? r.additionalCustomers.slice() : []),
@@ -6674,7 +6716,7 @@ function submitInspectionQuoteRequest(payload) {
       const addonNames = services.map(s => s.name);
       const totalCents = Math.round(services.reduce((sum, s) => sum + (Number(s.price) || 0), 0) * 100);
 
-      const gcalTitle = `Inspection with ${agent || client}`;
+      const gcalTitle = `Inspection with ${agent || client}${dhiGetCalTagSuffix()}`;
       const gcalDetails = `Add-Ons: ${addonNames.length ? addonNames.join(', ') : 'None'}\n${agent ? 'Agent: ' + agent + (agentEmail ? ' (' + agentEmail + ')' : '') + '\n' : ''}Buyer: ${client}${phone ? ' • ' + phone : ''} • ${email}`;
       const gcalUrl = protoBuildGoogleCalendarUrl({
         title: gcalTitle,
@@ -8377,7 +8419,7 @@ function submitInspectionQuoteRequest(payload) {
                         <span class="text-slate-400">Card • Apple Pay • Google Pay</span>
                       </div>
                       <p class="text-xs text-slate-500 leading-relaxed">Click below to complete payment on Square's secure checkout page (Card, Apple Pay, Google Pay, or Cash App Pay). You will return here automatically and your reports will unlock immediately.</p>
-                      <div id="dhi-square-status" class="text-xs text-rose-600 font-medium hidden"></div>
+                      <div id="dhi-square-status" class="text-xs text-rose-600 font-medium text-center hidden"></div>
                     </div>
                     <button type="button" id="dhiSquarePayBtn" onclick="protoPaySquare()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-extrabold shadow transition">Pay $${total.toFixed(2)} via Square &rarr;</button>
                   </div>
@@ -11676,14 +11718,21 @@ function submitInspectionQuoteRequest(payload) {
         try {
           const qp = new URLSearchParams(window.location.search);
           const tokenHash = qp.get('token_hash');
-          const otpType = qp.get('type') || 'magiclink';
+          const otpType = qp.get('type') || 'email';
           if (tokenHash) {
             navigatePage('portal', false);
             protoState.demoMode = false;
             protoState.authLoading = true;
             protoState.authErrorMsg = '';
             renderProtoPortal();
-            const { data, error } = await dhiSupabase.auth.verifyOtp({ token_hash: tokenHash, type: otpType });
+            const tryTypes = Array.from(new Set(['email', otpType, 'signup', 'magiclink']));
+            let data = null, error = null;
+            for (const t of tryTypes) {
+              const res = await dhiSupabase.auth.verifyOtp({ token_hash: tokenHash, type: t });
+              data = res.data;
+              error = res.error;
+              if (!error && data && data.session) break;
+            }
             try { window.history.replaceState(null, '', window.location.pathname + '?view=portal'); } catch (_e) {}
             if (error) {
               protoState.authLoading = false;
