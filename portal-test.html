@@ -3818,10 +3818,23 @@ function submitInspectionQuoteRequest(payload) {
       let fn = (firstName || '').trim();
       let ln = (lastName || '').trim();
       const raw = (fullName || '').trim();
-      if (!fn && !ln && raw) {
+      // If a couple name was previously split as fn="Darrin", ln="& Beth Hargrove", re-join before splitting cleanly
+      if (fn && /^(&|and\b)/i.test(ln)) {
+        const merged = (fn + ' ' + ln).trim().split(/\s+/);
+        if (merged.length >= 2) {
+          ln = merged.pop();
+          fn = merged.join(' ');
+        }
+      } else if (!fn && !ln && raw) {
         const parts = raw.split(/\s+/);
-        fn = parts[0] || '';
-        ln = parts.slice(1).join(' ');
+        if (parts.length > 2 && /(&|\band\b)/i.test(raw)) {
+          // Couple with shared last name: "Darrin & Beth Hargrove" -> first="Darrin & Beth", last="Hargrove"
+          ln = parts.pop();
+          fn = parts.join(' ');
+        } else {
+          fn = parts[0] || '';
+          ln = parts.slice(1).join(' ');
+        }
       }
       const combined = (fn + ' ' + ln).trim() || raw;
       return { firstName: fn, lastName: ln, name: combined };
