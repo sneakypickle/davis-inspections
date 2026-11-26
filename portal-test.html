@@ -3239,20 +3239,44 @@ function submitInspectionQuoteRequest(payload) {
     function dhiGetLiveCollabColor() {
       if (protoState.demoMode) return COLLAB_COLORS[protoState.activeCollaborator] || '#0ea5e9';
       if (protoState.role === 'admin') return '#f59e0b';
-      if (protoState.role === 'agent') return '#0ea5e9';
-      return '#ef4444';
+      const insp = protoGetActiveInsp();
+      const myEmail = String(protoState.authUser?.email || '').trim().toLowerCase();
+      if (protoState.role === 'agent') {
+        const agentPalette = ['#0ea5e9', '#10b981', '#6366f1'];
+        const ags = insp ? dhiGetInspAgents(insp) : [];
+        const idx = myEmail ? ags.findIndex(a => String(a.email || '').trim().toLowerCase() === myEmail) : -1;
+        return agentPalette[(idx >= 0 ? idx : 0) % agentPalette.length];
+      }
+      const buyerPalette = ['#ef4444', '#8b5cf6', '#ec4899'];
+      const custs = insp ? dhiGetInspCustomers(insp) : [];
+      const idx = myEmail ? custs.findIndex(c => String(c.email || '').trim().toLowerCase() === myEmail) : -1;
+      return buyerPalette[(idx >= 0 ? idx : 0) % buyerPalette.length];
     }
 
     function dhiGetLiveCollabLabel() {
       if (protoState.demoMode) return protoState.activeCollaborator;
       if (protoState.role === 'admin') return 'Matt (Inspector)';
+      const insp = protoGetActiveInsp();
+      const myEmail = String(protoState.authUser?.email || '').trim().toLowerCase();
       if (protoState.role === 'agent') {
-        const nm = protoState.agentProfile ? dhiDisplayName(protoState.agentProfile) : (protoState.authUser?.user_metadata?.full_name || protoState.authUser?.email || 'Agent');
+        const ags = insp ? dhiGetInspAgents(insp) : [];
+        const matchedAg = myEmail ? ags.find(a => String(a.email || '').trim().toLowerCase() === myEmail) : null;
+        const matchedName = matchedAg && matchedAg.name && !matchedAg.name.includes('@') ? matchedAg.name.trim() : '';
+        const profileName = protoState.agentProfile ? dhiDisplayName(protoState.agentProfile) : '';
+        const nm = matchedName || (profileName && !profileName.includes('@') ? profileName : '') || protoState.authUser?.user_metadata?.full_name || protoState.authUser?.email || 'Agent';
         return nm + ' (Agent)';
       }
-      const insp = protoGetActiveInsp();
-      const cName = (insp && insp.clientName) || protoState.authUser?.email || 'Customer';
+      const custs = insp ? dhiGetInspCustomers(insp) : [];
+      const matchedCust = myEmail ? custs.find(c => String(c.email || '').trim().toLowerCase() === myEmail) : null;
+      const matchedName = matchedCust && matchedCust.name && !matchedCust.name.includes('@') ? matchedCust.name.trim() : '';
+      const cName = matchedName || (insp && insp.clientName) || protoState.authUser?.user_metadata?.full_name || protoState.authUser?.email || 'Customer';
       return cName + ' (Customer)';
+    }
+
+    function dhiGetLiveCollabFirstName() {
+      const lbl = String(dhiGetLiveCollabLabel() || '').replace(/\s*\((Inspector|Agent|Customer|Buyer)\)\s*$/i, '').trim();
+      if (!lbl || lbl.includes('@')) return protoState.role === 'agent' ? 'Agent' : (protoState.role === 'admin' ? 'Matt' : 'Customer');
+      return lbl.split(/\s+/)[0] || lbl;
     }
 
     function protoToastMsg(msg) {
@@ -8773,11 +8797,11 @@ function submitInspectionQuoteRequest(payload) {
           aiGenerated: !!o.ai_generated
         }));
         (protoState.findings || []).forEach(f => dhiPatchObjectionButtonDOM(f.id));
-        const objSec = document.getElementById('dhiReportSec-__objections__');
+        const objSec = document.getElementById('objectionListPanel');
         if (objSec) {
           const tmp = document.createElement('div');
           tmp.innerHTML = renderReportViewerHTML();
-          const freshObjSec = tmp.querySelector('#dhiReportSec-__objections__');
+          const freshObjSec = tmp.querySelector('#objectionListPanel');
           if (freshObjSec) objSec.innerHTML = freshObjSec.innerHTML;
         }
       } catch (_e) {}
@@ -10005,7 +10029,7 @@ function submitInspectionQuoteRequest(payload) {
                   <div class="text-xs font-bold text-slate-700">Live Co-Viewing Notes</div>
                   ${docCommentsHTML || '<div class="text-xs text-slate-400 italic">No notes on this PDF yet.</div>'}
                   <div class="flex gap-2 pt-1">
-                    <input type="text" id="docCommentInput-${doc.id}" placeholder="Add note as ${protoState.activeCollaborator.split(' ')[0]}..." class="flex-grow px-3 py-1.5 rounded-lg border border-slate-200 text-xs" />
+                    <input type="text" id="docCommentInput-${doc.id}" placeholder="Add a live note as ${escapeHtml(dhiGetLiveCollabFirstName())}..." onkeydown="if(event.key==='Enter'){event.preventDefault();protoAddDocComment('${doc.id}');}" class="flex-grow px-3 py-1.5 rounded-lg border border-slate-200 text-xs" />
                     <button type="button" onclick="protoAddDocComment('${doc.id}')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-bold">Post</button>
                   </div>
                 </div>
@@ -10146,7 +10170,7 @@ function submitInspectionQuoteRequest(payload) {
                     <div id="dhiCommentsList-${f.id}" class="space-y-1.5">${commentsHTML}</div>
                     ${protoState.role !== 'third_party' ? `
                       <div class="flex gap-2">
-                        <input type="text" id="commentInput-${f.id}" placeholder="Add a live note as ${protoState.activeCollaborator.split(' ')[0]}..." class="flex-grow px-3 py-2 rounded-lg border border-slate-200 text-xs" />
+                        <input type="text" id="commentInput-${f.id}" placeholder="Add a live note as ${escapeHtml(dhiGetLiveCollabFirstName())}..." onkeydown="if(event.key==='Enter'){event.preventDefault();protoAddComment('${f.id}');}" class="flex-grow px-3 py-2 rounded-lg border border-slate-200 text-xs" />
                         <button type="button" onclick="protoAddComment('${f.id}')" class="px-3.5 py-2 rounded-lg bg-slate-800 text-white text-xs font-bold">Post</button>
                       </div>
                     ` : ''}
@@ -10163,7 +10187,7 @@ function submitInspectionQuoteRequest(payload) {
                   ${commentsHTML ? `<div class="space-y-1.5 no-print">${commentsHTML}</div>` : ''}
                   ${(f.isSummary || f.narrative) && protoState.role !== 'third_party' ? `
                     <div class="flex gap-2 pt-1 no-print">
-                      <input type="text" id="commentInput-${f.id}" placeholder="Add a live note as ${protoState.activeCollaborator.split(' ')[0]}..." class="flex-grow px-3 py-1.5 rounded-lg border border-slate-200 text-xs" />
+                      <input type="text" id="commentInput-${f.id}" placeholder="Add a live note as ${escapeHtml(dhiGetLiveCollabFirstName())}..." onkeydown="if(event.key==='Enter'){event.preventDefault();protoAddComment('${f.id}');}" class="flex-grow px-3 py-1.5 rounded-lg border border-slate-200 text-xs" />
                       <button type="button" onclick="protoAddComment('${f.id}')" class="px-3.5 py-1.5 rounded-lg bg-slate-800 text-white text-xs font-bold">Post</button>
                     </div>
                   ` : ''}
@@ -10476,11 +10500,11 @@ function submitInspectionQuoteRequest(payload) {
       if (idx >= 0) {
         const removed = protoState.objectionItems.splice(idx, 1)[0];
         const patched1 = dhiPatchObjectionButtonDOM(findingId);
-        const objSec1 = document.getElementById('dhiReportSec-__objections__');
+        const objSec1 = document.getElementById('objectionListPanel');
         if (patched1 && objSec1) {
           const tmp = document.createElement('div');
           tmp.innerHTML = renderReportViewerHTML();
-          const fresh = tmp.querySelector('#dhiReportSec-__objections__');
+          const fresh = tmp.querySelector('#objectionListPanel');
           if (fresh) objSec1.innerHTML = fresh.innerHTML;
         } else {
           renderProtoPortal();
@@ -10492,11 +10516,11 @@ function submitInspectionQuoteRequest(payload) {
         const newItem = { findingId, mode: 'repair', creditAmount: '', customText: '', requestedByBuyer: protoState.role === 'buyer', approvedByAgent: protoState.role !== 'buyer', aiGenerated: false };
         protoState.objectionItems.push(newItem);
         const patched2 = dhiPatchObjectionButtonDOM(findingId);
-        const objSec2 = document.getElementById('dhiReportSec-__objections__');
+        const objSec2 = document.getElementById('objectionListPanel');
         if (patched2 && objSec2) {
           const tmp = document.createElement('div');
           tmp.innerHTML = renderReportViewerHTML();
-          const fresh = tmp.querySelector('#dhiReportSec-__objections__');
+          const fresh = tmp.querySelector('#objectionListPanel');
           if (fresh) objSec2.innerHTML = fresh.innerHTML;
         } else {
           renderProtoPortal();
