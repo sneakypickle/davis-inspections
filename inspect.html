@@ -300,6 +300,7 @@
       templates: [{ id: 'local-default', name: 'Residential - By System', is_default: true, sections: DHI_TEMPLATE }],
       activeTemplateId: 'local-default',
       editTemplateMode: false,
+      mobileViewMode: 'items',
       taskRunning: false,
       taskProgressText: '',
       commentLibrary: [],
@@ -2778,6 +2779,95 @@
       render();
     }
 
+    function moveSMField(secIdx, smIdx, dir) {
+      const arr = state.draft?.sections?.[secIdx]?.stylesMaterials;
+      if (!Array.isArray(arr)) return;
+      const to = smIdx + dir;
+      if (to < 0 || to >= arr.length) return;
+      const [moved] = arr.splice(smIdx, 1);
+      arr.splice(to, 0, moved);
+      saveDraftLocally(true);
+      render();
+    }
+
+    let dhiDragSMCard = null;
+    function dhiSMCardDragStart(ev, secIdx, smIdx) {
+      dhiDragSMCard = { secIdx, smIdx };
+      if (ev.dataTransfer) {
+        ev.dataTransfer.effectAllowed = 'move';
+        try { ev.dataTransfer.setData('text/plain', 'smcard:' + smIdx); } catch (_e) {}
+      }
+    }
+    function dhiSMCardDragOver(ev) {
+      if (!dhiDragSMCard) return;
+      ev.preventDefault();
+      if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+    }
+    function dhiSMCardDrop(ev, secIdx, targetSmIdx) {
+      if (!dhiDragSMCard || dhiDragSMCard.secIdx !== secIdx) return;
+      ev.preventDefault();
+      const fromIdx = dhiDragSMCard.smIdx;
+      dhiDragSMCard = null;
+      if (fromIdx === targetSmIdx) return;
+      const arr = state.draft?.sections?.[secIdx]?.stylesMaterials;
+      if (!Array.isArray(arr) || !arr[fromIdx]) return;
+      const [moved] = arr.splice(fromIdx, 1);
+      arr.splice(targetSmIdx, 0, moved);
+      saveDraftLocally(true);
+      render();
+    }
+
+    let dhiDragSMPill = null;
+    function dhiSMPillDragStart(ev, secIdx, smIdx, optIdx) {
+      ev.stopPropagation();
+      dhiDragSMPill = { secIdx, smIdx, optIdx };
+      if (ev.dataTransfer) {
+        ev.dataTransfer.effectAllowed = 'move';
+        try { ev.dataTransfer.setData('text/plain', 'smpill:' + optIdx); } catch (_e) {}
+      }
+    }
+    function dhiSMPillDragOver(ev, secIdx, smIdx) {
+      if (!dhiDragSMPill || dhiDragSMPill.secIdx !== secIdx || dhiDragSMPill.smIdx !== smIdx) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+    }
+    function dhiSMPillDrop(ev, secIdx, smIdx, targetOptIdx) {
+      if (!dhiDragSMPill || dhiDragSMPill.secIdx !== secIdx || dhiDragSMPill.smIdx !== smIdx) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const fromIdx = dhiDragSMPill.optIdx;
+      dhiDragSMPill = null;
+      if (fromIdx === targetOptIdx) return;
+      const opts = state.draft?.sections?.[secIdx]?.stylesMaterials?.[smIdx]?.options;
+      if (!Array.isArray(opts) || fromIdx < 0 || fromIdx >= opts.length) return;
+      const [moved] = opts.splice(fromIdx, 1);
+      opts.splice(targetOptIdx, 0, moved);
+      saveDraftLocally(true);
+      render();
+    }
+
+    function sortSMOptionsAlpha(secIdx, smIdx) {
+      const sm = state.draft?.sections?.[secIdx]?.stylesMaterials?.[smIdx];
+      if (!sm || !Array.isArray(sm.options) || sm.options.length < 2) return;
+      const pinRank = (val) => {
+        const k = dhiNormalizeSMOptionLabel(val).trim().toLowerCase();
+        if (k === 'none') return 0;
+        if (k === 'n/a' || k === 'na' || k === 'not applicable') return 1;
+        if (k === 'other') return 2;
+        return 3;
+      };
+      sm.options.sort((a, b) => {
+        const ra = pinRank(a);
+        const rb = pinRank(b);
+        if (ra !== rb) return ra - rb;
+        return dhiNormalizeSMOptionLabel(a).localeCompare(dhiNormalizeSMOptionLabel(b), undefined, { numeric: true, sensitivity: 'base' });
+      });
+      saveDraftLocally(true);
+      render();
+      toast('Sorted "' + sm.label + '" A-Z (None / N/A / Other pinned first).');
+    }
+
     function addNewItemToSection(secIdx) {
       const title = prompt('New inspection item title:');
       if (!title || !title.trim()) return;
@@ -3935,6 +4025,7 @@
           if (!String(smList[smIdx].value || '').trim()) {
             state.activeSecIdx = sIdx;
             state.showSM = true;
+            state.mobileViewMode = 'styles';
             render();
             setTimeout(() => {
               const el = document.getElementById('dhiSmCard-' + sIdx + '-' + smIdx);
@@ -3957,6 +4048,7 @@
           const photoNoNarr = (it.photos || []).length > 0 && !String(it.narrative || '').trim();
           if (!hasBase || photoNoNarr) {
             state.activeSecIdx = sIdx;
+            state.mobileViewMode = 'items';
             render();
             setTimeout(() => {
               const el = document.getElementById('dhiItemCard-' + sIdx + '-' + iIdx);
@@ -4555,12 +4647,13 @@
         const isFridgeMeasure = /^refrigerator\s+opening\s+(width|height)/i.test(String(sm.label || '').trim());
         const effectiveOptions = isFridgeMeasure ? [] : (sm.options || []);
         const selected = new Set((sm.value || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean));
-        const chips = effectiveOptions.map(rawOpt => {
+        const chips = effectiveOptions.map((rawOpt, optIdx) => {
           const opt = dhiNormalizeSMOptionLabel(rawOpt);
           if (state.editTemplateMode) {
             return `
-              <span class="inline-flex items-center gap-1 px-2 py-0.5 sm:py-1 rounded-lg text-[11px] font-semibold border border-slate-300 bg-slate-50 text-slate-700">
-                ${esc(opt)}
+              <span draggable="true" ondragstart="dhiSMPillDragStart(event, ${state.activeSecIdx}, ${smIdx}, ${optIdx})" ondragover="dhiSMPillDragOver(event, ${state.activeSecIdx}, ${smIdx})" ondrop="dhiSMPillDrop(event, ${state.activeSecIdx}, ${smIdx}, ${optIdx})" title="Drag to reorder option" class="inline-flex items-center gap-1 px-2 py-0.5 sm:py-1 rounded-lg text-[11px] font-semibold border border-slate-300 bg-slate-50 hover:border-davis-navy text-slate-700 cursor-grab active:cursor-grabbing select-none">
+                <span class="text-slate-400 text-[10px] leading-none">&#8942;&#8942;</span>
+                <span>${esc(opt)}</span>
                 <button type="button" data-val="${esc(rawOpt)}" onclick="removeSMOptionChip(${state.activeSecIdx}, ${smIdx}, this.dataset.val)" class="text-rose-600 hover:text-rose-800 font-bold ml-0.5">&times;</button>
               </span>`;
           }
@@ -4572,9 +4665,10 @@
               ? 'border-sky-300 bg-sky-50/40'
               : (!String(sm.value || '').trim() ? 'border-rose-300 bg-rose-50/30' : 'border-slate-300 bg-white'));
         return `
-          <div id="dhiSmCard-${state.activeSecIdx}-${smIdx}" class="scroll-mt-32 p-2.5 sm:p-3 rounded-xl border ${smBorderCls} space-y-2 transition">
-            <div class="flex items-center justify-between gap-2">
+          <div id="dhiSmCard-${state.activeSecIdx}-${smIdx}" ${state.editTemplateMode ? `draggable="true" ondragstart="dhiSMCardDragStart(event, ${state.activeSecIdx}, ${smIdx})" ondragover="dhiSMCardDragOver(event)" ondrop="dhiSMCardDrop(event, ${state.activeSecIdx}, ${smIdx})"` : ''} class="scroll-mt-32 p-2.5 sm:p-3 rounded-xl border ${smBorderCls} space-y-2 transition">
+            <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center gap-1.5 min-w-0">
+                ${state.editTemplateMode ? `<span title="Drag to reorder card" class="text-slate-400 hover:text-davis-navy cursor-grab active:cursor-grabbing text-sm leading-none select-none pr-0.5">&#8942;&#8942;</span>` : ''}
                 <label class="text-xs font-extrabold text-slate-800 truncate">${esc(sm.label)}</label>
                 ${sm.scanOnly ? '<span class="px-1.5 py-0.5 rounded bg-sky-100 text-davis-navy text-[9px] font-extrabold uppercase tracking-wide shrink-0">AI Scan</span>' : ''}
               </div>
@@ -4584,7 +4678,10 @@
                   <button type="button" onclick="removeScanOnlySMField(${state.activeSecIdx}, ${smIdx})" title="Remove scanned field" class="px-1.5 py-1 rounded-lg text-slate-400 hover:text-rose-600 font-bold text-xs">&times;</button>
                 </div>
               ` : (state.editTemplateMode ? `
-                <div class="flex items-center gap-1">
+                <div class="flex flex-wrap items-center gap-1">
+                  <button type="button" onclick="moveSMField(${state.activeSecIdx}, ${smIdx}, -1)" title="Move up" class="px-1.5 py-1 rounded-lg bg-white border border-slate-300 text-slate-700 text-[11px] font-bold">&uarr;</button>
+                  <button type="button" onclick="moveSMField(${state.activeSecIdx}, ${smIdx}, 1)" title="Move down" class="px-1.5 py-1 rounded-lg bg-white border border-slate-300 text-slate-700 text-[11px] font-bold">&darr;</button>
+                  ${effectiveOptions.length > 1 ? `<button type="button" onclick="sortSMOptionsAlpha(${state.activeSecIdx}, ${smIdx})" title="Sort pills A-Z (None, N/A, Other first)" class="px-2 py-1 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-[11px] font-bold">Sort A-Z</button>` : ''}
                   <button type="button" onclick="addSMOptionChip(${state.activeSecIdx}, ${smIdx})" class="px-2 py-1 rounded-lg bg-sky-50 border border-sky-200 text-davis-navy text-[11px] font-bold">+ Option</button>
                   <button type="button" onclick="renameSMField(${state.activeSecIdx}, ${smIdx})" class="px-2 py-1 rounded-lg bg-white border border-slate-300 text-slate-700 text-[11px] font-bold">Rename</button>
                   <button type="button" onclick="deleteSMField(${state.activeSecIdx}, ${smIdx})" class="px-2 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold">Delete</button>
@@ -4938,33 +5035,48 @@
             const nextBtnCls = totalUnanswered > 0
               ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-600 shadow-sm'
               : 'bg-emerald-50 text-emerald-800 border-emerald-300';
-            const nextBtnLabel = totalUnanswered > 0
-              ? `<span class="hidden sm:inline">Next Unanswered (${totalUnanswered}) &rarr;</span><span class="sm:hidden">Unanswered (${totalUnanswered}) &rarr;</span>`
-              : `<span>All Complete &#10003;</span>`;
+            const hasSM = !!(sec.stylesMaterials && sec.stylesMaterials.length);
+            const curEmptySM = curComp.emptySM || 0;
+            const mobileMode = (state.mobileViewMode === 'styles' && hasSM) ? 'styles' : 'items';
+            const nextBtnDesktop = totalUnanswered > 0
+              ? `Next Unanswered (${totalUnanswered}) &rarr;`
+              : `All Complete &#10003;`;
+            const nextBtnMobile = totalUnanswered > 0
+              ? `<span class="text-[10px] leading-tight opacity-90">Unanswered</span><span class="text-xs font-black leading-tight">${totalUnanswered} &rarr;</span>`
+              : `<span class="text-[10px] leading-tight">All</span><span class="text-xs font-black leading-tight">Done &#10003;</span>`;
+            const smToggleCls = mobileMode === 'styles'
+              ? 'bg-davis-navy text-white border-davis-navy shadow-sm'
+              : (curEmptySM > 0
+                  ? 'bg-rose-50 text-rose-800 border-rose-300 hover:border-davis-navy'
+                  : 'bg-slate-100 text-slate-800 border-slate-300 hover:border-davis-navy');
+            const smToggleLabel = mobileMode === 'styles'
+              ? `<span class="text-[10px] leading-tight opacity-85">View</span><span class="text-xs font-black leading-tight">Items</span>`
+              : `<span class="text-[10px] leading-tight">Styles</span><span class="text-xs font-black leading-tight">${curEmptySM > 0 ? curEmptySM + ' left' : '&#10003;'}</span>`;
+
             const mobileMenuRows = state.draft.sections.map((s, idx) => {
               const c = getSectionCompleteness(s);
               const dCls = c.status === 'red' ? 'bg-rose-500' : (c.status === 'yellow' ? 'bg-amber-400' : 'bg-emerald-500');
               const activeRow = idx === state.activeSecIdx ? 'bg-sky-50 text-davis-navy font-extrabold' : 'text-slate-700 font-semibold hover:bg-slate-100';
               const rem = (c.emptySM || 0) + (c.missingRatings || 0) + (c.photosNoNarrative || 0);
-              return `<button type="button" onclick="this.closest('details').open=false; state.activeSecIdx=${idx}; render();" class="w-full text-left px-3 py-2 rounded-lg text-xs flex items-center justify-between gap-2 ${activeRow}">
-                <span class="flex items-center gap-2 truncate"><span class="w-2 h-2 rounded-full shrink-0 ${dCls}"></span><span class="truncate">${s.num}. ${esc(s.name)}</span></span>
-                ${rem > 0 ? `<span class="px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold shrink-0">${rem}</span>` : '<span class="text-emerald-600 text-[10px] font-bold shrink-0">&#10003;</span>'}
+              return `<button type="button" onclick="this.closest('details').open=false; state.activeSecIdx=${idx}; state.mobileViewMode='items'; render();" class="w-full text-left px-3.5 py-2.5 rounded-xl text-sm flex items-center justify-between gap-2 ${activeRow}">
+                <span class="flex items-center gap-2.5 truncate"><span class="w-2.5 h-2.5 rounded-full shrink-0 ${dCls}"></span><span class="truncate">${s.num}. ${esc(s.name)}</span></span>
+                ${rem > 0 ? `<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-xs font-bold shrink-0">${rem}</span>` : '<span class="text-emerald-600 text-xs font-bold shrink-0">&#10003;</span>'}
               </button>`;
             }).join('');
             return `
             <div class="sticky top-0 md:top-[48px] z-20 bg-white/95 backdrop-blur rounded-2xl border border-slate-300 shadow-md p-2 sm:p-2.5 flex items-center justify-between gap-2">
-              <!-- Mobile Dropdown (< md) -->
+              <!-- Mobile Dropdown (< md): ~50% taller trigger + full-height no-scroll menu -->
               <div class="flex md:hidden items-center gap-1.5 min-w-0 flex-1">
-                <details id="dhiMobileSecDropdown" class="relative min-w-0 flex-1 max-w-[230px]">
-                  <summary class="list-none cursor-pointer w-full px-2.5 py-1.5 rounded-xl border border-sky-300 bg-sky-50 text-davis-navy text-xs font-extrabold flex items-center justify-between gap-1.5 select-none">
-                    <span class="flex items-center gap-1.5 truncate"><span class="w-2 h-2 rounded-full shrink-0 ${curDotCls}"></span><span class="truncate">${sec.num}. ${esc(sec.name)}</span></span>
-                    <span class="text-[10px] shrink-0">&#9662;</span>
+                <details id="dhiMobileSecDropdown" class="relative min-w-0 flex-1">
+                  <summary class="list-none cursor-pointer w-full min-h-[48px] px-3 py-2.5 rounded-xl border border-sky-300 bg-sky-50 text-davis-navy text-sm font-extrabold flex items-center justify-between gap-1.5 select-none">
+                    <span class="flex items-center gap-2 truncate"><span class="w-2.5 h-2.5 rounded-full shrink-0 ${curDotCls}"></span><span class="truncate">${sec.num}. ${esc(sec.name)}</span></span>
+                    <span class="text-xs shrink-0">&#9662;</span>
                   </summary>
-                  <div class="absolute left-0 mt-1.5 z-40 w-72 max-h-80 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-2xl p-1.5 space-y-0.5">
+                  <div class="absolute left-0 mt-1.5 z-40 w-[min(92vw,340px)] max-h-[82vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl p-2 space-y-1">
                     ${mobileMenuRows}
                     ${optionalLeft.length ? `
-                      <div class="border-t border-slate-100 my-1 pt-1 px-1">
-                        <select onchange="if(this.value){ this.closest('details').open=false; addOptionalSection(this.value); }" class="w-full px-2.5 py-1.5 rounded-lg border border-dashed border-slate-400 bg-slate-50 text-xs font-bold text-slate-700">
+                      <div class="border-t border-slate-100 my-1.5 pt-1.5 px-1">
+                        <select onchange="if(this.value){ this.closest('details').open=false; state.mobileViewMode='items'; addOptionalSection(this.value); }" class="w-full px-3 py-2.5 rounded-xl border border-dashed border-slate-400 bg-slate-50 text-sm font-bold text-slate-700">
                           <option value="">+ Add optional section...</option>
                           ${optionalLeft.map(s => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('')}
                         </select>
@@ -4983,16 +5095,27 @@
                   </select>
                 ` : ''}
               </div>
-              <!-- Pinned Right: Jump to First Unanswered -->
-              <button type="button" onclick="jumpToFirstUnanswered()" class="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border text-[11px] sm:text-xs font-extrabold whitespace-nowrap shrink-0 transition ${nextBtnCls}">
-                ${nextBtnLabel}
+              <!-- Mobile Right Buttons: Square-ish Styles/Items Toggle + Taller Unanswered -->
+              <div class="flex md:hidden items-center gap-1.5 shrink-0">
+                ${hasSM ? `
+                  <button type="button" onclick="state.mobileViewMode=(state.mobileViewMode==='styles'?'items':'styles'); if(state.mobileViewMode==='styles') state.showSM=true; render(); window.scrollTo({top:0,behavior:'smooth'});" class="min-h-[48px] min-w-[66px] px-2.5 py-1 rounded-xl border flex flex-col items-center justify-center shrink-0 transition ${smToggleCls}">
+                    ${smToggleLabel}
+                  </button>
+                ` : ''}
+                <button type="button" onclick="jumpToFirstUnanswered()" class="min-h-[48px] min-w-[74px] px-2.5 py-1 rounded-xl border flex flex-col items-center justify-center shrink-0 transition ${nextBtnCls}">
+                  ${nextBtnMobile}
+                </button>
+              </div>
+              <!-- Desktop Right Button: Jump to First Unanswered -->
+              <button type="button" onclick="jumpToFirstUnanswered()" class="hidden md:inline-flex items-center px-3 py-2 rounded-xl border text-xs font-extrabold whitespace-nowrap shrink-0 transition ${nextBtnCls}">
+                ${nextBtnDesktop}
               </button>
             </div>`;
           })()}
 
-          <!-- Styles & Materials -->
+          <!-- Styles & Materials (Always visible on desktop; toggled via sticky bar on mobile) -->
           ${(sec.stylesMaterials && sec.stylesMaterials.length) ? `
-            <div class="bg-slate-100/90 rounded-2xl border border-slate-300 shadow-sm overflow-hidden">
+            <div class="${state.mobileViewMode === 'styles' ? 'block' : 'hidden md:block'} bg-slate-100/90 rounded-2xl border border-slate-300 shadow-sm overflow-hidden">
               <div class="px-3 sm:px-4 py-2 flex items-center justify-between gap-2">
                 <button type="button" onclick="state.showSM=!state.showSM; render();" class="flex-1 text-left flex items-center justify-between text-xs font-extrabold text-slate-800">
                   <span>${sec.num}. ${esc(sec.name)} - Styles &amp; Materials (${sec.stylesMaterials.length})</span>
@@ -5002,12 +5125,12 @@
                   <button type="button" onclick="scanDataPlateForSection(${state.activeSecIdx})" ${state.scanningDataPlate ? 'disabled' : ''} class="px-2.5 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark disabled:opacity-60 text-white text-[11px] font-bold shrink-0 transition">${state.scanningDataPlate ? 'Scanning...' : 'Scan Data Plate'}</button>
                 ` : ''}
               </div>
-              ${state.showSM ? `<div class="p-3 pt-0 grid grid-cols-1 md:grid-cols-2 gap-2.5">${smCards}</div>` : ''}
+              ${(state.showSM || state.mobileViewMode === 'styles') ? `<div class="p-3 pt-0 grid grid-cols-1 md:grid-cols-2 gap-2.5">${smCards}</div>` : ''}
             </div>
           ` : ''}
 
-          <!-- Items List + Draggable Ultrawide Photo Tray Sidebar -->
-          <div id="dhiSplitWorkspace" class="${state.showPhotoTray ? 'flex flex-col lg:flex-row items-start gap-3 lg:gap-0' : 'space-y-3'}">
+          <!-- Items List + Draggable Ultrawide Photo Tray Sidebar (Always visible on desktop; default on mobile) -->
+          <div id="dhiSplitWorkspace" class="${(state.mobileViewMode === 'styles' && sec.stylesMaterials && sec.stylesMaterials.length) ? 'hidden md:block ' : ''}${state.showPhotoTray ? 'flex flex-col lg:flex-row items-start gap-3 lg:gap-0' : 'space-y-3'}">
             <div class="${state.showPhotoTray ? 'w-full lg:flex-1 lg:min-w-[460px] lg:pr-2' : 'w-full'} space-y-3">${itemCards}</div>
             ${state.showPhotoTray ? (() => {
               const szCfg = state.trayThumbSize === 'sm' ? { min: 130, h: 'h-28' } : (state.trayThumbSize === 'lg' ? { min: 270, h: 'h-56' } : { min: 195, h: 'h-40' });
