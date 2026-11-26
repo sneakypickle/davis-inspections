@@ -4810,6 +4810,13 @@ function submitInspectionQuoteRequest(payload) {
       const insp = (protoState.inspections || []).find(i => i.id === inspId);
       if (!insp) return;
       dhiEditingInspId = inspId;
+      const origEmails = new Set();
+      const addOrig = (em) => { const e = String(em || '').trim().toLowerCase(); if (e && e.includes('@')) origEmails.add(e); };
+      addOrig(insp.clientEmail);
+      addOrig(insp.agentEmail);
+      dhiGetInspCustomers(insp).forEach(c => addOrig(c.email));
+      dhiGetInspAgents(insp).forEach(a => addOrig(a.email));
+      window.dhiEditOriginalEmails = origEmails;
       dhiEditLineItems = (insp.services || []).map(s => ({
         name: s.name || '',
         qty: Number(s.qty) || 1,
@@ -4909,25 +4916,28 @@ function submitInspectionQuoteRequest(payload) {
               <label class="block font-bold text-slate-700 mb-1">Inspection Date &amp; Time</label>
               <input id="editInspDate" type="text" value="${escapeHtml(insp.date || '')}" placeholder="e.g., November 25, 2026 at 9:00 AM" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
             </div>
-            <div>
-              <label class="block font-bold text-slate-700 mb-1">Buyer Name *</label>
-              <input id="editInspClientName" type="text" value="${escapeHtml(insp.clientName || '')}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+            <div class="relative">
+              <label class="block font-bold text-slate-700 mb-1">Buyer Name * <span class="font-normal text-slate-400">(search or type new)</span></label>
+              <input id="editInspClientName" type="text" autocomplete="off" value="${escapeHtml(insp.clientName || '')}" oninput="dhiEditContactSuggest(this, 'customer', 'primary')" onfocus="dhiEditContactSuggest(this, 'customer', 'primary')" onblur="dhiEditHideContactSuggest(this)" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
             </div>
-            <div>
+            <div class="relative">
               <label class="block font-bold text-slate-700 mb-1">Buyer Email *</label>
-              <input id="editInspClientEmail" type="email" value="${escapeHtml(insp.clientEmail || '')}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+              <input id="editInspClientEmail" type="email" autocomplete="off" value="${escapeHtml(insp.clientEmail || '')}" oninput="dhiEditContactSuggest(this, 'customer', 'primary')" onblur="dhiEditHideContactSuggest(this)" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
             </div>
-            <div>
-              <label class="block font-bold text-slate-700 mb-1">Agent Name</label>
-              <input id="editInspAgentName" type="text" value="${escapeHtml(insp.agentName || '')}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+            <div class="relative">
+              <label class="block font-bold text-slate-700 mb-1">Agent Name <span class="font-normal text-slate-400">(search or type new)</span></label>
+              <input id="editInspAgentName" type="text" autocomplete="off" value="${escapeHtml(insp.agentName || '')}" oninput="dhiEditContactSuggest(this, 'agent', 'primary')" onfocus="dhiEditContactSuggest(this, 'agent', 'primary')" onblur="dhiEditHideContactSuggest(this)" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
             </div>
-            <div>
+            <div class="relative">
               <label class="block font-bold text-slate-700 mb-1">Agent Email</label>
-              <input id="editInspAgentEmail" type="email" value="${escapeHtml(insp.agentEmail || '')}" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+              <input id="editInspAgentEmail" type="email" autocomplete="off" value="${escapeHtml(insp.agentEmail || '')}" oninput="dhiEditContactSuggest(this, 'agent', 'primary')" onblur="dhiEditHideContactSuggest(this)" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
             </div>
             <div class="sm:col-span-2 space-y-2 pt-2 border-t border-slate-100">
               <div class="flex flex-wrap items-center justify-between gap-2">
-                <span class="font-bold text-slate-700">Additional Customers &amp; Agents</span>
+                <div>
+                  <span class="font-bold text-slate-700">Additional Customers &amp; Agents</span>
+                  <span class="text-[11px] text-slate-400 ml-1">(type to search existing contacts or add new)</span>
+                </div>
                 <div class="flex gap-1.5">
                   <button type="button" onclick="dhiEditAddExtraContact('customer')" class="px-2 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-[11px] font-bold">+ Add Customer</button>
                   <button type="button" onclick="dhiEditAddExtraContact('agent')" class="px-2 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-[11px] font-bold">+ Add Agent</button>
@@ -4937,20 +4947,32 @@ function submitInspectionQuoteRequest(payload) {
                 ${(window.dhiEditExtraCustomers || []).map((c, idx) => `
                   <div class="dhi-edit-extra-row flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-2 rounded-lg bg-slate-50 border border-slate-200" data-role="customer">
                     <span class="px-1.5 py-0.5 rounded bg-sky-100 text-davis-navy text-[10px] font-bold shrink-0">Customer</span>
-                    <input type="text" value="${escapeHtml(c.name || '')}" placeholder="Name" class="dhi-ex-name flex-1 min-w-[110px] px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
-                    <input type="email" value="${escapeHtml(c.email || '')}" placeholder="Email" class="dhi-ex-email flex-1 min-w-[130px] px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+                    <div class="relative flex-1 min-w-[120px]">
+                      <input type="text" autocomplete="off" value="${escapeHtml(c.name || '')}" placeholder="Search or enter name" oninput="dhiEditContactSuggest(this, 'customer', 'extra')" onfocus="dhiEditContactSuggest(this, 'customer', 'extra')" onblur="dhiEditHideContactSuggest(this)" class="dhi-ex-name w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div class="relative flex-1 min-w-[140px]">
+                      <input type="email" autocomplete="off" value="${escapeHtml(c.email || '')}" placeholder="Email" oninput="dhiEditContactSuggest(this, 'customer', 'extra')" onblur="dhiEditHideContactSuggest(this)" class="dhi-ex-email w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+                    </div>
                     <button type="button" onclick="this.closest('.dhi-edit-extra-row').remove()" class="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold">✕</button>
                   </div>
                 `).join('')}
                 ${(window.dhiEditExtraAgents || []).map((a, idx) => `
                   <div class="dhi-edit-extra-row flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-2 rounded-lg bg-slate-50 border border-slate-200" data-role="agent">
                     <span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">Agent</span>
-                    <input type="text" value="${escapeHtml(a.name || '')}" placeholder="Name" class="dhi-ex-name flex-1 min-w-[110px] px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
-                    <input type="email" value="${escapeHtml(a.email || '')}" placeholder="Email" class="dhi-ex-email flex-1 min-w-[130px] px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+                    <div class="relative flex-1 min-w-[120px]">
+                      <input type="text" autocomplete="off" value="${escapeHtml(a.name || '')}" placeholder="Search or enter name" oninput="dhiEditContactSuggest(this, 'agent', 'extra')" onfocus="dhiEditContactSuggest(this, 'agent', 'extra')" onblur="dhiEditHideContactSuggest(this)" class="dhi-ex-name w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div class="relative flex-1 min-w-[140px]">
+                      <input type="email" autocomplete="off" value="${escapeHtml(a.email || '')}" placeholder="Email" oninput="dhiEditContactSuggest(this, 'agent', 'extra')" onblur="dhiEditHideContactSuggest(this)" class="dhi-ex-email w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+                    </div>
                     <button type="button" onclick="this.closest('.dhi-edit-extra-row').remove()" class="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold">✕</button>
                   </div>
                 `).join('')}
               </div>
+              <label class="inline-flex items-center gap-2 pt-1 text-xs font-semibold text-davis-navy cursor-pointer">
+                <input id="editInspEmailNewlyAdded" type="checkbox" class="rounded border-slate-300" />
+                <span>Email newly added customers/agents a sign-in link (existing recipients will not be re-emailed)</span>
+              </label>
             </div>
             <div class="sm:col-span-2">
               <label class="inline-flex items-center gap-2 font-bold text-slate-700 cursor-pointer">
@@ -5004,20 +5026,93 @@ function submitInspectionQuoteRequest(payload) {
       dhiEditingInspId = null;
     }
 
+    function dhiEditContactSuggest(inputEl, roleType, mode) {
+      if (!inputEl || !inputEl.parentElement) return;
+      const q = String(inputEl.value || '').trim().toLowerCase();
+      let box = inputEl.parentElement.querySelector('.dhi-contact-sug-box');
+      if (!q || q.length < 2) {
+        if (box) box.remove();
+        return;
+      }
+      const pool = roleType === 'agent' ? (protoState.agents || []) : (protoState.customers || []);
+      const matches = [];
+      for (let i = 0; i < pool.length && matches.length < 8; i++) {
+        const p = pool[i];
+        if (!p) continue;
+        const fullName = (typeof dhiDisplayName === 'function' ? dhiDisplayName(p) : (p.name || '')).trim();
+        const em = String(p.email || '').trim();
+        if (!fullName && !em) continue;
+        if (fullName.toLowerCase().includes(q) || em.toLowerCase().includes(q)) {
+          matches.push({ name: fullName || em, email: em });
+        }
+      }
+      if (!matches.length) {
+        if (box) box.remove();
+        return;
+      }
+      if (!box) {
+        box = document.createElement('div');
+        box.className = 'dhi-contact-sug-box absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-slate-200 bg-white shadow-xl max-h-52 overflow-y-auto divide-y divide-slate-100 text-xs';
+        inputEl.parentElement.appendChild(box);
+      }
+      box.innerHTML = '';
+      matches.forEach(m => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'w-full text-left px-3 py-2 hover:bg-sky-50 flex flex-col';
+        btn.innerHTML = `<span class="font-bold text-slate-900 truncate">${escapeHtml(m.name)}</span>${m.email ? `<span class="text-[11px] text-slate-500 truncate">${escapeHtml(m.email)}</span>` : ''}`;
+        btn.onmousedown = (ev) => {
+          ev.preventDefault();
+          if (mode === 'primary') {
+            const nameId = roleType === 'agent' ? 'editInspAgentName' : 'editInspClientName';
+            const emailId = roleType === 'agent' ? 'editInspAgentEmail' : 'editInspClientEmail';
+            const nEl = document.getElementById(nameId);
+            const eEl = document.getElementById(emailId);
+            if (nEl) nEl.value = m.name;
+            if (eEl && m.email) eEl.value = m.email;
+          } else {
+            const row = inputEl.closest('.dhi-edit-extra-row');
+            if (row) {
+              const nEl = row.querySelector('.dhi-ex-name');
+              const eEl = row.querySelector('.dhi-ex-email');
+              if (nEl) nEl.value = m.name;
+              if (eEl && m.email) eEl.value = m.email;
+            }
+          }
+          box.remove();
+        };
+        box.appendChild(btn);
+      });
+    }
+
+    function dhiEditHideContactSuggest(inputEl) {
+      setTimeout(() => {
+        const box = inputEl && inputEl.parentElement && inputEl.parentElement.querySelector('.dhi-contact-sug-box');
+        if (box) box.remove();
+      }, 180);
+    }
+
     function dhiEditAddExtraContact(roleType) {
       const wrap = document.getElementById('editInspExtraContactsList');
       if (!wrap) return;
       const isAgent = roleType === 'agent';
+      const rKey = isAgent ? 'agent' : 'customer';
       const row = document.createElement('div');
       row.className = 'dhi-edit-extra-row flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-2 rounded-lg bg-slate-50 border border-slate-200';
-      row.setAttribute('data-role', isAgent ? 'agent' : 'customer');
+      row.setAttribute('data-role', rKey);
       row.innerHTML = `
         <span class="px-1.5 py-0.5 rounded ${isAgent ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-davis-navy'} text-[10px] font-bold shrink-0">${isAgent ? 'Agent' : 'Customer'}</span>
-        <input type="text" placeholder="Name" class="dhi-ex-name flex-1 min-w-[110px] px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
-        <input type="email" placeholder="Email" class="dhi-ex-email flex-1 min-w-[130px] px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+        <div class="relative flex-1 min-w-[120px]">
+          <input type="text" autocomplete="off" placeholder="Search or enter name" oninput="dhiEditContactSuggest(this, '${rKey}', 'extra')" onfocus="dhiEditContactSuggest(this, '${rKey}', 'extra')" onblur="dhiEditHideContactSuggest(this)" class="dhi-ex-name w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+        </div>
+        <div class="relative flex-1 min-w-[140px]">
+          <input type="email" autocomplete="off" placeholder="Email" oninput="dhiEditContactSuggest(this, '${rKey}', 'extra')" onblur="dhiEditHideContactSuggest(this)" class="dhi-ex-email w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs" />
+        </div>
         <button type="button" onclick="this.closest('.dhi-edit-extra-row').remove()" class="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 text-[11px] font-bold">✕</button>
       `;
       wrap.appendChild(row);
+      const firstInput = row.querySelector('.dhi-ex-name');
+      if (firstInput) firstInput.focus();
     }
 
     async function dhiSaveEditInspModal() {
@@ -5105,6 +5200,12 @@ function submitInspectionQuoteRequest(payload) {
           ({ error } = await dhiSupabase.from('inspections').update(editPayload).eq('id', insp.id));
         }
         if (error) { protoToastMsg('Could not save changes: ' + error.message); return; }
+        if (clientEmail) {
+          protoUpsertCustomer({ firstName: cSplit.firstName, lastName: cSplit.lastName, name: cSplit.name || clientEmail, email: clientEmail, lastAddress: fullAddr });
+        }
+        if (agentEmail && dhiSupabase) {
+          dhiSupabase.from('agents').upsert({ email: agentEmail, first_name: aSplit.firstName, last_name: aSplit.lastName, name: aSplit.name || agentEmail }, { onConflict: 'email' });
+        }
         extraCustsEdit.forEach(c => { if (c.email) protoUpsertCustomer({ name: c.name, email: c.email, lastAddress: fullAddr }); });
         extraAgsEdit.forEach(a => {
           if (a.email && dhiSupabase) {
@@ -5113,6 +5214,39 @@ function submitInspectionQuoteRequest(payload) {
           }
         });
         dhiFireActivityEvent(insp.id, 'inspection_edited', 'Updated inspection details/invoice in Admin Portal.');
+      }
+
+      const emailNewlyAdded = !!document.getElementById('editInspEmailNewlyAdded')?.checked;
+      let newlyEmailedCount = 0;
+      if (emailNewlyAdded && dhiSupabase && dhiIsLiveSession() && insp.id !== 'insp-demo') {
+        const origSet = window.dhiEditOriginalEmails instanceof Set ? window.dhiEditOriginalEmails : new Set();
+        const seenNew = new Set();
+        const newlyAddedRecs = [];
+        [...allCustsEdit, ...allAgsEdit].forEach(p => {
+          const em = String(p && p.email || '').trim().toLowerCase();
+          if (em && em.includes('@') && !origSet.has(em) && !seenNew.has(em)) {
+            seenNew.add(em);
+            newlyAddedRecs.push({ name: (p.name || '').trim() || em, email: em });
+          }
+        });
+        const isReleasedReport = !!(insp.reportNotified || insp.reportUrl || insp.reportPath || (mergedPropInfo && mergedPropInfo.migratedFromHomeGauge));
+        const sendType = isReleasedReport ? 'report_ready' : 'agreement_ready';
+        for (const rec of newlyAddedRecs) {
+          try {
+            const { error: fnErr } = await dhiSupabase.functions.invoke('send-portal-email', {
+              body: {
+                type: sendType,
+                to: rec.email,
+                recipientName: rec.name,
+                address: fullAddr,
+                inspectionDate: dateStr,
+                standalone,
+                portalLink: dhiGetRedirectUrl()
+              }
+            });
+            if (!fnErr) newlyEmailedCount++;
+          } catch (e) { console.warn('Email newly added contact error:', e); }
+        }
       }
 
       insp.address = fullAddr;
@@ -5131,7 +5265,9 @@ function submitInspectionQuoteRequest(payload) {
       dhiRememberAddrHistory({ city, state: stateVal, county, zip });
       dhiCloseEditInspModal();
       renderProtoPortal();
-      protoToastMsg('Inspection updated.');
+      protoToastMsg(newlyEmailedCount > 0
+        ? `Inspection updated. Sent sign-in email to ${newlyEmailedCount} newly added contact${newlyEmailedCount > 1 ? 's' : ''}.`
+        : 'Inspection updated.');
     }
 
     async function dhiOpenHistoryModal(inspId) {
