@@ -1613,7 +1613,7 @@
       <section class="bg-davis-navy text-white rounded-2xl p-6 shadow-md space-y-2">
         <div class="flex items-center justify-between">
           <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-400/20 text-sky-200 border border-sky-300/30">
-            Google Account Free Hosting + HomeGauge Email Setup
+            Admin Hosting &amp; Email Link Setup
           </span>
           <button type="button" id="backToPublicSiteBtn" onclick="navigatePage('home', false)" class="text-xs font-semibold bg-white text-davis-navy px-3 py-1.5 rounded-lg hover:bg-sky-50 transition">
             ← Back to Public Website
@@ -1623,44 +1623,6 @@
         <p class="text-xs sm:text-sm text-sky-100 leading-relaxed">
           Your public website URL is <code class="bg-white/15 px-1.5 py-0.5 rounded">www.davis-inspections.com</code>, while the hidden buyer checklist is only accessible from your email link: <code class="bg-white/15 px-1.5 py-0.5 rounded">www.davis-inspections.com/?view=addons</code>.
         </p>
-      </section>
-
-      <!-- Short HomeGauge Email Template -->
-      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 class="text-base font-bold text-slate-900">1. Saved HomeGauge Email Template (`Agreement Notification Email`)</h3>
-            <p class="text-xs text-slate-500 mt-0.5">
-              Auto-fills the buyer name and property address dynamically from HomeGauge merge tags (<code class="bg-slate-100 px-1 rounded">?view=addons&amp;name=${RECIP_NAME}&amp;street=${RPT_ADDRESS}&amp;city=${RPT_CITY}&amp;state=${RPT_STATE}&amp;zip=${RPT_ZIP}</code>).
-            </p>
-          </div>
-          <button
-            type="button"
-            id="copyEmailTemplateBtn"
-            onclick="copyTextFromElement('hgEmailTemplateBox', 'Short HomeGauge email template copied!')"
-            class="px-3.5 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition"
-          >
-            Copy Short Email Template
-          </button>
-        </div>
-        <pre id="hgEmailTemplateBox" class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 whitespace-pre-wrap font-sans leading-relaxed overflow-x-auto">Hello ${RECIP_FNAME},
-
-Your home inspection is confirmed, and your inspection agreement is ready to sign below.
-
-Please click the link below to confirm your property address and request any optional add-on services (Sewer Scope, 48-Hour Radon Testing, or Termite Inspection):
-https://www.davis-inspections.com/?view=addons&name=${RECIP_NAME}&street=${RPT_ADDRESS}&city=${RPT_CITY}&state=${RPT_STATE}&zip=${RPT_ZIP}
-
-Square sends an electronic invoice after the inspection concludes.
-
-To view and sign the inspection agreement, please use your account login information below:
-Username: ${MEMBERNAME}
-Password: ${PASSWORD}
-Sign in at: ${SIGNIN}
-
-${INSP_NAME}
-${INSP_COMPANY}
-${INSP_WORKPHONE}
-${INSP_EMAIL}</pre>
       </section>
 
       <!-- Google Apps Script Code.gs -->
@@ -1851,7 +1813,7 @@ function submitInspectionQuoteRequest(payload) {
         if (adminBar) adminBar.classList.add('hidden');
       }
 
-      // Check for URL query parameters from the HomeGauge email link
+      // Check for URL query parameters from the add-on email link
       const urlName = params.get('name') || params.get('buyer') || params.get('client') || '';
       const urlStreet = params.get('street') || params.get('address') || '';
       const urlCity = params.get('city') || '';
@@ -4280,7 +4242,7 @@ function submitInspectionQuoteRequest(payload) {
             if (split.name) skippedNoEmail++;
             continue;
           }
-          // Skip HomeGauge placeholder / redacted sample rows
+          // Skip placeholder / redacted sample rows
           if (email.includes('*') || /^_+$/.test(split.firstName) || /^_+$/.test(split.lastName) || split.lastName.toUpperCase() === 'SAMPLE') {
             skippedJunk++;
             continue;
@@ -5736,7 +5698,7 @@ function submitInspectionQuoteRequest(payload) {
               <div class="flex flex-wrap items-center gap-1.5">
                 <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-davis-navy text-white text-xs font-bold transition">Open Report</button>
                 ${(!insp.isDemo && !(insp.propertyInfo && insp.propertyInfo.migratedFromHomeGauge)) ? `<a href="inspect.html?id=${encodeURIComponent(insp.id)}" target="_blank" rel="noopener" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-xs font-bold transition">Edit Report</a>` : ''}
-                <button type="button" onclick="protoUploadHomeGaugeReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 border border-sky-300 hover:border-davis-navy text-davis-navy text-xs font-bold transition">Upload HG (.zip)</button>
+                <button type="button" onclick="protoUploadHomeGaugeReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 border border-sky-300 hover:border-davis-navy text-davis-navy text-xs font-bold transition">Upload Report (.zip)</button>
                 <details class="relative inline-block">
                   <summary class="list-none cursor-pointer px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition select-none">+ Attach PDF &#9662;</summary>
                   <div class="absolute left-0 mt-1 z-30 w-40 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5 space-y-1 text-xs">
@@ -5826,7 +5788,7 @@ function submitInspectionQuoteRequest(payload) {
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <input id="dhiReportsSearch" type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; protoState.reportsPage=1; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-52 sm:w-56" />
-                <button type="button" onclick="dhiOpenBulkHgModal()" class="px-3.5 py-2 rounded-xl border border-sky-300 bg-sky-50 hover:border-davis-navy hover:bg-sky-100 text-davis-navy text-xs font-extrabold transition whitespace-nowrap">Bulk Import HG Folder</button>
+                <button type="button" onclick="dhiOpenBulkHgModal()" class="px-3.5 py-2 rounded-xl border border-sky-300 bg-sky-50 hover:border-davis-navy hover:bg-sky-100 text-davis-navy text-xs font-extrabold transition whitespace-nowrap">Bulk Import Archive Folder</button>
                 <button type="button" onclick="dhiOpenBulkPdfModal()" class="px-3.5 py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:border-emerald-600 hover:bg-emerald-100 text-emerald-800 text-xs font-extrabold transition whitespace-nowrap">Bulk Attach PDFs</button>
               </div>
             </div>
@@ -6208,11 +6170,11 @@ function submitInspectionQuoteRequest(payload) {
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 class="text-lg font-extrabold text-slate-900">Customer Directory (${filteredCusts.length})</h2>
-                <p class="text-xs text-slate-500">Automatically populates when buyers submit requests or when you create inspections. You can also import your HomeGauge customer CSV.</p>
+                <p class="text-xs text-slate-500">Automatically populates when buyers submit requests or when you create inspections. You can also import a customer CSV.</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <input id="dhiCustomersSearch" type="search" value="${escapeHtml(protoState.customerSearch || '')}" oninput="protoState.customerSearch=this.value; protoState.customerPage=1; renderProtoPortal();" placeholder="Search customers..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-52" />
-                <button type="button" onclick="protoImportHomeGaugeCSV('customers')" class="px-3.5 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Import HomeGauge CSV</button>
+                <button type="button" onclick="protoImportHomeGaugeCSV('customers')" class="px-3.5 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Import CSV</button>
               </div>
             </div>
             <div class="overflow-x-auto">
@@ -7180,7 +7142,7 @@ function submitInspectionQuoteRequest(payload) {
         });
         sections.push({ num: secNum, name: secName, stylesMaterials });
 
-        // Items inside table.form (split multi-comment HomeGauge items into 1.1A, 1.1B, ... with matching photos)
+        // Items inside table.form (split multi-comment items into 1.1A, 1.1B, ... with matching photos)
         page.querySelectorAll('table.form').forEach(tbl => {
           const code = cleanTxt(tbl.querySelector('span.question-number'));
           const title = cleanTxt(tbl.querySelector('span.question'));
@@ -7260,7 +7222,7 @@ function submitInspectionQuoteRequest(payload) {
         const file = inp.files && inp.files[0];
         if (!file) return;
         try {
-          protoToastMsg('Reading HomeGauge report "' + file.name + '"...');
+          protoToastMsg('Reading report archive "' + file.name + '"...');
           let htmlText = '';
           const imageBlobs = new Map();
 
@@ -7303,7 +7265,7 @@ function submitInspectionQuoteRequest(payload) {
 
           const { sections, findings } = protoParseHomeGaugeHtml(htmlText);
           if (!findings.length) {
-            protoToastMsg('Could not find HomeGauge inspection items in that file.');
+            protoToastMsg('Could not find inspection items in that file.');
             return;
           }
 
@@ -7375,9 +7337,9 @@ function submitInspectionQuoteRequest(payload) {
           insp.reportUploaded = true;
           renderProtoPortal();
           const summaryCount = findings.filter(f => f.isSummary).length;
-          protoToastMsg(`Uploaded HomeGauge report: ${sections.length} sections, ${findings.length} items (${summaryCount} summary), ${uploadedPathByLow.size} photos!`);
+          protoToastMsg(`Uploaded report archive: ${sections.length} sections, ${findings.length} items (${summaryCount} summary), ${uploadedPathByLow.size} photos!`);
         } catch (err) {
-          console.error('HomeGauge report upload error:', err);
+          console.error('Report archive upload error:', err);
           protoToastMsg('Upload error: ' + (err.message || err));
         }
       };
@@ -7579,7 +7541,7 @@ function submitInspectionQuoteRequest(payload) {
     }
 
     // =========================================================================
-    // BULK HOMEGAUGE FOLDER IMPORTER (upMatt.Davis-Full Report For Upload.zip)
+    // BULK ARCHIVE FOLDER IMPORTER
     // =========================================================================
     const dhiBulkPdfState = {
       running: false,
@@ -7660,7 +7622,7 @@ function submitInspectionQuoteRequest(payload) {
       }
 
       if (!manifestFile) {
-        protoToastMsg('No manifest.json found in that folder. Pick the HomeGauge_Archive root folder.');
+        protoToastMsg('No manifest.json found in that folder. Pick the archive root folder.');
         return;
       }
 
@@ -7943,7 +7905,7 @@ function submitInspectionQuoteRequest(payload) {
               doc_type: 'specialty_pdf',
               title: rf.cleanTitle,
               storage_path: storagePath,
-              summary: 'Imported from HomeGauge (' + rf.file.name + ')'
+              summary: 'Attached PDF (' + rf.file.name + ')'
             });
             if (dbErr) {
               console.warn('inspection_documents insert error:', dbErr);
@@ -8044,7 +8006,7 @@ function submitInspectionQuoteRequest(payload) {
       };
       const bodyText = clean(doc.body ? doc.body.textContent : '');
 
-      // Parse all HomeGauge Intro Page / General Info / Inspection Details key-value blocks
+      // Parse all Intro Page / General Info / Inspection Details key-value blocks
       const genFields = {};
       const genLines = {};
       doc.querySelectorAll('div.sm-whole').forEach(box => {
@@ -8485,7 +8447,7 @@ function submitInspectionQuoteRequest(payload) {
             inspection_date: item.dateDisplay || '',
             client_first_name: cSplitHg.firstName || '',
             client_last_name: cSplitHg.lastName || '',
-            client_name: item.clientName || cSplitHg.name || primaryCustHg.email || 'HomeGauge Client',
+            client_name: item.clientName || cSplitHg.name || primaryCustHg.email || '',
             client_email: (primaryCustHg.email || item.clientEmail || '').toLowerCase(),
             agent_first_name: aSplitHg.firstName || '',
             agent_last_name: aSplitHg.lastName || '',
@@ -8493,7 +8455,7 @@ function submitInspectionQuoteRequest(payload) {
             agent_email: (primaryAgHg.email || item.agentEmail || '').toLowerCase(),
             additional_client_emails: addlClientEmailsHg,
             additional_agent_emails: addlAgentEmailsHg,
-            services: [{ name: 'Home Inspection (Migrated from HomeGauge)', price: 0 }],
+            services: [{ name: 'Home Inspection', price: 0 }],
             agreement_required: true,
             agreement_signed: true,
             paid: true,
@@ -8665,8 +8627,8 @@ function submitInspectionQuoteRequest(payload) {
           </div>
         ` : `
           <div class="rounded-xl bg-slate-50 border border-dashed border-slate-300 p-8 text-center space-y-1.5 text-xs text-slate-500">
-            <div class="font-bold text-slate-700">Select your HomeGauge Reports parent folder</div>
-            <p>We automatically scan all subfolders, ignore extra HomeGauge files, and pull only <strong>upMatt.Davis-Full Report For Upload.zip</strong>.</p>
+            <div class="font-bold text-slate-700">Select your Archived Reports parent folder</div>
+            <p>We automatically scan all subfolders and pull each archived report ZIP.</p>
           </div>
         `}
       `;
@@ -12859,21 +12821,21 @@ function submitInspectionQuoteRequest(payload) {
     </div>
   </div>
 
-  <!-- Bulk Attach HomeGauge PDFs Modal (Admin) -->
+  <!-- Bulk Attach Archived PDFs Modal (Admin) -->
   <div id="dhiBulkPdfModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 no-print">
     <div class="bg-white rounded-2xl max-w-4xl w-full p-5 space-y-4 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div>
-          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">HomeGauge Archive Import</span>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Archive PDF Import</span>
           <h3 class="text-base font-extrabold text-slate-900">Bulk Attach Radon, Sewer Scope &amp; Termite PDFs</h3>
         </div>
         <button type="button" onclick="dhiCloseBulkPdfModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
       </div>
       <div class="space-y-3 text-xs">
-        <p class="text-slate-600 leading-relaxed">Select your local <strong>HomeGauge_Archive</strong> folder (containing <code>manifest.json</code> and your downloaded PDFs). Main Inspection Report PDFs are skipped automatically; Radon, Sewer Scope, Termite, and other supplementary PDFs are matched to existing reports by address and date, or created as standalone report cards.</p>
+        <p class="text-slate-600 leading-relaxed">Select your local <strong>report archive</strong> folder (containing <code>manifest.json</code> and your downloaded PDFs). Main Inspection Report PDFs are skipped automatically; Radon, Sewer Scope, Termite, and other supplementary PDFs are matched to existing reports by address and date, or created as standalone report cards.</p>
         <div class="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
           <label class="cursor-pointer px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white font-bold transition">
-            Choose HomeGauge_Archive Folder
+            Choose Archive Folder
             <input type="file" id="dhiBulkPdfFolderInput" webkitdirectory directory multiple class="hidden" onchange="dhiBulkPdfHandleFolder(this.files)" />
           </label>
           <div class="flex items-center gap-2">
@@ -12964,13 +12926,13 @@ function submitInspectionQuoteRequest(payload) {
     </div>
   </div>
 
-  <!-- Bulk HomeGauge Folder Importer Modal -->
+  <!-- Bulk Report Folder Importer Modal -->
   <div id="dhiBulkHgModal" onclick="if(event.target===this) dhiCloseBulkHgModal()" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 no-print">
     <div class="bg-white rounded-2xl max-w-4xl w-full p-5 space-y-4 shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col">
       <div class="flex items-start justify-between gap-3">
         <div>
-          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">HomeGauge Migration</span>
-          <h3 class="text-lg font-extrabold text-slate-900">Bulk Import HomeGauge Report Folder</h3>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">Archive Import</span>
+          <h3 class="text-lg font-extrabold text-slate-900">Bulk Import Archived Report Folder</h3>
           <p class="text-xs text-slate-500">Finds every <code>upMatt.Davis-Full Report For Upload.zip</code> across subfolders, splits multi-defect items into A/B/C, links matching client &amp; agent emails, and skips duplicates.</p>
         </div>
         <button type="button" onclick="dhiCloseBulkHgModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
