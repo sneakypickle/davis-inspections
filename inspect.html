@@ -3078,16 +3078,95 @@
       return String(t || '').replace(/\s*\(Itemized\)\s*$/i, '').replace(/\s+/g, ' ').trim();
     }
 
+    function dhiCanonSecForLib(secName) {
+      const s = String(secName || '').trim().toLowerCase().replace(/\s*&\s*/g, ' and ').replace(/\s+/g, ' ');
+      if (s === 'hvac' || (s.includes('heating') && s.includes('air conditioning'))) return 'hvac';
+      if (s.includes('insulation') && s.includes('ventilation')) return 'insulation and ventilation';
+      if (s.includes('apartment') || s.includes('cottage')) return 'additional apartment / cottage';
+      if (s.includes('outbuilding') || s.includes('out building')) return 'outbuilding';
+      return s;
+    }
+
+    function dhiNormItemForLib(title) {
+      return dhiCleanItemTitleForLib(title)
+        .toLowerCase()
+        .replace(/\([^)]*\)/g, ' ')
+        .replace(/\s*&\s*/g, ' and ')
+        .replace(/[,/\-]/g, ' ')
+        .replace(/\bplumbing\b|\bstructural\b|\binterior\b|\bexterior\b|\bbuilt in\b|\boperation of\b/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    const DHI_LEGACY_ITEM_ALIASES = {
+      'skylights, chimneys and roof penetrations': 'skylights, chimneys and roof penetrations',
+      'wall cladding, flashing and trim': 'wall cladding flashing and trim',
+      'decks, porches, patios, steps and railings': 'decks, balconies, stoops, steps, areaways, porches, patio/cover and applicable railings',
+      'grading, drainage, driveways, walkways and retaining walls': 'vegetation, grading, drainage, driveways, patio floor, walkways and retaining walls',
+      'eaves, soffits and fascia': 'eaves, soffits and fascias',
+      'detached garage roof and structure': 'detatched garage roof covering/structure',
+      'garage walls and fire separation': 'garage walls',
+      'garage doors': 'garage door(s)',
+      'garage to home entry door': 'occupant door',
+      'garage door operators and safety reverse': 'garage door operators',
+      'counters and cabinets': 'counters and cabinets',
+      'countertops and cabinets': 'counters and cabinets',
+      'interior doors': 'doors',
+      'interior windows': 'windows',
+      'drain, waste and vent systems': 'plumbing drain, waste and vent systems',
+      'water supply, distribution and fixtures': 'plumbing water supply, distribution system and fixtures',
+      'water heater, controls and venting': 'hot water systems, controls, chimneys, flues and vents',
+      'main water shut off valve': 'main water shut-off device',
+      'fuel distribution and gas piping': 'fuel storage and distribution systems',
+      'main fuel shut off valve': 'main fuel shut-off',
+      'sump pump and pit': 'sump pump/pit',
+      'service, grounding and electrical panels': 'service and grounding equipment, main overcurrent device, main and distribution panels',
+      'branch circuits and breakers': 'branch circuit conductors, overcurrent devices and compatibility of their amperage and voltage',
+      'lights, switches, fans and receptacles': 'connected devices and fixtures',
+      'wet location, garage and exterior receptacles': 'polarity and grounding of receptacles within 6 feet of interior plumbing fixtures, all receptacles in garage, carport and exterior walls of inspected structure',
+      'gfci protection': 'operation of gfci',
+      'panel locations': 'location of main and distribution panels',
+      'smoke and carbon monoxide alarms': 'smoke and carbon monoxide detectors',
+      'heating controls and thermostats': 'normal operating controls',
+      'cooling controls and thermostats': 'normal operating controls',
+      'heating safety controls': 'automatic safety controls',
+      'ductwork, piping, blowers and distribution': 'distribution systems',
+      'room heat sources': 'presence of installed heat source in each room',
+      'chimneys, flues and vents': 'chimneys, flues and vents',
+      'solid fuel fireplaces and woodstoves': 'solid fuel heating devices',
+      'gas fireplaces and logs': 'gas/lp firelogs and fireplaces',
+      'cooling and air handler equipment': 'cooling and air handler equipment',
+      'attic insulation': 'insulation in attic',
+      'exterior wall insulation': 'insulation in exterior walls',
+      'subfloor and crawlspace insulation': 'insulation under floor system',
+      'attic and foundation ventilation': 'ventilation of attic and foundation areas',
+      'kitchen, bath and laundry exhaust venting': 'venting systems',
+      'attic ventilation fans and controls': 'ventilation fans and thermostatic controls in attic',
+      'ranges, ovens and cooktops': 'ranges/ovens/cooktops',
+      'range hood': 'range hood (s)',
+      'garbage disposal': 'food waste disposer',
+      'built in microwave': 'microwave cooking equipment',
+      'bathroom exhaust fans and heaters': 'bathroom exhaust fans / heaters'
+    };
+
+    function dhiLibMatchesSec(c, activeSecName) {
+      return dhiCanonSecForLib(c.section_name) === dhiCanonSecForLib(activeSecName);
+    }
+
     function dhiLibMatchesItem(c, activeSecName, activeItemTitle) {
-      const cSec = String(c.section_name || '').trim().toLowerCase();
+      const secMatch = dhiLibMatchesSec(c, activeSecName);
       const cItem = dhiCleanItemTitleForLib(c.item_title).toLowerCase();
       const targetItem = dhiCleanItemTitleForLib(activeItemTitle).toLowerCase();
-      if (!targetItem) return cSec === activeSecName;
-      if (cItem === targetItem) return true;
-      // Also match when one omits a long parenthetical description (e.g. "Windows" vs "Windows (representative number)")
-      const cBase = cItem.replace(/\s*\([^)]*\)/g, '').trim();
-      const tBase = targetItem.replace(/\s*\([^)]*\)/g, '').trim();
-      return (cSec === activeSecName && cBase && tBase && cBase === tBase);
+      if (!targetItem) return secMatch;
+      if (cItem === targetItem && (secMatch || !c.section_name)) return true;
+      const cBase = cItem.replace(/\s*\([^)]*\)/g, '').trim().replace(/\s*&\s*/g, ' and ');
+      const tBase = targetItem.replace(/\s*\([^)]*\)/g, '').trim().replace(/\s*&\s*/g, ' and ');
+      if (secMatch && cBase && tBase && cBase === tBase) return true;
+      const aliasTarget = DHI_LEGACY_ITEM_ALIASES[tBase] || '';
+      if (secMatch && aliasTarget && (cBase === aliasTarget || cItem === aliasTarget)) return true;
+      const cNorm = dhiNormItemForLib(c.item_title);
+      const tNorm = dhiNormItemForLib(activeItemTitle);
+      return (secMatch && cNorm && tNorm && cNorm === tNorm);
     }
 
     function setLibraryScope(scope) {
@@ -3123,7 +3202,7 @@
 
       const allLib = state.commentLibrary || [];
       const itemMatches = allLib.filter(c => dhiLibMatchesItem(c, activeSecName, activeItemTitle));
-      const secMatches = allLib.filter(c => String(c.section_name || '').trim().toLowerCase() === activeSecName);
+      const secMatches = allLib.filter(c => dhiLibMatchesSec(c, activeSecName));
 
       // Update 3-way toggle buttons with live counts
       const btnCfg = [
