@@ -174,8 +174,9 @@
 
   <!-- Brand Website Header with Official Logo from Google Drive -->
   <header id="mainSiteHeader" class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
-      <button type="button" id="logoHomeBtn" onclick="navigatePage('home', false)" class="flex items-center gap-3 text-left focus:outline-none">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+      <button type="button" id="logoHomeBtn" onclick="navigatePage('home', false)" class="flex items-center gap-3 text-left focus:outline-none shrink-0">
         <img
           src="data:image/jpeg;base64,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"
           alt="Davis Home Inspections, LLC Logo"
@@ -216,18 +217,21 @@
         <button type="button" id="nav-contractors" onclick="navigatePage('contractors', false)" class="nav-btn px-2.5 py-1.5 rounded-lg text-slate-700 hover:text-davis-navy hover:bg-slate-100 font-medium transition">
           Recommended Contractors
         </button>
+      </nav>
+      </div>
+      <div class="ml-auto flex items-center gap-2 text-xs sm:text-sm shrink-0">
         <button type="button" id="nav-portal" onclick="navigatePage('portal', false)" class="nav-btn px-2.5 py-1.5 rounded-lg text-slate-700 hover:text-davis-navy hover:bg-slate-100 font-medium transition inline-flex items-center gap-1">
           <svg class="w-3.5 h-3.5 text-davis-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
           <span>Login</span>
         </button>
-        <div class="inline-flex flex-col items-end gap-1 ml-1">
+        <div class="inline-flex flex-col items-end gap-1">
           <button type="button" id="dhiHeaderFeedbackBtn" onclick="dhiOpenFeedbackModal(protoState.role === 'agent' ? 'Agent' : 'Buyer')" class="hidden text-[11px] font-bold text-davis-blue hover:text-davis-navy hover:underline leading-none px-1">Report Issue / Feedback</button>
           <a href="tel:7196604724" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark text-white font-bold transition" title="Call or Text Matt">
             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
             <span>(719) 660-4724</span>
           </a>
         </div>
-      </nav>
+      </div>
     </div>
   </header>
 
@@ -4107,6 +4111,12 @@ function submitInspectionQuoteRequest(payload) {
       }).catch(() => { dhiCoverSignInFlight = false; });
     }
 
+    function dhiJumpToPage(stateKey, rawVal, totalPages) {
+      const n = Math.max(1, Math.min(totalPages, parseInt(rawVal, 10) || 1));
+      protoState[stateKey] = n;
+      renderProtoPortal();
+    }
+
     function dhiRenderPageBar(stateKey, page, totalPages, totalItems, pageSize, position) {
       if (totalPages <= 1) return '';
       const startNum = (page - 1) * pageSize + 1;
@@ -4115,10 +4125,16 @@ function submitInspectionQuoteRequest(payload) {
       return `
         <div class="flex flex-wrap items-center justify-between gap-2 ${borderCls} text-xs text-slate-600">
           <span>Showing <strong>${startNum}-${endNum}</strong> of <strong>${totalItems}</strong></span>
-          <div class="flex items-center gap-1.5">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button type="button" title="First page" ${page <= 1 ? 'disabled' : ''} onclick="protoState.${stateKey}=1; renderProtoPortal();" class="px-2 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy font-bold disabled:opacity-40 transition">&laquo;</button>
             <button type="button" ${page <= 1 ? 'disabled' : ''} onclick="protoState.${stateKey}=${Math.max(1, page - 1)}; renderProtoPortal();" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy font-bold disabled:opacity-40 transition">Prev</button>
-            <span class="px-2 font-semibold text-slate-700">Page ${page} of ${totalPages}</span>
+            <span class="inline-flex items-center gap-1 px-1 font-semibold text-slate-700">
+              <span>Page</span>
+              <input type="number" min="1" max="${totalPages}" value="${page}" onchange="dhiJumpToPage('${stateKey}', this.value, ${totalPages})" onkeydown="if(event.key==='Enter'){event.preventDefault();dhiJumpToPage('${stateKey}', this.value, ${totalPages});}" class="w-14 px-1.5 py-0.5 rounded-md border border-slate-300 bg-white text-center text-xs font-bold text-slate-800 focus:ring-2 focus:ring-davis-navy focus:outline-none" />
+              <span>of ${totalPages}</span>
+            </span>
             <button type="button" ${page >= totalPages ? 'disabled' : ''} onclick="protoState.${stateKey}=${Math.min(totalPages, page + 1)}; renderProtoPortal();" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy font-bold disabled:opacity-40 transition">Next</button>
+            <button type="button" title="Last page" ${page >= totalPages ? 'disabled' : ''} onclick="protoState.${stateKey}=${totalPages}; renderProtoPortal();" class="px-2 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy font-bold disabled:opacity-40 transition">&raquo;</button>
           </div>
         </div>
       `;
@@ -5710,6 +5726,7 @@ function submitInspectionQuoteRequest(payload) {
               <div class="flex flex-wrap items-center gap-2">
                 <input id="dhiReportsSearch" type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; protoState.reportsPage=1; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-52 sm:w-56" />
                 <button type="button" onclick="dhiOpenBulkHgModal()" class="px-3.5 py-2 rounded-xl border border-sky-300 bg-sky-50 hover:border-davis-navy hover:bg-sky-100 text-davis-navy text-xs font-extrabold transition whitespace-nowrap">Bulk Import HG Folder</button>
+                <button type="button" onclick="dhiOpenBulkPdfModal()" class="px-3.5 py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:border-emerald-600 hover:bg-emerald-100 text-emerald-800 text-xs font-extrabold transition whitespace-nowrap">Bulk Attach PDFs</button>
               </div>
             </div>
             ${pagedReleased.length ? `
@@ -7454,6 +7471,398 @@ function submitInspectionQuoteRequest(payload) {
     // =========================================================================
     // BULK HOMEGAUGE FOLDER IMPORTER (upMatt.Davis-Full Report For Upload.zip)
     // =========================================================================
+    const dhiBulkPdfState = {
+      running: false,
+      cancelled: false,
+      manifestReports: [],
+      fileByRelPath: new Map(),
+      fileByBaseName: new Map(),
+      plan: []
+    };
+
+    function dhiOpenBulkPdfModal() {
+      const m = document.getElementById('dhiBulkPdfModal');
+      if (m) m.classList.remove('hidden');
+    }
+
+    function dhiCloseBulkPdfModal() {
+      if (dhiBulkPdfState.running) {
+        if (!confirm('Upload is still running. Stop and close?')) return;
+        dhiBulkPdfState.cancelled = true;
+      }
+      const m = document.getElementById('dhiBulkPdfModal');
+      if (m) m.classList.add('hidden');
+    }
+
+    function dhiBulkPdfCancel() {
+      dhiBulkPdfState.cancelled = true;
+      const lbl = document.getElementById('dhiBulkPdfProgressLabel');
+      if (lbl) lbl.textContent = 'Stopping after current file...';
+    }
+
+    function dhiNormStreetKey(addr) {
+      const firstPart = String(addr || '').split(',')[0].toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      const abbr = {
+        street: 'st', drive: 'dr', road: 'rd', avenue: 'ave', lane: 'ln',
+        court: 'ct', circle: 'cir', boulevard: 'blvd', place: 'pl',
+        parkway: 'pkwy', trail: 'trl', terrace: 'ter', highway: 'hwy',
+        north: 'n', south: 's', east: 'e', west: 'w'
+      };
+      return firstPart.split(' ').map(w => abbr[w] || w).join(' ').trim();
+    }
+
+    function dhiParseDateMs(str) {
+      const s = String(str || '').trim();
+      if (!s) return NaN;
+      const iso = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? NaN : Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    function dhiCleanSuppPdfTitle(rawTitle, fileName) {
+      const t = String(rawTitle || '').trim();
+      const low = (t + ' ' + String(fileName || '')).toLowerCase();
+      if (low.includes('radon')) return 'Radon Report';
+      if (low.includes('sewer') || low.includes('scope')) return 'Sewer Scope Report';
+      if (low.includes('termite') || low.includes('wdi') || low.includes('npma')) return 'Termite / WDI Report';
+      return t || String(fileName || 'Attached PDF').replace(/\.pdf$/i, '');
+    }
+
+    async function dhiBulkPdfHandleFolder(fileList) {
+      const files = Array.from(fileList || []);
+      dhiBulkPdfState.fileByRelPath = new Map();
+      dhiBulkPdfState.fileByBaseName = new Map();
+      dhiBulkPdfState.manifestReports = [];
+      let manifestFile = null;
+
+      for (const f of files) {
+        const rel = String(f.webkitRelativePath || f.name).replace(/\\/g, '/');
+        const parts = rel.split('/');
+        const relNoRoot = parts.length > 1 ? parts.slice(1).join('/') : rel;
+        if (f.name.toLowerCase() === 'manifest.json' && (!manifestFile || parts.length <= 2)) {
+          manifestFile = f;
+        } else if (f.name.toLowerCase().endsWith('.pdf')) {
+          dhiBulkPdfState.fileByRelPath.set(relNoRoot.toLowerCase(), f);
+          dhiBulkPdfState.fileByRelPath.set(rel.toLowerCase(), f);
+          dhiBulkPdfState.fileByBaseName.set(f.name.toLowerCase(), f);
+        }
+      }
+
+      if (!manifestFile) {
+        protoToastMsg('No manifest.json found in that folder. Pick the HomeGauge_Archive root folder.');
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(await manifestFile.text());
+        dhiBulkPdfState.manifestReports = Array.isArray(parsed.reports) ? parsed.reports : [];
+      } catch (e) {
+        protoToastMsg('Could not read manifest.json: ' + (e.message || e));
+        return;
+      }
+
+      dhiBulkPdfRecomputePlan();
+    }
+
+    function dhiBulkPdfRecomputePlan() {
+      const createStandalone = !!document.getElementById('dhiBulkPdfCreateStandalone')?.checked;
+      const cutoffStr = (document.getElementById('dhiBulkPdfCutoff')?.value || '').trim();
+      const cutoffMs = cutoffStr ? dhiParseDateMs(cutoffStr) : NaN;
+      const allInsps = (protoState.inspections || []).filter(i => !i.isDemo && i.id !== 'insp-demo');
+
+      // Index existing inspections by normalized street address
+      const byStreet = new Map();
+      allInsps.forEach(insp => {
+        const k = dhiNormStreetKey(insp.address || '');
+        if (!k) return;
+        if (!byStreet.has(k)) byStreet.set(k, []);
+        byStreet.get(k).push(insp);
+      });
+
+      const plan = [];
+      for (const rep of dhiBulkPdfState.manifestReports) {
+        const suppDocs = (rep.docs || []).filter(d => {
+          const titleLow = String(d.title || '').toLowerCase();
+          if (titleLow.includes('inspection report') || titleLow.includes('inspection agreement') || titleLow.includes('invoice')) return false;
+          return true;
+        });
+        if (!suppDocs.length) continue;
+
+        const resolvedFiles = [];
+        for (const d of suppDocs) {
+          const relLow = String(d.relativePath || '').replace(/\\/g, '/').toLowerCase();
+          const baseLow = relLow.split('/').pop() || '';
+          const fileObj = dhiBulkPdfState.fileByRelPath.get(relLow) || dhiBulkPdfState.fileByBaseName.get(baseLow);
+          if (!fileObj) continue;
+          resolvedFiles.push({
+            docId: d.docId,
+            rawTitle: d.title,
+            cleanTitle: dhiCleanSuppPdfTitle(d.title, fileObj.name),
+            timestamp: d.timestamp || '',
+            file: fileObj
+          });
+        }
+        if (!resolvedFiles.length) continue;
+
+        const streetKey = dhiNormStreetKey(rep.address || '');
+        const repDateMs = dhiParseDateMs(rep.reportDate || '');
+        const cands = streetKey ? (byStreet.get(streetKey) || []) : [];
+
+        let matchedInsp = null;
+        let status = 'unmatched';
+        if (cands.length === 1) {
+          matchedInsp = cands[0];
+          status = 'match';
+        } else if (cands.length > 1) {
+          if (!isNaN(repDateMs)) {
+            const near = cands.filter(c => {
+              const cMs = dhiParseDateMs(c.date || '');
+              return !isNaN(cMs) && Math.abs(cMs - repDateMs) <= 10 * 86400000;
+            });
+            if (near.length === 1) {
+              matchedInsp = near[0];
+              status = 'match';
+            } else {
+              status = 'ambiguous';
+            }
+          } else {
+            status = 'ambiguous';
+          }
+        } else {
+          const passesCutoff = isNaN(cutoffMs) || (!isNaN(repDateMs) && repDateMs >= cutoffMs);
+          status = (createStandalone && passesCutoff) ? 'standalone' : 'unmatched';
+        }
+
+        if (status === 'match' && matchedInsp) {
+          const existingDocs = matchedInsp.extraDocs || [];
+          const toUpload = resolvedFiles.filter(rf => {
+            const lowTitle = rf.cleanTitle.toLowerCase();
+            const lowFile = rf.file.name.toLowerCase();
+            return !existingDocs.some(ed =>
+              String(ed.title || '').toLowerCase() === lowTitle ||
+              String(ed.summary || '').toLowerCase().includes(lowFile) ||
+              String(ed.storagePath || '').toLowerCase().includes(String(rf.docId || '___'))
+            );
+          });
+          plan.push({
+            status: toUpload.length ? 'match' : 'already_attached',
+            rep,
+            matchedInsp,
+            files: toUpload,
+            totalFiles: resolvedFiles.length
+          });
+        } else {
+          plan.push({
+            status,
+            rep,
+            matchedInsp: null,
+            files: resolvedFiles,
+            totalFiles: resolvedFiles.length
+          });
+        }
+      }
+
+      dhiBulkPdfState.plan = plan;
+      const matchCount = plan.filter(p => p.status === 'match').length;
+      const matchPdfCount = plan.filter(p => p.status === 'match').reduce((s, p) => s + p.files.length, 0);
+      const standaloneCount = plan.filter(p => p.status === 'standalone').length;
+      const standalonePdfCount = plan.filter(p => p.status === 'standalone').reduce((s, p) => s + p.files.length, 0);
+      const alreadyCount = plan.filter(p => p.status === 'already_attached').length;
+      const skipCount = plan.filter(p => p.status === 'unmatched' || p.status === 'ambiguous').length;
+
+      const sumEl = document.getElementById('dhiBulkPdfSummary');
+      if (sumEl) {
+        sumEl.classList.remove('hidden');
+        sumEl.innerHTML = `Found <strong>${matchCount}</strong> existing reports to attach (<strong>${matchPdfCount}</strong> PDFs), <strong>${standaloneCount}</strong> new standalone reports (<strong>${standalonePdfCount}</strong> PDFs), <strong>${alreadyCount}</strong> already attached (skipped), and <strong>${skipCount}</strong> unmatched/ambiguous (skipped).`;
+      }
+
+      const listEl = document.getElementById('dhiBulkPdfPreviewList');
+      if (listEl) {
+        listEl.classList.remove('hidden');
+        listEl.innerHTML = plan.slice(0, 250).map(item => {
+          const badge = item.status === 'match'
+            ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">Match</span>'
+            : item.status === 'standalone'
+            ? '<span class="px-2 py-0.5 rounded-full bg-sky-100 text-davis-navy text-[10px] font-bold">New Standalone</span>'
+            : item.status === 'already_attached'
+            ? '<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold">Already Attached</span>'
+            : `<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">${item.status === 'ambiguous' ? 'Ambiguous (Skip)' : 'Skipped'}</span>`;
+          const docNames = (item.files.length ? item.files : []).map(f => f.cleanTitle).join(', ') || `${item.totalFiles} PDF(s)`;
+          return `<div class="px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="min-w-0">
+              <div class="font-bold text-slate-900 truncate">${escapeHtml(item.rep.address || item.rep.reportId || 'Unknown Address')}</div>
+              <div class="text-[11px] text-slate-500">${escapeHtml(item.rep.reportDate || '')} &bull; ${escapeHtml(docNames)}</div>
+            </div>
+            <div class="shrink-0">${badge}</div>
+          </div>`;
+        }).join('') + (plan.length > 250 ? `<div class="px-3 py-2 text-[11px] text-slate-500 italic">...and ${plan.length - 250} more items</div>` : '');
+      }
+
+      const startBtn = document.getElementById('dhiBulkPdfStartBtn');
+      if (startBtn) startBtn.disabled = (matchCount + standaloneCount) === 0;
+    }
+
+    async function dhiBulkPdfStartUpload() {
+      if (!dhiIsLiveSession() || !dhiSupabase) {
+        protoToastMsg('Sign in as Admin online first.');
+        return;
+      }
+      const actionable = dhiBulkPdfState.plan.filter(p => p.status === 'match' || p.status === 'standalone');
+      if (!actionable.length) return;
+
+      dhiBulkPdfState.running = true;
+      dhiBulkPdfState.cancelled = false;
+      const autoSv = !!document.getElementById('dhiBulkPdfAutoStreetView')?.checked;
+      const startBtn = document.getElementById('dhiBulkPdfStartBtn');
+      const stopBtn = document.getElementById('dhiBulkPdfCancelRunBtn');
+      const progWrap = document.getElementById('dhiBulkPdfProgressWrap');
+      const progBar = document.getElementById('dhiBulkPdfProgressBar');
+      const progLbl = document.getElementById('dhiBulkPdfProgressLabel');
+      const progPct = document.getElementById('dhiBulkPdfProgressPct');
+      if (startBtn) startBtn.disabled = true;
+      if (stopBtn) stopBtn.classList.remove('hidden');
+      if (progWrap) progWrap.classList.remove('hidden');
+
+      let attachedPdfs = 0, createdStandalone = 0, errors = 0;
+
+      for (let i = 0; i < actionable.length; i++) {
+        if (dhiBulkPdfState.cancelled) break;
+        const item = actionable[i];
+        const pct = Math.round(((i + 1) / actionable.length) * 100);
+        if (progBar) progBar.style.width = pct + '%';
+        if (progPct) progPct.textContent = pct + '%';
+        if (progLbl) progLbl.textContent = `[${i + 1}/${actionable.length}] ${item.rep.address || item.rep.reportId}`;
+
+        try {
+          let targetInspId = item.matchedInsp ? item.matchedInsp.id : null;
+
+          // Create standalone report card if needed
+          if (item.status === 'standalone') {
+            const ppl = Array.isArray(item.rep.people) ? item.rep.people : [];
+            const custs = ppl.filter(p => p.role !== 'agent').map(p => ({
+              name: p.name,
+              email: typeof dhiLookupDirectoryEmail === 'function' ? dhiLookupDirectoryEmail(p.name, 'customer') : ''
+            }));
+            const ags = ppl.filter(p => p.role === 'agent').map(p => ({
+              name: p.name,
+              email: typeof dhiLookupDirectoryEmail === 'function' ? dhiLookupDirectoryEmail(p.name, 'agent') : ''
+            }));
+            const primCust = custs[0] || { name: '', email: '' };
+            const primAg = ags[0] || { name: '', email: '' };
+            const cSplit = dhiSplitFullName(primCust.name || '');
+            const aSplit = dhiSplitFullName(primAg.name || '');
+            const addlCustEmails = custs.slice(1).map(c => (c.email || '').toLowerCase()).filter(e => e && e !== (primCust.email || '').toLowerCase());
+            const addlAgEmails = ags.slice(1).map(a => (a.email || '').toLowerCase()).filter(e => e && e !== (primAg.email || '').toLowerCase());
+
+            const propInfo = {
+              address: item.rep.address || '',
+              standalone: true,
+              migratedFromHomeGauge: true,
+              homeGaugeReportId: item.rep.reportId || '',
+              customers: custs,
+              agents: ags
+            };
+
+            const insertPayload = {
+              address: item.rep.address || item.rep.reportId || 'Standalone Report',
+              inspection_date: item.rep.reportDate || '',
+              client_first_name: cSplit.firstName || '',
+              client_last_name: cSplit.lastName || '',
+              client_name: cSplit.name || '',
+              client_email: (primCust.email || '').toLowerCase(),
+              agent_first_name: aSplit.firstName || '',
+              agent_last_name: aSplit.lastName || '',
+              agent_name: aSplit.name || '',
+              agent_email: (primAg.email || '').toLowerCase() || null,
+              additional_client_emails: addlCustEmails,
+              additional_agent_emails: addlAgEmails,
+              agreement_required: false,
+              agreement_signed: true,
+              paid: true,
+              report_notified: true,
+              services: item.files.map(f => ({ name: f.cleanTitle, qty: 1, unitPrice: 0, price: 0 })),
+              total_cents: 0,
+              property_info: propInfo
+            };
+
+            const { data: newRow, error: insErr } = await dhiSupabase.from('inspections').insert(insertPayload).select().single();
+            if (insErr || !newRow) {
+              console.warn('Standalone insert error:', insErr);
+              errors++;
+              continue;
+            }
+            targetInspId = newRow.id;
+            createdStandalone++;
+
+            // Auto-fetch Street View cover photo for standalone report
+            if (autoSv && item.rep.address) {
+              try {
+                const { data: svData, error: svErr } = await dhiSupabase.functions.invoke('address-lookup', {
+                  body: { action: 'streetview', address: item.rep.address }
+                });
+                if (!svErr && svData && svData.ok && svData.dataUrl) {
+                  const uploadedPath = await dhiUploadAdminCoverPhoto(targetInspId, svData.dataUrl);
+                  if (uploadedPath) {
+                    propInfo.coverPhotoPath = uploadedPath;
+                    await dhiSupabase.from('inspections').update({ property_info: propInfo }).eq('id', targetInspId);
+                  }
+                }
+              } catch (_svE) {}
+            }
+          }
+
+          if (!targetInspId) continue;
+
+          // Upload each supplementary PDF to Storage and insert into inspection_documents
+          for (const rf of item.files) {
+            if (dhiBulkPdfState.cancelled) break;
+            const safeName = rf.file.name.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 120);
+            const storagePath = `${targetInspId}/specialty/${rf.docId || Date.now()}_${safeName}`;
+            const { error: upErr } = await dhiSupabase.storage.from('reports').upload(storagePath, rf.file, {
+              contentType: 'application/pdf',
+              upsert: true
+            });
+            if (upErr) {
+              console.warn('PDF upload error:', upErr);
+              errors++;
+              continue;
+            }
+            const { error: dbErr } = await dhiSupabase.from('inspection_documents').insert({
+              inspection_id: targetInspId,
+              doc_type: 'specialty_pdf',
+              title: rf.cleanTitle,
+              storage_path: storagePath,
+              summary: 'Imported from HomeGauge (' + rf.file.name + ')'
+            });
+            if (dbErr) {
+              console.warn('inspection_documents insert error:', dbErr);
+              errors++;
+              continue;
+            }
+            attachedPdfs++;
+          }
+        } catch (err) {
+          console.warn('Bulk PDF item error:', item, err);
+          errors++;
+        }
+      }
+
+      dhiBulkPdfState.running = false;
+      if (stopBtn) stopBtn.classList.add('hidden');
+      if (startBtn) startBtn.disabled = false;
+      if (progLbl) {
+        progLbl.textContent = dhiBulkPdfState.cancelled
+          ? `Stopped. Attached ${attachedPdfs} PDFs, created ${createdStandalone} standalone reports (${errors} errors).`
+          : `Done! Attached ${attachedPdfs} PDFs, created ${createdStandalone} standalone reports (${errors} errors).`;
+      }
+      protoToastMsg(`Bulk PDF attach finished: ${attachedPdfs} PDFs attached, ${createdStandalone} standalone reports created.`);
+      try {
+        const { data: { session } } = await dhiSupabase.auth.getSession();
+        if (session) await dhiRefreshAccountData(session);
+      } catch (_e) {}
+    }
+
     const dhiBulkHgState = {
       items: [],
       onlyLastTwoYears: true,
@@ -11614,7 +12023,7 @@ function submitInspectionQuoteRequest(payload) {
         if (protoState.role !== 'admin' || protoState.viewingReport || protoState.adminTab === 'new') return false;
         const activeTag = (document.activeElement && document.activeElement.tagName || '').toUpperCase();
         if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT') return false;
-        const modalIds = ['dhiEditInspModal', 'protoPersonModal', 'dhiBulkHgModal', 'dhiHistoryModal', 'dhiCatalogModal', 'dhiForwardModal', 'dhiFeedbackModal'];
+        const modalIds = ['dhiEditInspModal', 'protoPersonModal', 'dhiBulkHgModal', 'dhiBulkPdfModal', 'dhiHistoryModal', 'dhiCatalogModal', 'dhiForwardModal', 'dhiFeedbackModal'];
         if (modalIds.some(mid => { const el = document.getElementById(mid); return el && !el.classList.contains('hidden'); })) return false;
         return true;
       };
@@ -12292,6 +12701,58 @@ function submitInspectionQuoteRequest(payload) {
       </ol>
       <div class="flex justify-end pt-2 border-t border-slate-100">
         <button type="button" onclick="document.getElementById('dhiGoogleLinkTipModal').classList.add('hidden')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Got It</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk Attach HomeGauge PDFs Modal (Admin) -->
+  <div id="dhiBulkPdfModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 no-print">
+    <div class="bg-white rounded-2xl max-w-4xl w-full p-5 space-y-4 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">HomeGauge Archive Import</span>
+          <h3 class="text-base font-extrabold text-slate-900">Bulk Attach Radon, Sewer Scope &amp; Termite PDFs</h3>
+        </div>
+        <button type="button" onclick="dhiCloseBulkPdfModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <p class="text-slate-600 leading-relaxed">Select your local <strong>HomeGauge_Archive</strong> folder (containing <code>manifest.json</code> and your downloaded PDFs). Main Inspection Report PDFs are skipped automatically; Radon, Sewer Scope, Termite, and other supplementary PDFs are matched to existing reports by address and date, or created as standalone report cards.</p>
+        <div class="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+          <label class="cursor-pointer px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white font-bold transition">
+            Choose HomeGauge_Archive Folder
+            <input type="file" id="dhiBulkPdfFolderInput" webkitdirectory directory multiple class="hidden" onchange="dhiBulkPdfHandleFolder(this.files)" />
+          </label>
+          <div class="flex items-center gap-2">
+            <label for="dhiBulkPdfCutoff" class="font-bold text-slate-700">Standalone cutoff date (optional):</label>
+            <input type="date" id="dhiBulkPdfCutoff" onchange="dhiBulkPdfRecomputePlan()" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-4 px-1">
+          <label class="inline-flex items-center gap-2 font-semibold text-slate-700 cursor-pointer">
+            <input type="checkbox" id="dhiBulkPdfCreateStandalone" checked onchange="dhiBulkPdfRecomputePlan()" class="rounded border-slate-300" />
+            <span>Create standalone report cards for homes with no main inspection</span>
+          </label>
+          <label class="inline-flex items-center gap-2 font-semibold text-slate-700 cursor-pointer">
+            <input type="checkbox" id="dhiBulkPdfAutoStreetView" checked class="rounded border-slate-300" />
+            <span>Auto-fetch Street View cover photo for new standalone reports</span>
+          </label>
+        </div>
+        <div id="dhiBulkPdfSummary" class="hidden rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-emerald-900 font-semibold"></div>
+        <div id="dhiBulkPdfProgressWrap" class="hidden space-y-1.5">
+          <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+            <span id="dhiBulkPdfProgressLabel">Preparing...</span>
+            <span id="dhiBulkPdfProgressPct">0%</span>
+          </div>
+          <div class="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden">
+            <div id="dhiBulkPdfProgressBar" class="h-full bg-emerald-600 transition-all duration-200" style="width:0%"></div>
+          </div>
+        </div>
+        <div id="dhiBulkPdfPreviewList" class="hidden max-h-72 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100"></div>
+      </div>
+      <div class="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-slate-100">
+        <button type="button" id="dhiBulkPdfCancelRunBtn" onclick="dhiBulkPdfCancel()" class="hidden px-4 py-2 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">Stop</button>
+        <button type="button" onclick="dhiCloseBulkPdfModal()" class="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold">Close</button>
+        <button type="button" id="dhiBulkPdfStartBtn" disabled onclick="dhiBulkPdfStartUpload()" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold transition">Start Attach &amp; Upload</button>
       </div>
     </div>
   </div>
