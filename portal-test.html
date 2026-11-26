@@ -3486,7 +3486,22 @@ function submitInspectionQuoteRequest(payload) {
       if (protoState.role === 'login') root.innerHTML = renderLoginHTML();
       else if (protoState.role === 'third_party') {
         const userEmail = (protoState.authUser?.email || '').toLowerCase();
-        const cards = (protoState.inspections || []).map(insp => {
+        const agQ = (protoState.agentPortalSearch || '').trim().toLowerCase();
+      const sortedAgentInsps = (protoState.inspections || []).slice().sort((a, b) => {
+        return dhiParseInspDateMs(b.date, b.createdAt) - dhiParseInspDateMs(a.date, a.createdAt);
+      });
+      const filteredAgentInsps = !agQ ? sortedAgentInsps : sortedAgentInsps.filter(i => {
+        const custTxt = dhiGetInspCustomers(i).map(c => (c.name || '') + ' ' + (c.email || '')).join(' ');
+        return ((i.address || '') + ' ' + (i.clientName || '') + ' ' + (i.date || '') + ' ' + custTxt).toLowerCase().includes(agQ);
+      });
+      const agRepPageSize = 10;
+      const agRepTotalPages = Math.max(1, Math.ceil(filteredAgentInsps.length / agRepPageSize));
+      const agRepPage = Math.min(Math.max(1, protoState.agentReportsPage || 1), agRepTotalPages);
+      protoState.agentReportsPage = agRepPage;
+      const pagedAgentInsps = filteredAgentInsps.slice((agRepPage - 1) * agRepPageSize, agRepPage * agRepPageSize);
+      dhiQueueCoverSignForVisible(pagedAgentInsps);
+
+      const cards = pagedAgentInsps.map(insp => {
           const allowMain = !insp.allowedDocs || insp.allowedDocs.includes('main');
           const firstTab = allowMain ? 'main' : ((insp.extraDocs && insp.extraDocs[0]) ? insp.extraDocs[0].id : 'main');
           return `
@@ -3991,12 +4006,26 @@ function submitInspectionQuoteRequest(payload) {
       });
     }
 
-    function dhiRenderPageBar(stateKey, page, totalPages, totalItems, pageSize) {
+    let dhiCoverSignInFlight = false;
+    function dhiQueueCoverSignForVisible(inspList) {
+      if (!dhiSupabase || !Array.isArray(inspList) || !inspList.length || dhiCoverSignInFlight) return;
+      const need = inspList.filter(x => x && x.coverPhotoPath && !x.coverPhotoUrl && !x._coverSignTried);
+      if (!need.length) return;
+      dhiCoverSignInFlight = true;
+      need.forEach(x => { x._coverSignTried = true; });
+      dhiSignCoverPhotosForList(need).then(() => {
+        dhiCoverSignInFlight = false;
+        if (need.some(x => x.coverPhotoUrl)) renderProtoPortal();
+      }).catch(() => { dhiCoverSignInFlight = false; });
+    }
+
+    function dhiRenderPageBar(stateKey, page, totalPages, totalItems, pageSize, position) {
       if (totalPages <= 1) return '';
       const startNum = (page - 1) * pageSize + 1;
       const endNum = Math.min(totalItems, page * pageSize);
+      const borderCls = position === 'top' ? 'pb-3 border-b border-slate-100' : 'pt-3 border-t border-slate-100';
       return `
-        <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 text-xs text-slate-600">
+        <div class="flex flex-wrap items-center justify-between gap-2 ${borderCls} text-xs text-slate-600">
           <span>Showing <strong>${startNum}-${endNum}</strong> of <strong>${totalItems}</strong></span>
           <div class="flex items-center gap-1.5">
             <button type="button" ${page <= 1 ? 'disabled' : ''} onclick="protoState.${stateKey}=${Math.max(1, page - 1)}; renderProtoPortal();" class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy font-bold disabled:opacity-40 transition">Prev</button>
@@ -5188,7 +5217,43 @@ function submitInspectionQuoteRequest(payload) {
         <table><thead><tr><th>Service Description</th><th style="text-align:right;">Amount</th></tr></thead><tbody>${rows}</tbody>
         <tfoot><tr><td style="padding:14px 8px;font-weight:900;font-size:15px;">Total Paid</td><td style="padding:14px 8px;text-align:right;font-weight:900;font-size:16px;color:#0f2942;">$${total.toFixed(2)}</td></tr></tfoot></table>
         <p style="margin-top:32px;font-size:12px;color:#64748b;">Thank you for choosing Davis Home Inspections, LLC.</p>
-      </body></html>`);
+      
+  <!-- Portal Feedback / Bug Report Modal -->
+  <div id="dhiFeedbackModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) dhiCloseFeedbackModal()">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden">
+      <div class="px-5 py-4 bg-davis-navy text-white flex items-center justify-between gap-3">
+        <div>
+          <div id="dhiFeedbackBadge" class="text-[10px] font-bold uppercase tracking-widest text-sky-300">Portal Feedback</div>
+          <h3 id="dhiFeedbackTitle" class="text-base font-extrabold">Share Feedback or Report an Issue</h3>
+        </div>
+        <button type="button" onclick="dhiCloseFeedbackModal()" class="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold">✕</button>
+      </div>
+      <div class="p-5 space-y-4 text-xs">
+        <p class="text-slate-600 leading-relaxed">Let me know if you run into any issues or if you have any ideas for improvements or features that you would like to see.</p>
+        <div class="flex items-center gap-2">
+          <button type="button" id="dhiFbTypeBug" onclick="dhiSetFeedbackType('Bug / Issue')" class="px-3 py-1.5 rounded-lg border border-davis-navy bg-davis-navy text-white font-bold transition">Bug / Issue</button>
+          <button type="button" id="dhiFbTypeIdea" onclick="dhiSetFeedbackType('Feature Idea')" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:border-davis-navy font-bold transition">Feature Idea</button>
+        </div>
+        <div>
+          <label for="dhiFeedbackMsg" class="block font-bold text-slate-700 mb-1">Details *</label>
+          <textarea id="dhiFeedbackMsg" rows="4" placeholder="Describe what happened or what you'd like to see added..." class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-davis-navy outline-none"></textarea>
+        </div>
+        <label class="flex items-center gap-2 text-slate-700 font-medium cursor-pointer select-none">
+          <input id="dhiFeedbackOkContact" type="checkbox" class="rounded border-slate-300 text-davis-navy" />
+          <span>It's okay to contact me if you have questions about this.</span>
+        </label>
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+          <span id="dhiFeedbackFromHint" class="text-[11px] text-slate-400 truncate"></span>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="dhiCloseFeedbackModal()" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold">Cancel</button>
+            <button type="button" id="dhiFeedbackSubmitBtn" onclick="dhiSubmitFeedbackModal()" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white font-bold transition">Send to Matt</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body></html>`);
       w.document.close();
     }
 
@@ -5329,6 +5394,7 @@ function submitInspectionQuoteRequest(payload) {
             <div class="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-slate-200">
               <div class="flex flex-wrap items-center gap-1.5">
                 <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-davis-navy text-white text-xs font-bold transition">Open Report</button>
+                ${(!insp.isDemo && !(insp.propertyInfo && insp.propertyInfo.migratedFromHomeGauge)) ? `<a href="inspect.html?id=${encodeURIComponent(insp.id)}" target="_blank" rel="noopener" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-xs font-bold transition">Edit Report</a>` : ''}
                 <button type="button" onclick="protoUploadHomeGaugeReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 border border-sky-300 hover:border-davis-navy text-davis-navy text-xs font-bold transition">Upload HG (.zip)</button>
                 <details class="relative inline-block">
                   <summary class="list-none cursor-pointer px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition select-none">+ Attach PDF &#9662;</summary>
@@ -5404,11 +5470,12 @@ function submitInspectionQuoteRequest(payload) {
           </div>
         `;
       } else if (protoState.adminTab === 'reports') {
-        const repPageSize = 50;
+        const repPageSize = 20;
         const repTotalPages = Math.max(1, Math.ceil(filteredReleased.length / repPageSize));
         const repPage = Math.min(Math.max(1, protoState.reportsPage || 1), repTotalPages);
         protoState.reportsPage = repPage;
         const pagedReleased = filteredReleased.slice((repPage - 1) * repPageSize, repPage * repPageSize);
+        dhiQueueCoverSignForVisible(pagedReleased);
         bodyHTML = `
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
@@ -5422,8 +5489,9 @@ function submitInspectionQuoteRequest(payload) {
               </div>
             </div>
             ${pagedReleased.length ? `
+              ${dhiRenderPageBar('reportsPage', repPage, repTotalPages, filteredReleased.length, repPageSize, 'top')}
               <div class="space-y-3">${renderInspTableRows(pagedReleased, false)}</div>
-              ${dhiRenderPageBar('reportsPage', repPage, repTotalPages, filteredReleased.length, repPageSize)}
+              ${dhiRenderPageBar('reportsPage', repPage, repTotalPages, filteredReleased.length, repPageSize, 'bottom')}
             ` : `
               <div class="rounded-xl bg-slate-50 border border-dashed border-slate-300 p-8 text-center text-xs text-slate-500">No released inspection reports yet.</div>
             `}
@@ -6181,6 +6249,7 @@ function submitInspectionQuoteRequest(payload) {
       const c = String(city || '').trim();
       const st = String(state || '').trim().toUpperCase();
       const z = String(zip || '').trim();
+      if (!s && !c && !z) return '';
       const tail = [st, z].filter(Boolean).join(' ');
       return [s, c, tail].filter(Boolean).join(', ');
     }
@@ -7751,10 +7820,7 @@ function submitInspectionQuoteRequest(payload) {
                 <button type="button" onclick="dhiBulkHgToggleTwoYears(true)" ${dhiBulkHgState.importing ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg ${dhiBulkHgState.onlyLastTwoYears ? 'bg-davis-navy text-white' : 'text-slate-600'}">Last 2 Years</button>
                 <button type="button" onclick="dhiBulkHgToggleTwoYears(false)" ${dhiBulkHgState.importing ? 'disabled' : ''} class="px-2.5 py-1 rounded-lg ${!dhiBulkHgState.onlyLastTwoYears ? 'bg-davis-navy text-white' : 'text-slate-600'}">All Found (${dhiBulkHgState.items.length})</button>
               </div>
-              <div class="inline-flex items-center gap-1">
-                <button type="button" onclick="dhiBulkHgSetAll(true)" ${dhiBulkHgState.importing ? 'disabled' : ''} class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-[11px] font-bold transition">Check All</button>
-                <button type="button" onclick="dhiBulkHgSetAll(false)" ${dhiBulkHgState.importing ? 'disabled' : ''} class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-[11px] font-bold transition">Uncheck All</button>
-              </div>
+
             ` : ''}
           </div>
           <div class="flex items-center gap-2">
@@ -7923,6 +7989,88 @@ function submitInspectionQuoteRequest(payload) {
       }
     }
 
+
+    let dhiFeedbackState = { role: 'User', category: 'Bug / Issue' };
+
+    function dhiSetFeedbackType(cat) {
+      dhiFeedbackState.category = cat;
+      const bBug = document.getElementById('dhiFbTypeBug');
+      const bIdea = document.getElementById('dhiFbTypeIdea');
+      const activeCls = 'px-3 py-1.5 rounded-lg border border-davis-navy bg-davis-navy text-white font-bold transition';
+      const idleCls = 'px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:border-davis-navy font-bold transition';
+      if (bBug) bBug.className = cat === 'Bug / Issue' ? activeCls : idleCls;
+      if (bIdea) bIdea.className = cat === 'Feature Idea' ? activeCls : idleCls;
+    }
+
+    function dhiOpenFeedbackModal(roleLabel) {
+      dhiFeedbackState.role = roleLabel || (protoState.role === 'agent' ? 'Agent' : 'Buyer');
+      dhiSetFeedbackType('Bug / Issue');
+      const msgEl = document.getElementById('dhiFeedbackMsg');
+      const okEl = document.getElementById('dhiFeedbackOkContact');
+      const hintEl = document.getElementById('dhiFeedbackFromHint');
+      const titleEl = document.getElementById('dhiFeedbackTitle');
+      if (msgEl) msgEl.value = '';
+      if (okEl) okEl.checked = false; // Unchecked by default
+      if (titleEl) {
+        titleEl.textContent = dhiFeedbackState.role === 'Agent'
+          ? 'Portal Feedback & Feature Ideas'
+          : 'Report an Issue or Share Feedback';
+      }
+      const userEmail = protoState.authUser?.email || '';
+      if (hintEl) hintEl.textContent = userEmail ? ('Sending as ' + userEmail) : '';
+      document.getElementById('dhiFeedbackModal')?.classList.remove('hidden');
+      setTimeout(() => msgEl && msgEl.focus(), 40);
+    }
+
+    function dhiCloseFeedbackModal() {
+      document.getElementById('dhiFeedbackModal')?.classList.add('hidden');
+    }
+
+    async function dhiSubmitFeedbackModal() {
+      const msgEl = document.getElementById('dhiFeedbackMsg');
+      const okEl = document.getElementById('dhiFeedbackOkContact');
+      const btn = document.getElementById('dhiFeedbackSubmitBtn');
+      const message = (msgEl?.value || '').trim();
+      if (!message) {
+        protoToastMsg('Please enter a short description before sending.');
+        return;
+      }
+      const okToContact = !!(okEl && okEl.checked);
+      const activeInsp = (protoState.inspections || []).find(i => i.id === protoState.activeInspectionId);
+      const contextLabel = protoState.viewingReport && activeInsp
+        ? ('Report Viewer: ' + activeInsp.address)
+        : (dhiFeedbackState.role + ' Dashboard');
+      const actorName = (protoState.agentProfile && dhiDisplayName(protoState.agentProfile))
+        || protoState.authUser?.user_metadata?.full_name
+        || protoState.authUser?.email
+        || dhiFeedbackState.role;
+      if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+      try {
+        if (!dhiSupabase || !dhiIsLiveSession()) {
+          throw new Error('Please sign in to send feedback.');
+        }
+        const { data, error } = await dhiSupabase.functions.invoke('notify-admin', {
+          body: {
+            eventType: 'portal_feedback',
+            category: dhiFeedbackState.category,
+            message,
+            senderRole: dhiFeedbackState.role,
+            actorName,
+            okToContact,
+            contextLabel
+          }
+        });
+        if (error) throw new Error(error.message || 'Could not send feedback');
+        if (data && data.error) throw new Error(data.error);
+        dhiCloseFeedbackModal();
+        protoToastMsg('Thanks! Your feedback was sent to Matt.');
+      } catch (err) {
+        protoToastMsg('Could not send feedback: ' + (err.message || err));
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Send to Matt'; }
+      }
+    }
+
     function renderAgentHTML() {
       const userEmail = protoState.authUser?.email || protoState.loggedInAgentEmail || '';
       const hasGoogleLinked = !!(protoState.authUser?.identities || []).some(id => id.provider === 'google');
@@ -7980,17 +8128,29 @@ function submitInspectionQuoteRequest(payload) {
               ) : ''}
               ${!protoState.demoMode ? `<button type="button" onclick="dhiOpenAgentProfileModal()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Edit Profile</button>` : ''}
               ${!protoState.demoMode ? `<button type="button" onclick="dhiSetAgentPassword()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Set Password</button>` : ''}
+              ${!protoState.demoMode ? `<button type="button" onclick="dhiOpenFeedbackModal('Agent')" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Portal Feedback &amp; Ideas</button>` : ''}
               ${!protoState.demoMode ? `<button type="button" onclick="dhiSignOut()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Sign Out</button>` : ''}
             </div>
           </div>
+          ${(protoState.inspections || []).length > 3 ? `
+            <div class="flex flex-wrap items-center justify-between gap-2 bg-white rounded-2xl border border-slate-200 px-4 py-3 shadow-sm">
+              <input id="dhiAgentPortalSearch" type="search" value="${escapeHtml(protoState.agentPortalSearch || '')}" oninput="protoState.agentPortalSearch=this.value; protoState.agentReportsPage=1; renderProtoPortal();" placeholder="Search property address or customer..." class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs w-full sm:w-64" />
+              <span class="text-xs text-slate-500 font-semibold">${filteredAgentInsps.length} report${filteredAgentInsps.length === 1 ? '' : 's'}</span>
+            </div>
+          ` : ''}
+          ${dhiRenderPageBar('agentReportsPage', agRepPage, agRepTotalPages, filteredAgentInsps.length, agRepPageSize, 'top')}
           <div class="space-y-3">${cards || emptyAgentHTML}</div>
+          ${dhiRenderPageBar('agentReportsPage', agRepPage, agRepTotalPages, filteredAgentInsps.length, agRepPageSize, 'bottom')}
         </div>
       `;
     }
 
     function renderBuyerHTML() {
       const activeEmail = (protoState.authUser?.email || protoState.loggedInBuyerEmail || '').toLowerCase();
-      const buyerInsps = (protoState.inspections || []).filter(i => (i.clientEmail || '').toLowerCase() === activeEmail);
+      const buyerInsps = (protoState.inspections || []).filter(i =>
+        (i.clientEmail || '').toLowerCase() === activeEmail
+        || (Array.isArray(i.additionalClientEmails) && i.additionalClientEmails.some(e => String(e || '').toLowerCase() === activeEmail))
+      );
       const list = buyerInsps.length ? buyerInsps : (protoState.demoMode && protoState.inspections.length ? [protoState.inspections[0]] : []);
       if (!list.length) {
         return `
@@ -8000,7 +8160,10 @@ function submitInspectionQuoteRequest(payload) {
                 <div class="text-[11px] font-bold uppercase tracking-wider text-sky-300">Signed In • ${escapeHtml(activeEmail)}</div>
                 <h2 class="text-xl font-extrabold">Your Inspections (0)</h2>
               </div>
-              <button type="button" onclick="dhiSignOut()" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Sign Out</button>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="dhiOpenFeedbackModal('Buyer')" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Report an Issue / Feedback</button>
+                <button type="button" onclick="dhiSignOut()" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Sign Out</button>
+              </div>
             </div>
             <div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center space-y-2">
               <div class="text-base font-extrabold text-slate-800">No inspections found for ${escapeHtml(activeEmail)}</div>
@@ -8049,6 +8212,7 @@ function submitInspectionQuoteRequest(payload) {
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 ${canViewReport ? `<button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-extrabold shadow transition">Open Reports &amp; Co-View →</button><button type="button" onclick="dhiOpenForwardModal('${insp.id}')" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Forward Report</button>` : `<span class="px-3 py-1.5 rounded-xl bg-white/10 text-xs font-bold">Complete steps below to unlock reports</span>`}
+                ${!protoState.demoMode ? `<button type="button" onclick="dhiOpenFeedbackModal('Buyer')" class="px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Report an Issue / Feedback</button>` : ''}
                 ${insp.paid ? `<button type="button" onclick="dhiDownloadReceiptPDF('${insp.id}')" class="px-3 py-2 rounded-xl bg-white text-davis-navy hover:bg-sky-50 text-xs font-bold transition">Receipt PDF</button>` : ''}
                 ${!protoState.demoMode ? `<button type="button" onclick="dhiSignOut()" class="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition">Sign Out</button>` : ''}
               </div>
@@ -11219,7 +11383,7 @@ function submitInspectionQuoteRequest(payload) {
 
           protoState.activeInspectionId = protoState.inspections.length ? protoState.inspections[0].id : null;
         }
-        await dhiSignCoverPhotosForList(protoState.inspections);
+        await dhiSignCoverPhotosForList((protoState.inspections || []).slice(0, 25));
       } catch (err) {
         console.warn('Error loading account data:', err);
       } finally {
