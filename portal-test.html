@@ -3389,25 +3389,39 @@ function submitInspectionQuoteRequest(payload) {
       return 0;
     }
 
+    function dhiIsSharedLastNameCouple(parts) {
+      return Array.isArray(parts) && parts.length === 2
+        && !/\s/.test(String(parts[0] || '').trim())
+        && /\s/.test(String(parts[1] || '').trim());
+    }
+
     function dhiGetInspCustomers(insp) {
       if (!insp) return [];
       const pi = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
-      if (Array.isArray(pi.customers) && pi.customers.length) {
-        return pi.customers.filter(c => c && ((c.name || '').trim() || (c.email || '').trim()));
-      }
-      const list = [];
       const rawName = String(insp.clientName || '').trim();
       const primaryEmail = String(insp.clientEmail || '').trim().toLowerCase();
+      if (Array.isArray(pi.customers) && pi.customers.length) {
+        const cleanArr = pi.customers.filter(c => c && ((c.name || '').trim() || (c.email || '').trim()));
+        // Repair legacy imports that split "Darrin & Beth Hargrove" into ["Darrin", "Beth Hargrove"]
+        if (cleanArr.length === 2 && !cleanArr[0].email && dhiIsSharedLastNameCouple([cleanArr[0].name, cleanArr[1].name])) {
+          const combined = rawName || (cleanArr[0].name + ' & ' + cleanArr[1].name);
+          const em = primaryEmail || cleanArr[1].email || (typeof dhiLookupDirectoryEmail === 'function' ? dhiLookupDirectoryEmail(combined, 'customer') : '');
+          return [{ name: combined, email: em }];
+        }
+        return cleanArr;
+      }
+      const list = [];
       const extraEmails = Array.isArray(insp.additionalClientEmails) ? insp.additionalClientEmails : [];
+      const exactDirEmail = (rawName && typeof dhiLookupDirectoryEmail === 'function') ? dhiLookupDirectoryEmail(rawName, 'customer') : '';
       const nameParts = rawName ? rawName.split(/\s*(?:&|\/|\band\b)\s*/i).map(x => x.trim()).filter(Boolean) : [];
-      if (nameParts.length > 1) {
+      if (nameParts.length > 1 && !exactDirEmail && !dhiIsSharedLastNameCouple(nameParts)) {
         nameParts.forEach((nm, idx) => {
           let em = idx === 0 ? primaryEmail : (extraEmails[idx - 1] || '');
           if (!em && typeof dhiLookupDirectoryEmail === 'function') em = dhiLookupDirectoryEmail(nm, 'customer');
           list.push({ name: nm, email: em });
         });
       } else if (rawName || primaryEmail) {
-        list.push({ name: rawName || primaryEmail, email: primaryEmail });
+        list.push({ name: rawName || primaryEmail, email: primaryEmail || exactDirEmail });
         extraEmails.forEach(em => {
           const ce = String(em || '').trim().toLowerCase();
           if (ce && !list.some(x => (x.email || '').toLowerCase() === ce)) list.push({ name: ce, email: ce });
@@ -6192,19 +6206,22 @@ function submitInspectionQuoteRequest(payload) {
 
       return `
         <div class="space-y-5">
-          <div class="sticky top-0 md:static z-20 bg-white/95 md:bg-white backdrop-blur md:backdrop-blur-none rounded-2xl border border-slate-200 p-2.5 sm:p-4 space-y-2 sm:space-y-3 shadow-md md:shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2 px-1">
+            <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Admin Dashboard</h1>
+            <div class="flex items-center gap-2 sm:gap-2.5">
+              <span class="hidden sm:inline text-xs font-semibold text-slate-500">${escapeHtml(protoState.authUser?.email || 'Matt@Davis-Inspections.com')}</span>
+              <button type="button" onclick="dhiSignOut()" class="px-3 sm:px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-[11px] sm:text-xs font-bold transition">Sign Out</button>
+            </div>
+          </div>
+          <div class="sticky top-0 md:static z-20 bg-slate-100/95 md:bg-slate-100 backdrop-blur md:backdrop-blur-none rounded-2xl border border-slate-300/80 p-2.5 sm:p-4 space-y-2 sm:space-y-3 shadow-md md:shadow-sm">
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto md:flex-wrap dhi-no-scrollbar min-w-0 flex-1 py-0.5">
                 ${tabBtns}
               </div>
               <button type="button" onclick="protoState.adminTab='new'; renderProtoPortal();" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-extrabold transition shadow-sm shrink-0 whitespace-nowrap ${protoState.adminTab === 'new' ? 'bg-emerald-700 text-white ring-2 ring-emerald-300' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}">+ New Inspection</button>
             </div>
-            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/80">
               <a href="./inspect.html" class="px-3 sm:px-3.5 py-1.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-[11px] sm:text-xs font-bold transition whitespace-nowrap">Field &amp; Report App &rarr;</a>
-              <div class="flex items-center gap-2 sm:gap-2.5 ml-auto">
-                <span class="hidden sm:inline text-xs font-semibold text-slate-500">${escapeHtml(protoState.authUser?.email || 'Matt@Davis-Inspections.com')}</span>
-                <button type="button" onclick="dhiSignOut()" class="px-3 sm:px-3.5 py-1.5 rounded-xl border border-slate-300 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-[11px] sm:text-xs font-bold transition">Sign Out</button>
-              </div>
             </div>
           </div>
           ${bodyHTML}
@@ -7403,27 +7420,38 @@ function submitInspectionQuoteRequest(payload) {
         const preparedFor = bodyText.match(/Prepared\s+For\s*[:\-]\s*([A-Za-z][A-Za-z\s.&'\-]{1,45}?)(?:\s+(?:Concerning|By|Date|Property|Address|Agent|Real\s+Estate)|$)/i);
         if (preparedFor) rawCustNames = [clean(preparedFor[1])];
       }
-      // Split any combined "Name 1 & Name 2" lines into individual customer entries
-      const splitPeople = (arr) => {
+      // Smart split: keep shared-account couples (e.g. "Darrin & Beth Hargrove") intact as ONE entry
+      const splitPeople = (arr, roleType) => {
         const out = [];
-        arr.forEach(line => {
-          String(line || '').split(/\s*(?:&|\/|\band\b)\s*/i).forEach(part => {
-            const p = clean(part);
-            if (p && !out.includes(p)) out.push(p);
-          });
+        arr.forEach(rawLine => {
+          const line = clean(rawLine);
+          if (!line) return;
+          // 1. If the full line matches a directory account as-is, keep it together
+          if (dhiLookupDirectoryEmail(line, roleType)) {
+            if (!out.includes(line)) out.push(line);
+            return;
+          }
+          const parts = line.split(/\s*(?:&|\/|\band\b)\s*/i).map(clean).filter(Boolean);
+          // 2. If it's a shared-last-name couple ("Darrin & Beth Hargrove"), keep intact as one account
+          if (parts.length <= 1 || dhiIsSharedLastNameCouple(parts)) {
+            if (!out.includes(line)) out.push(line);
+            return;
+          }
+          // 3. Otherwise (two full names on one line), split into individual people
+          parts.forEach(p => { if (p && !out.includes(p)) out.push(p); });
         });
         return out;
       };
-      const customerNameList = splitPeople(rawCustNames);
+      const customerNameList = splitPeople(rawCustNames, 'customer');
 
       const agentLines = getFieldLines('real estate agent', 'buyer\'s agent', 'agent', 'real estate rep');
       let agentNameList = [];
       if (agentLines.length) {
-        agentNameList = splitPeople([agentLines[0]]);
+        agentNameList = splitPeople([agentLines[0]], 'agent');
         if (agentLines.length > 1) agentBrokerage = agentLines.slice(1).join(', ');
       } else {
         const repMatch = bodyText.match(/(?:Real\s+Estate\s+(?:Agent|Professional|Rep)|Buyer'?s\s+Agent)\s*[:\-]\s*([A-Za-z][A-Za-z\s.&'\-]{1,45}?)(?:\s+(?:Company|Brokerage|Phone|Email|Date|Prepared|Property)|$)/i);
-        if (repMatch) agentNameList = splitPeople([clean(repMatch[1])]);
+        if (repMatch) agentNameList = splitPeople([clean(repMatch[1])], 'agent');
       }
 
       const mailtos = Array.from(doc.querySelectorAll('a[href^="mailto:"]'))
