@@ -5593,6 +5593,18 @@
       applyFieldDesktopTheme(saved);
     })();
 
+    // Register Field App offline Service Worker + request persistent IndexedDB storage
+    (function initFieldOfflineProtection() {
+      try {
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+          navigator.serviceWorker.register('./sw.js').catch(() => {});
+        }
+        if (navigator.storage && typeof navigator.storage.persist === 'function') {
+          navigator.storage.persist().catch(() => {});
+        }
+      } catch (_e) {}
+    })();
+
     dhiUpdateOnlineIndicator();
     initApp();
   </script>
