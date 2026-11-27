@@ -666,9 +666,15 @@
                 <label for="reqPropMls" class="block text-xs font-semibold text-slate-700 mb-1">MLS #</label>
                 <input type="text" id="reqPropMls" placeholder="Optional or N/A" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-davis-navy outline-none" />
               </div>
-              <div class="sm:col-span-3">
-                <label for="reqPreferredDate" class="block text-xs font-semibold text-slate-700 mb-1">Preferred Date / Window</label>
-                <input type="text" id="reqPreferredDate" placeholder="e.g., Next Tuesday AM" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-davis-navy outline-none" />
+              <div class="sm:col-span-3 space-y-1.5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <label for="reqPreferredDate" class="block text-xs font-semibold text-slate-700">Preferred Date / Window</label>
+                  <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-davis-navy cursor-pointer select-none">
+                    <input type="checkbox" id="reqScheduleWithAgent" onchange="dhiTogglePublicScheduleWithAgent(this.checked)" class="rounded border-slate-300 text-davis-navy" />
+                    <span>Schedule directly with my agent</span>
+                  </label>
+                </div>
+                <input type="text" id="reqPreferredDate" placeholder="e.g., Next Tuesday AM" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm text-slate-900 focus:border-davis-navy outline-none transition" />
               </div>
             </div>
           </div>
@@ -5834,6 +5840,7 @@
                       <option value="agreement_ready">Resend Confirmed Email</option>
                     </select>
                     <button type="button" onclick="const m=document.getElementById('dhiEmailTypeMob-${insp.id}'); const d=document.getElementById('dhiEmailType-${insp.id}'); if(m&&d) d.value=m.value; protoSendAdminEmail('${insp.id}');" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white text-xs font-bold shrink-0">Send Email</button>
+                    <button type="button" onclick="dhiOpenRecapModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-800 text-xs font-bold shrink-0">AI Recap</button>
                   </div>
                 </div>
               </details>
@@ -5903,6 +5910,7 @@
                     <option value="agreement_ready">Resend Confirmed Email</option>
                   </select>
                   <button type="button" onclick="protoSendAdminEmail('${insp.id}')" class="px-3 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Send Email</button>
+                  <button type="button" onclick="dhiOpenRecapModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 text-xs font-bold transition">AI Recap</button>
                 </div>
               </div>
             </div>
@@ -6018,11 +6026,31 @@
           const phoneScheme = prefLower === 'text' ? 'sms:' : 'tel:';
           const phoneHint = prefLower === 'text' ? 'Text' : (prefLower === 'call' ? 'Call' : '');
           return `
-          <div class="bg-slate-50 rounded-xl border border-slate-200 p-3 sm:p-4 space-y-2.5 sm:space-y-3">
+          ${(() => {
+            const dd = (r.draftData && typeof r.draftData === 'object') ? r.draftData : null;
+            const st = String(r.status || 'New');
+            const stBadgeCls = st === 'Confirmed'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : (st === 'Changes Requested'
+                  ? 'bg-rose-100 border border-rose-300 text-rose-800'
+                  : (st === 'Quoted'
+                      ? 'bg-sky-100 border border-sky-300 text-davis-navy'
+                      : (st === 'Draft Saved'
+                          ? 'bg-slate-200 text-slate-800'
+                          : 'bg-amber-100 text-amber-800')));
+            const pillParts = [];
+            if (dd && Number(dd.total) > 0) pillParts.push('$' + Number(dd.total).toFixed(2));
+            if (dd && dd.scheduleWithAgent) pillParts.push('Schedule with Agent');
+            else if (dd && dd.dateLabel) pillParts.push(dd.dateLabel);
+            const topRightPill = (st !== 'New' || pillParts.length)
+              ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-extrabold shrink-0 ${stBadgeCls}">${escapeHtml(st)}${pillParts.length ? ' &bull; ' + escapeHtml(pillParts.join(' &bull; ')) : ''}</span>`
+              : '';
+            return `
+          <div class="bg-slate-50 rounded-xl border ${st === 'Confirmed' ? 'border-emerald-400 ring-1 ring-emerald-200' : 'border-slate-200'} p-3 sm:p-4 space-y-2.5 sm:space-y-3">
             <div class="flex flex-wrap items-start justify-between gap-2">
-              <div class="min-w-0">
+              <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${r.status === 'New' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">${r.status}</span>
+                  ${st === 'New' ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">New</span>` : ''}
                   <span class="text-xs font-bold text-slate-500">${r.clientRole || 'Client'} &bull; Prefers ${r.preferredResponse || 'Email'}</span>
                   ${receivedLabel ? `<span class="text-[11px] font-semibold text-slate-400"><span class="hidden sm:inline">&bull; </span>Received ${escapeHtml(receivedLabel)}</span>` : ''}
                 </div>
@@ -6033,10 +6061,7 @@
                   ${r.clientPhone ? `<span>&bull;</span>${phoneDigits ? `<a href="${phoneScheme}${phoneDigits}" title="${phoneScheme === 'sms:' ? 'Send text message' : 'Call phone number'}" class="text-davis-navy font-semibold hover:underline">${escapeHtml(r.clientPhone)}${phoneHint ? ` (${phoneHint})` : ''}</a>` : `<span>${escapeHtml(r.clientPhone)}</span>`}` : ''}
                 </p>
               </div>
-              <div class="hidden md:flex flex-wrap items-center gap-2 shrink-0">
-                <button type="button" onclick="protoDeleteRequest('${r.id}')" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Delete</button>
-                <button type="button" onclick="protoConvertRequestToInspection('${r.id}')" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Convert to Inspection &rarr;</button>
-              </div>
+              ${topRightPill}
             </div>
             <div class="flex flex-wrap gap-1.5 sm:gap-2 text-[11px] text-slate-600">
               <span class="px-2 py-1 rounded bg-white border border-slate-200"><strong>Sq Ft:</strong> ${r.sqft || '—'}</span>
@@ -6044,12 +6069,13 @@
               <span class="px-2 py-1 rounded bg-white border border-slate-200"><strong>Preferred Date:</strong> ${r.preferredDate || 'Flexible'}</span>
               ${(r.addons && r.addons.length) ? `<span class="px-2 py-1 rounded bg-white border border-slate-200"><strong>Add-Ons:</strong> ${r.addons.join(', ')}</span>` : ''}
             </div>
-            ${r.notes && r.notes !== 'None' ? `<p class="text-xs text-slate-700 bg-white rounded-lg p-2.5 border border-slate-200"><strong>Notes:</strong> ${r.notes}</p>` : ''}
-            <div class="md:hidden flex items-center gap-2 pt-2 border-t border-slate-200">
-              <button type="button" onclick="protoDeleteRequest('${r.id}')" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-bold shrink-0">Delete</button>
-              <button type="button" onclick="protoConvertRequestToInspection('${r.id}')" class="flex-1 px-3.5 py-2 rounded-xl bg-davis-navy text-white text-xs font-bold text-center">Convert to Inspection &rarr;</button>
+            ${r.notes && r.notes !== 'None' ? `<p class="text-xs text-slate-700 bg-white rounded-lg p-2.5 border border-slate-200 whitespace-pre-line"><strong>Notes:</strong> ${escapeHtml(r.notes)}</p>` : ''}
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+              <button type="button" onclick="protoDeleteRequest('${r.id}')" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold shrink-0 transition">Delete</button>
+              <button type="button" onclick="protoConvertRequestToInspection('${r.id}')" class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold text-center transition">Convert to Inspection &rarr;</button>
             </div>
-          </div>
+          </div>`;
+          })()}
         `;
         }).join('');
 
@@ -6616,12 +6642,20 @@
                   </div>
                 </div>
                 <div>
-                  <label class="block font-bold text-slate-700 mb-1">Inspection Date *</label>
-                  <input id="protoNewDateOnly" type="date" value="${escapeHtml(pre.dateOnly || '')}" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm bg-white" />
+                  <div class="flex items-center justify-between gap-2 mb-1">
+                    <label class="font-bold text-slate-700">Inspection Date ${pre.scheduleWithAgent ? '<span class="text-slate-400 font-normal">(Schedule with Agent)</span>' : '*'}</label>
+                  </div>
+                  <input id="protoNewDateOnly" type="date" value="${escapeHtml(pre.scheduleWithAgent ? '' : (pre.dateOnly || ''))}" ${pre.scheduleWithAgent ? 'disabled' : ''} class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm ${pre.scheduleWithAgent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}" />
                 </div>
                 <div>
-                  <label class="block font-bold text-slate-700 mb-1">Inspection Time *</label>
-                  <select id="protoNewTimeOnly" class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm bg-white">
+                  <div class="flex items-center justify-between gap-2 mb-1">
+                    <label class="font-bold text-slate-700">Inspection Time ${pre.scheduleWithAgent ? '' : '*'}</label>
+                    <label class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-davis-navy cursor-pointer select-none">
+                      <input id="protoNewScheduleWithAgent" type="checkbox" ${pre.scheduleWithAgent ? 'checked' : ''} onchange="protoSaveNewInspDraftInputs(); renderProtoPortal();" class="rounded border-slate-300 text-davis-navy" />
+                      <span>Schedule with Agent</span>
+                    </label>
+                  </div>
+                  <select id="protoNewTimeOnly" ${pre.scheduleWithAgent ? 'disabled' : ''} class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm ${pre.scheduleWithAgent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}">
                     ${timeOptionsHTML}
                   </select>
                 </div>
@@ -6728,6 +6762,48 @@
               </div>
             </div>
 
+            <!-- Quote / Availability Response Builder (v2.0-ai) -->
+            <div class="rounded-2xl border border-sky-200 bg-sky-50/50 p-4 space-y-3 text-xs">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div class="text-[11px] font-extrabold uppercase tracking-wider text-davis-navy">Quote &amp; Availability Response</div>
+                  <p class="text-[11px] text-slate-600">Draft a reply using the date/time and itemized invoice above, edit freely, then send a branded email or copy for text.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <div class="inline-flex rounded-lg border border-slate-300 bg-white p-0.5 text-[11px] font-bold">
+                    <button type="button" onclick="protoState.quoteDraftFmt='email'; renderProtoPortal();" class="px-2.5 py-1 rounded-md transition ${(protoState.quoteDraftFmt || 'email') === 'email' ? 'bg-davis-navy text-white' : 'text-slate-600'}">Email</button>
+                    <button type="button" onclick="protoState.quoteDraftFmt='text'; renderProtoPortal();" class="px-2.5 py-1 rounded-md transition ${protoState.quoteDraftFmt === 'text' ? 'bg-davis-navy text-white' : 'text-slate-600'}">Short Text</button>
+                  </div>
+                  <button type="button" id="dhiDraftQuoteBtn" onclick="dhiGenerateQuoteResponse()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition">Draft Response</button>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                <div class="md:col-span-2">
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Email Subject Line</label>
+                  <input id="dhiQuoteSubject" type="text" value="${escapeHtml(pre.quoteSubject || ('Inspection Details & Pricing: ' + (pre.address || pre.street || '')))}" oninput="if(protoState.newInspDraft) protoState.newInspDraft.quoteSubject=this.value;" class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-900" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 mb-1">Email Recipient</label>
+                  <select id="dhiQuoteRecipient" class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-800">
+                    <option value="customer" ${(pre.quoteRecipient || 'customer') === 'customer' ? 'selected' : ''}>Customer</option>
+                    <option value="agent" ${pre.quoteRecipient === 'agent' ? 'selected' : ''}>Agent</option>
+                    <option value="both" ${pre.quoteRecipient === 'both' ? 'selected' : ''}>Both (Customer &amp; Agent)</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 mb-1">Response Message (Editable)</label>
+                <textarea id="dhiQuoteMessage" rows="4" oninput="if(protoState.newInspDraft) protoState.newInspDraft.quoteMessage=this.value;" placeholder="Click 'Draft Response' to generate a message with the date/time and itemized quote above, or type your own..." class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs text-slate-800 leading-relaxed resize-y">${escapeHtml(pre.quoteMessage || '')}</textarea>
+              </div>
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-[11px] text-slate-500">${protoState.convertingRequestId ? 'Branded emails include 1-click Confirm Quote &amp; Questions buttons.' : 'Sends in your branded Davis Navy email template.'}</span>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button type="button" onclick="dhiCopyQuoteResponse()" class="px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-800 text-xs font-bold transition">Copy to Clipboard</button>
+                  <button type="button" id="dhiSendQuoteEmailBtn" onclick="dhiSendBrandedQuoteEmail()" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Send Branded Email</button>
+                </div>
+              </div>
+            </div>
+
             <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-100">
               <div class="text-base font-extrabold text-slate-900">Invoice Total: <span id="protoNewTotalDisplay" class="text-davis-navy">${calcTotal < 0 ? '-$' + Math.abs(calcTotal).toFixed(2) : '$' + calcTotal.toFixed(2)}</span></div>
               <div class="ml-auto flex flex-col items-end gap-2">
@@ -6747,6 +6823,7 @@
                     <span>Termite</span>
                   </label>
                 </div>
+                ${protoState.convertingRequestId ? `<button type="button" onclick="dhiSaveChangesToRequest()" class="px-4 py-2.5 rounded-xl border border-davis-navy bg-white hover:bg-davis-light text-davis-navy text-xs font-bold transition">Save Changes to Request</button>` : ''}
                 <button type="button" onclick="protoCreateInspection()" class="px-5 py-2.5 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Create Inspection &amp; Add to Google Calendar</button>
                 </div>
               </div>
@@ -6928,6 +7005,10 @@
         agentName: document.getElementById('protoNewAgentName')?.value || '',
         standalone: !!document.getElementById('protoNewStandalone')?.checked,
         forAgentOnly: !!document.getElementById('protoNewForAgentOnly')?.checked,
+        scheduleWithAgent: !!document.getElementById('protoNewScheduleWithAgent')?.checked,
+        quoteSubject: document.getElementById('dhiQuoteSubject')?.value || prev.quoteSubject || '',
+        quoteMessage: document.getElementById('dhiQuoteMessage')?.value || prev.quoteMessage || '',
+        quoteRecipient: document.getElementById('dhiQuoteRecipient')?.value || prev.quoteRecipient || 'customer',
         calTagRadon: !!document.getElementById('protoCalTagRadon')?.checked,
         calTagScope: !!document.getElementById('protoCalTagScope')?.checked,
         calTagTermite: !!document.getElementById('protoCalTagTermite')?.checked,
@@ -7104,6 +7185,15 @@
       const reqMls = (mlsMatch && mlsMatch[1] && mlsMatch[1].trim().toUpperCase() !== 'N/A') ? mlsMatch[1].trim() : '';
 
       protoState.convertingRequestId = reqId;
+      const savedDraft = (r.draftData && typeof r.draftData === 'object') ? r.draftData : null;
+      if (savedDraft && savedDraft.newInspDraft) {
+        protoState.newInspDraft = { ...savedDraft.newInspDraft };
+        protoState.draftLineItems = Array.isArray(savedDraft.lineItems) ? savedDraft.lineItems.map(x => ({ ...x })) : [];
+        protoState.adminTab = 'new';
+        renderProtoPortal();
+        return;
+      }
+      const reqSchedWithAgent = String(r.preferredDate || '').toLowerCase().includes('schedule with agent');
       protoState.newInspDraft = {
         address: r.address || '',
         street: parsedReqAddr.street || (r.address || '').split(',')[0].trim(),
@@ -7118,6 +7208,7 @@
         coverPhotoDataUrl: '',
         dateOnly,
         timeOnly: '',
+        scheduleWithAgent: reqSchedWithAgent,
         clientName: isAgentReq
           ? ((r.additionalCustomers && r.additionalCustomers[0] && r.additionalCustomers[0].name) || '')
           : (r.clientName || ''),
@@ -7225,6 +7316,7 @@
         protoToastMsg('Please enter at least the Property Address, Customer Name, and Customer Email.');
         return;
       }
+      if (document.getElementById('protoNewScheduleWithAgent')?.checked) { protoToastMsg('Uncheck "Schedule with Agent" and enter the finalized Date & Time before creating the inspection.'); return; }
       if (!dateOnly || !timeOnly) {
         protoToastMsg('Please select both an Inspection Date and Time.');
         const missingEl = document.getElementById(!dateOnly ? 'protoNewDateOnly' : 'protoNewTimeOnly');
@@ -12256,6 +12348,8 @@
         yearBuilt: r.property_year || r.yearBuilt || '',
         preferredDate: r.preferred_date || r.preferredDate || '',
         addons: Array.isArray(r.interested_addons) ? r.interested_addons : (Array.isArray(r.addons) ? r.addons : []),
+        draftData: (r.draft_data && typeof r.draft_data === 'object') ? r.draft_data : (r.draftData || null),
+        quoteToken: r.quote_token || r.quoteToken || '',
         additionalCustomers: addlCusts,
         additionalAgents: addlAgs,
         notes: r.notes || '',
@@ -12979,6 +13073,405 @@
       const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
+  
+
+    // =========================================================================
+    // v2.0-ai: SCHEDULE WITH AGENT, QUOTE BUILDER, SAVE TO REQUEST, AI RECAP, PUBLIC CONFIRM
+    // =========================================================================
+    function dhiTogglePublicScheduleWithAgent(checked) {
+      const el = document.getElementById('reqPreferredDate');
+      if (!el) return;
+      if (checked) {
+        el.value = 'Schedule with Agent';
+        el.disabled = true;
+        el.classList.add('bg-slate-100', 'text-slate-500', 'cursor-not-allowed');
+      } else {
+        if (el.value === 'Schedule with Agent') el.value = '';
+        el.disabled = false;
+        el.classList.remove('bg-slate-100', 'text-slate-500', 'cursor-not-allowed');
+      }
+    }
+
+    function dhiFormatAdminDateLabel(dateOnly, timeOnly) {
+      if (!dateOnly) return '';
+      try {
+        const d = new Date(dateOnly + 'T12:00:00');
+        const datePart = isNaN(d.getTime()) ? dateOnly : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return timeOnly ? `${datePart} at ${timeOnly}` : datePart;
+      } catch (_e) {
+        return dateOnly + (timeOnly ? ' at ' + timeOnly : '');
+      }
+    }
+
+    async function dhiGenerateQuoteResponse() {
+      protoSaveNewInspDraftInputs();
+      const pre = protoState.newInspDraft || {};
+      const lineItems = protoState.draftLineItems || [];
+      const total = lineItems.reduce((s, x) => s + Number(x.price || 0) * Number(x.qty || 1), 0);
+      const addr = [pre.street, pre.city, pre.state, pre.zip].filter(Boolean).join(', ') || pre.address || 'the property';
+      const dateStr = pre.scheduleWithAgent ? '' : dhiFormatAdminDateLabel(pre.dateOnly, pre.timeOnly);
+      const recipientMode = document.getElementById('dhiQuoteRecipient')?.value || 'customer';
+      const recipientName = recipientMode === 'agent' ? (pre.agentName || pre.clientName || '') : (pre.clientName || pre.agentName || '');
+      const fmt = protoState.quoteDraftFmt || 'email';
+
+      const btn = document.getElementById('dhiDraftQuoteBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Drafting...'; }
+      try {
+        const { data, error } = await dhiSupabase.functions.invoke('generate-narrative', {
+          body: {
+            action: 'draft_quote_response',
+            recipientName,
+            address: addr,
+            dateStr,
+            scheduleWithAgent: !!pre.scheduleWithAgent,
+            lineItems: lineItems.map(li => ({ name: li.name, price: Number(li.price || 0) * Number(li.qty || 1) })),
+            total,
+            format: fmt
+          }
+        });
+        if (error) throw new Error(error.message);
+        if (data && data.error) throw new Error(data.error);
+        const msg = (data && data.message) ? data.message.trim() : '';
+        const ta = document.getElementById('dhiQuoteMessage');
+        if (ta) ta.value = msg;
+        if (protoState.newInspDraft) {
+          protoState.newInspDraft.quoteMessage = msg;
+          if (!protoState.newInspDraft.quoteSubject) {
+            protoState.newInspDraft.quoteSubject = 'Inspection Details & Pricing: ' + addr;
+            const subEl = document.getElementById('dhiQuoteSubject');
+            if (subEl) subEl.value = protoState.newInspDraft.quoteSubject;
+          }
+        }
+        protoToastMsg('Quote response drafted! Review and edit before sending.');
+      } catch (err) {
+        protoToastMsg('Could not draft response: ' + (err.message || err));
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Draft Response'; }
+      }
+    }
+
+    function dhiCopyQuoteResponse() {
+      const msg = (document.getElementById('dhiQuoteMessage')?.value || '').trim();
+      if (!msg) { protoToastMsg('Draft or type a response message first.'); return; }
+      navigator.clipboard.writeText(msg).then(() => {
+        protoToastMsg('Copied quote response to clipboard!');
+      }).catch(() => {
+        protoToastMsg('Could not access clipboard.');
+      });
+    }
+
+    function dhiBuildRequestDraftPayload() {
+      protoSaveNewInspDraftInputs();
+      const pre = protoState.newInspDraft || {};
+      const lineItems = (protoState.draftLineItems || []).map(x => ({ ...x }));
+      const total = lineItems.reduce((s, x) => s + Number(x.price || 0) * Number(x.qty || 1), 0);
+      return {
+        newInspDraft: { ...pre },
+        lineItems,
+        total,
+        scheduleWithAgent: !!pre.scheduleWithAgent,
+        dateLabel: pre.scheduleWithAgent ? 'Schedule with Agent' : dhiFormatAdminDateLabel(pre.dateOnly, pre.timeOnly),
+        savedAt: new Date().toISOString()
+      };
+    }
+
+    async function dhiSaveChangesToRequest(overrideStatus, stayOnPage) {
+      const reqId = protoState.convertingRequestId;
+      if (!reqId) return null;
+      const r = (protoState.requests || []).find(x => x.id === reqId);
+      const draftPayload = dhiBuildRequestDraftPayload();
+      const nextStatus = overrideStatus || (r && (r.status === 'Quoted' || r.status === 'Confirmed') ? r.status : 'Draft Saved');
+      let quoteToken = (r && r.quoteToken) ? r.quoteToken : '';
+      if (!quoteToken) {
+        quoteToken = (typeof crypto !== 'undefined' && crypto.randomUUID)
+          ? crypto.randomUUID().replace(/-/g, '')
+          : (Math.random().toString(36).slice(2) + Date.now().toString(36));
+      }
+      if (r) {
+        r.draftData = draftPayload;
+        r.status = nextStatus;
+        r.quoteToken = quoteToken;
+      }
+      if (dhiIsLiveSession() && !String(reqId).startsWith('req-sample')) {
+        const { error } = await dhiSupabase
+          .from('inspection_requests')
+          .update({ draft_data: draftPayload, status: nextStatus, quote_token: quoteToken })
+          .eq('id', reqId);
+        if (error) {
+          protoToastMsg('Could not save request draft: ' + error.message);
+          return null;
+        }
+      }
+      if (!stayOnPage) {
+        protoState.convertingRequestId = null;
+        protoState.adminTab = 'requests';
+        renderProtoPortal();
+        protoToastMsg('Saved changes back to the Request card.');
+      }
+      return { reqId, quoteToken, draftPayload };
+    }
+
+    async function dhiSendBrandedQuoteEmail() {
+      protoSaveNewInspDraftInputs();
+      const pre = protoState.newInspDraft || {};
+      const msg = (document.getElementById('dhiQuoteMessage')?.value || '').trim();
+      if (!msg) { protoToastMsg('Draft or type a response message first.'); return; }
+      const addr = [pre.street, pre.city, pre.state, pre.zip].filter(Boolean).join(', ') || pre.address || 'Your Property';
+      const subject = (document.getElementById('dhiQuoteSubject')?.value || ('Inspection Details & Pricing: ' + addr)).trim();
+      const recMode = document.getElementById('dhiQuoteRecipient')?.value || 'customer';
+      const targets = [];
+      if ((recMode === 'customer' || recMode === 'both') && pre.clientEmail) targets.push({ email: pre.clientEmail.trim(), name: pre.clientName || '' });
+      if ((recMode === 'agent' || recMode === 'both') && pre.agentEmail) targets.push({ email: pre.agentEmail.trim(), name: pre.agentName || '' });
+      if (!targets.length) { protoToastMsg('Enter a Customer or Agent email address first.'); return; }
+
+      const btn = document.getElementById('dhiSendQuoteEmailBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+      try {
+        let confirmUrl = '';
+        let questionUrl = '';
+        if (protoState.convertingRequestId) {
+          const saved = await dhiSaveChangesToRequest('Quoted', true);
+          if (saved && saved.quoteToken) {
+            const baseOrigin = window.location.origin + window.location.pathname;
+            confirmUrl = `${baseOrigin}?quote_action=confirm&req_id=${encodeURIComponent(saved.reqId)}&token=${encodeURIComponent(saved.quoteToken)}`;
+            questionUrl = `${baseOrigin}?quote_action=question&req_id=${encodeURIComponent(saved.reqId)}&token=${encodeURIComponent(saved.quoteToken)}`;
+          }
+        }
+        const lineItems = (protoState.draftLineItems || []).map(li => ({ name: li.name, price: Number(li.price || 0) * Number(li.qty || 1) }));
+        const totalAmount = lineItems.reduce((s, x) => s + Number(x.price || 0), 0);
+        for (const t of targets) {
+          const { data, error } = await dhiSupabase.functions.invoke('send-portal-email', {
+            body: {
+              type: 'quote_response',
+              to: t.email,
+              recipientName: t.name,
+              address: addr,
+              customSubject: subject,
+              customBody: msg,
+              lineItems,
+              totalAmount,
+              confirmUrl,
+              questionUrl
+            }
+          });
+          if (error) throw new Error(error.message);
+          if (data && data.error) throw new Error(data.error);
+        }
+        protoToastMsg('Branded quote email sent to ' + targets.map(t => t.email).join(' & ') + '!');
+      } catch (err) {
+        protoToastMsg('Email failed: ' + (err.message || err));
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Send Branded Email'; }
+      }
+    }
+
+    // --- Item #4: AI Inspection Recap Modal ---
+    let dhiRecapInspId = null;
+    function dhiOpenRecapModal(inspId) {
+      const insp = (protoState.inspections || []).find(i => i.id === inspId);
+      if (!insp) return;
+      dhiRecapInspId = inspId;
+      document.getElementById('dhiRecapModalTitle').textContent = 'Recap: ' + (insp.address || 'Inspection');
+      const audEl = document.getElementById('dhiRecapAudience');
+      if (audEl) audEl.value = insp.agentEmail ? 'agent' : 'customer';
+      const bodyEl = document.getElementById('dhiRecapBody');
+      if (bodyEl) bodyEl.value = '';
+      document.getElementById('dhiRecapModal')?.classList.remove('hidden');
+    }
+
+    function dhiCloseRecapModal() {
+      document.getElementById('dhiRecapModal')?.classList.add('hidden');
+      dhiRecapInspId = null;
+    }
+
+    async function dhiRunGenerateRecap() {
+      const insp = (protoState.inspections || []).find(i => i.id === dhiRecapInspId);
+      if (!insp) return;
+      const audience = document.getElementById('dhiRecapAudience')?.value || 'agent';
+      const format = document.getElementById('dhiRecapFormat')?.value || 'email';
+      const btn = document.getElementById('dhiRecapGenBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Drafting...'; }
+      try {
+        let findings = [];
+        if (dhiIsLiveSession() && insp.id !== 'insp-demo') {
+          const { data: fRows } = await dhiSupabase
+            .from('inspection_findings')
+            .select('item_code, category, title, severity, is_summary, narrative')
+            .eq('inspection_id', insp.id);
+          if (Array.isArray(fRows)) {
+            findings = fRows.filter(f => f.is_summary || String(f.severity || '').toLowerCase().includes('repair'));
+            if (!findings.length) findings = fRows.slice(0, 12);
+          }
+        }
+        const recipientName = audience === 'agent' ? (insp.agentName || '') : (insp.clientName || '');
+        const { data, error } = await dhiSupabase.functions.invoke('generate-narrative', {
+          body: {
+            action: 'draft_recap',
+            address: insp.address || '',
+            recipientName,
+            audience,
+            format,
+            findings
+          }
+        });
+        if (error) throw new Error(error.message);
+        if (data && data.error) throw new Error(data.error);
+        const ta = document.getElementById('dhiRecapBody');
+        if (ta) ta.value = (data && data.message) ? data.message.trim() : '';
+        protoToastMsg('Recap drafted! Edit freely before sending.');
+      } catch (err) {
+        protoToastMsg('Could not draft recap: ' + (err.message || err));
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Draft Recap'; }
+      }
+    }
+
+    function dhiCopyRecapText() {
+      const txt = (document.getElementById('dhiRecapBody')?.value || '').trim();
+      if (!txt) { protoToastMsg('Draft or type a recap first.'); return; }
+      navigator.clipboard.writeText(txt).then(() => protoToastMsg('Recap copied to clipboard!')).catch(() => {});
+    }
+
+    function dhiOpenRecapSms() {
+      const insp = (protoState.inspections || []).find(i => i.id === dhiRecapInspId);
+      const txt = (document.getElementById('dhiRecapBody')?.value || '').trim();
+      if (!txt) { protoToastMsg('Draft or type a recap first.'); return; }
+      const audience = document.getElementById('dhiRecapAudience')?.value || 'agent';
+      let phone = '';
+      if (insp) {
+        if (audience === 'agent' && insp.agentEmail) {
+          const ag = protoFindAgentByEmail(insp.agentEmail);
+          if (ag && ag.phone) phone = ag.phone;
+        } else if (insp.clientPhone) {
+          phone = insp.clientPhone;
+        }
+      }
+      const digits = String(phone || '').replace(/[^\d+]/g, '');
+      window.location.href = `sms:${digits}?&body=${encodeURIComponent(txt)}`;
+    }
+
+    async function dhiSendRecapEmail(combineWithReportReady) {
+      const insp = (protoState.inspections || []).find(i => i.id === dhiRecapInspId);
+      const recapText = (document.getElementById('dhiRecapBody')?.value || '').trim();
+      if (!insp || !recapText) { protoToastMsg('Draft or enter your recap text first.'); return; }
+      const audience = document.getElementById('dhiRecapAudience')?.value || 'agent';
+      const toEmail = audience === 'agent' ? (insp.agentEmail || '') : (insp.clientEmail || '');
+      const toName = audience === 'agent' ? (insp.agentName || '') : (insp.clientName || '');
+      if (!toEmail) { protoToastMsg('No ' + audience + ' email address is listed on this inspection.'); return; }
+
+      const btn = document.getElementById(combineWithReportReady ? 'dhiSendRecapCombinedBtn' : 'dhiSendRecapStandaloneBtn');
+      if (btn) btn.disabled = true;
+      try {
+        const portalLink = window.location.origin + window.location.pathname + '?view=portal';
+        const { data, error } = await dhiSupabase.functions.invoke('send-portal-email', {
+          body: {
+            type: combineWithReportReady ? 'report_ready' : 'report_recap',
+            to: toEmail,
+            recipientName: toName,
+            address: insp.address || '',
+            inspectionDate: insp.date || '',
+            standalone: insp.agreementRequired === false,
+            portalLink,
+            recapText
+          }
+        });
+        if (error) throw new Error(error.message);
+        if (data && data.error) throw new Error(data.error);
+        if (combineWithReportReady && !insp.reportNotified) {
+          insp.reportNotified = true;
+          if (dhiIsLiveSession()) {
+            await dhiSupabase.from('inspections').update({ report_notified: true }).eq('id', insp.id);
+          }
+          renderProtoPortal();
+        }
+        dhiCloseRecapModal();
+        protoToastMsg((combineWithReportReady ? 'Report Ready + Recap' : 'Branded Recap') + ' email sent to ' + toEmail + '!');
+      } catch (err) {
+        protoToastMsg('Email failed: ' + (err.message || err));
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    // --- Public Quote Confirm / Question URL Handler (?quote_action=confirm|question) ---
+    async function dhiCheckPublicQuoteActionOnLoad() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const qAction = params.get('quote_action');
+        const reqId = params.get('req_id');
+        const token = params.get('token');
+        if (!qAction || !reqId || !token) return;
+
+        const modal = document.getElementById('dhiPublicQuoteModal');
+        const hdr = document.getElementById('dhiPublicQuoteHdr');
+        const badge = document.getElementById('dhiPublicQuoteBadge');
+        const title = document.getElementById('dhiPublicQuoteTitle');
+        const body = document.getElementById('dhiPublicQuoteBody');
+        if (!modal || !body) return;
+        modal.classList.remove('hidden');
+
+        if (qAction === 'confirm') {
+          const { data, error } = await dhiSupabase.functions.invoke('address-lookup', {
+            body: { action: 'confirm_quote', reqId, token }
+          });
+          if (error || (data && data.error)) {
+            title.textContent = 'Confirmation Link Issue';
+            body.innerHTML = `<p class="text-rose-700 font-semibold">${escapeHtml((data && data.error) || (error && error.message) || 'Could not confirm quote.')}</p><p class="text-xs text-slate-500">Please call or text Matt at (719) 660-4724 and he will get you taken care of right away.</p><button type="button" onclick="document.getElementById('dhiPublicQuoteModal').classList.add('hidden')" class="px-4 py-2 rounded-xl bg-davis-navy text-white text-xs font-bold">Close</button>`;
+            return;
+          }
+          if (hdr) hdr.className = 'px-6 py-4 bg-emerald-600 text-white';
+          if (badge) badge.textContent = 'Quote Confirmed';
+          title.textContent = data.address || 'Inspection Confirmed';
+          body.innerHTML = `
+            <p class="font-semibold text-slate-900">Thank you${data.clientName ? ', ' + escapeHtml(data.clientName.split(' ')[0]) : ''}! Your inspection quote is confirmed.</p>
+            <div class="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 text-xs space-y-1 text-slate-700">
+              <div><strong>Property:</strong> ${escapeHtml(data.address || '')}</div>
+              ${data.dateStr ? `<div><strong>Timing:</strong> ${escapeHtml(data.dateStr)}</div>` : ''}
+              ${data.total ? `<div><strong>Quoted Total:</strong> $${Number(data.total).toFixed(2)}</div>` : ''}
+            </div>
+            <p class="text-xs text-slate-600">Matt has been notified and will finalize your appointment and send your portal confirmation shortly.</p>
+            <div class="text-right"><button type="button" onclick="document.getElementById('dhiPublicQuoteModal').classList.add('hidden'); window.history.replaceState({}, '', window.location.pathname);" class="px-4 py-2 rounded-xl bg-davis-navy text-white text-xs font-bold">Done</button></div>
+          `;
+        } else if (qAction === 'question') {
+          const { data } = await dhiSupabase.functions.invoke('address-lookup', {
+            body: { action: 'get_quote_info', reqId, token }
+          });
+          if (badge) badge.textContent = 'Questions or Requested Changes';
+          title.textContent = (data && data.address) ? data.address : 'Send a Note to Matt';
+          body.innerHTML = `
+            <p class="text-xs text-slate-600">Have a question about the pricing, add-on services, or timing? Send a quick note below and Matt will follow up right away.</p>
+            <textarea id="dhiPublicQuoteMsg" rows="4" placeholder="Type your question or requested changes..." class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-davis-navy outline-none"></textarea>
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" onclick="document.getElementById('dhiPublicQuoteModal').classList.add('hidden'); window.history.replaceState({}, '', window.location.pathname);" class="px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold">Cancel</button>
+              <button type="button" id="dhiPublicQuoteSendBtn" onclick="dhiSubmitPublicQuoteQuestion('${escapeHtml(reqId)}', '${escapeHtml(token)}')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Send to Matt</button>
+            </div>
+          `;
+        }
+      } catch (_e) {}
+    }
+
+    async function dhiSubmitPublicQuoteQuestion(reqId, token) {
+      const msg = (document.getElementById('dhiPublicQuoteMsg')?.value || '').trim();
+      if (!msg) { protoToastMsg('Please type your question or change request.'); return; }
+      const btn = document.getElementById('dhiPublicQuoteSendBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+      try {
+        const { data, error } = await dhiSupabase.functions.invoke('address-lookup', {
+          body: { action: 'quote_question', reqId, token, message: msg }
+        });
+        if (error || (data && data.error)) throw new Error((data && data.error) || error.message);
+        const body = document.getElementById('dhiPublicQuoteBody');
+        if (body) {
+          body.innerHTML = `<p class="font-semibold text-emerald-700">Message sent to Matt!</p><p class="text-xs text-slate-600">Thank you for reaching out. Matt will review your note and get back to you shortly.</p><div class="text-right"><button type="button" onclick="document.getElementById('dhiPublicQuoteModal').classList.add('hidden'); window.history.replaceState({}, '', window.location.pathname);" class="px-4 py-2 rounded-xl bg-davis-navy text-white text-xs font-bold">Done</button></div>`;
+        }
+      } catch (err) {
+        protoToastMsg('Could not send message: ' + (err.message || err));
+        if (btn) { btn.disabled = false; btn.textContent = 'Send to Matt'; }
+      }
+    }
+
+    setTimeout(dhiCheckPublicQuoteActionOnLoad, 200);
+
   </script>
       <!-- Demo Role Selection Modal -->
       <div id="protoPersonModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -13309,6 +13802,63 @@
         <span>Draw directly on the photo to highlight or circle details. Changes sync live.</span>
         <span class="hidden sm:inline">Esc to close &bull; Arrow keys for Prev / Next</span>
       </div>
+    </div>
+  </div>
+
+
+  <!-- AI Inspection Recap Modal (v2.0-ai) -->
+  <div id="dhiRecapModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) dhiCloseRecapModal()">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full overflow-hidden">
+      <div class="px-5 py-4 bg-davis-navy text-white flex items-center justify-between gap-3">
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-widest text-sky-300">Inspection Highlights</div>
+          <h3 id="dhiRecapModalTitle" class="text-base font-extrabold">Draft Agent / Customer Recap</h3>
+        </div>
+        <button type="button" onclick="dhiCloseRecapModal()" class="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold">&times;</button>
+      </div>
+      <div class="p-5 space-y-3.5 text-xs">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="dhiRecapAudience" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white font-bold text-slate-800">
+              <option value="agent">For Agent</option>
+              <option value="customer">For Customer</option>
+            </select>
+            <select id="dhiRecapFormat" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white font-bold text-slate-800">
+              <option value="email">Branded Email</option>
+              <option value="text">Short Text</option>
+            </select>
+          </div>
+          <button type="button" id="dhiRecapGenBtn" onclick="dhiRunGenerateRecap()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition">Draft Recap</button>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Recap Message (Editable)</label>
+          <textarea id="dhiRecapBody" rows="6" placeholder="Click 'Draft Recap' to generate a calm plain-English summary of the report's key findings..." class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 leading-relaxed focus:border-davis-navy outline-none resize-y"></textarea>
+        </div>
+        <p class="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-2.5 leading-relaxed">
+          <strong>Email Fine Print Included Automatically:</strong> Reminds the recipient this overview highlights only a few key items and is not a substitute for reading the complete inspection report. No mention of AI.
+        </p>
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button type="button" onclick="dhiCopyRecapText()" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 font-bold">Copy Text</button>
+            <button type="button" onclick="dhiOpenRecapSms()" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-slate-700 font-bold">Send as Text</button>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button type="button" id="dhiSendRecapStandaloneBtn" onclick="dhiSendRecapEmail(false)" class="px-3 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white font-bold transition">Send Recap Email</button>
+            <button type="button" id="dhiSendRecapCombinedBtn" onclick="dhiSendRecapEmail(true)" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold transition">Send as "Report Ready" + Recap</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Public Quote Confirmation / Question Modal (v2.0-ai) -->
+  <div id="dhiPublicQuoteModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden">
+      <div id="dhiPublicQuoteHdr" class="px-6 py-4 bg-davis-navy text-white">
+        <div id="dhiPublicQuoteBadge" class="text-[11px] font-bold uppercase tracking-widest text-sky-300">Davis Home Inspections, LLC</div>
+        <h3 id="dhiPublicQuoteTitle" class="text-lg font-extrabold mt-0.5">Loading Quote Details...</h3>
+      </div>
+      <div id="dhiPublicQuoteBody" class="p-6 space-y-4 text-sm text-slate-700"></div>
     </div>
   </div>
 

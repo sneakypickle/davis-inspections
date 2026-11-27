@@ -39,14 +39,16 @@
       body.dhi-dark .bg-slate-100\/90 { background-color: #162032 !important; }
       body.dhi-dark .bg-slate-200 { background-color: #334155 !important; }
       body.dhi-dark .bg-sky-50,
-      body.dhi-dark .bg-sky-50\/60 { background-color: rgba(14, 165, 233, 0.14) !important; }
+      body.dhi-dark .bg-sky-50\/60,
+      body.dhi-dark .bg-sky-50\/70 { background-color: rgba(14, 165, 233, 0.14) !important; }
       body.dhi-dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.14) !important; }
       body.dhi-dark .bg-amber-50,
       body.dhi-dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.16) !important; }
       body.dhi-dark .bg-rose-50 { background-color: rgba(244, 63, 94, 0.18) !important; }
       body.dhi-dark .bg-rose-50\/30 { background-color: #251B26 !important; }
       body.dhi-dark .bg-indigo-50,
-      body.dhi-dark .bg-indigo-50\/60 { background-color: rgba(99, 102, 241, 0.16) !important; }
+      body.dhi-dark .bg-indigo-50\/60,
+      body.dhi-dark .bg-indigo-50\/70 { background-color: rgba(99, 102, 241, 0.18) !important; }
       body.dhi-dark .border-slate-100,
       body.dhi-dark .border-slate-200,
       body.dhi-dark .border-slate-300 { border-color: #334155 !important; }
@@ -58,6 +60,8 @@
       body.dhi-dark .border-amber-400 { border-color: rgba(251, 191, 36, 0.45) !important; }
       body.dhi-dark .border-rose-200,
       body.dhi-dark .border-rose-300 { border-color: rgba(251, 113, 133, 0.45) !important; }
+      body.dhi-dark .border-indigo-100,
+      body.dhi-dark .border-indigo-200,
       body.dhi-dark .border-indigo-300 { border-color: rgba(129, 140, 248, 0.4) !important; }
       /* Preserve bright left-edge semantic status stripes on item cards */
       body.dhi-dark .border-l-rose-500 { border-left-color: #f43f5e !important; }
@@ -80,7 +84,9 @@
       body.dhi-dark .text-rose-700,
       body.dhi-dark .text-rose-800 { color: #FDA4AF !important; }
       body.dhi-dark .text-rose-900 { color: #FFE4E6 !important; }
-      body.dhi-dark .text-indigo-800 { color: #C7D2FE !important; }
+      body.dhi-dark .text-indigo-700,
+      body.dhi-dark .text-indigo-800,
+      body.dhi-dark .text-indigo-900 { color: #C7D2FE !important; }
       body.dhi-dark .text-sky-700 { color: #7DD3FC !important; }
 
       body.dhi-dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
@@ -230,6 +236,25 @@
     </div>
   </div>
 
+  
+  <!-- Pre-Publish AI Proofread & Consistency Modal (v2.0-ai) -->
+  <div id="proofreadModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-5 space-y-4 shadow-2xl border border-slate-200 max-h-[85vh] flex flex-col">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-700">Pre-Publish Quality Check</span>
+          <h3 class="text-base font-extrabold text-slate-900">AI Proofread &amp; Consistency Review</h3>
+          <p class="text-xs text-slate-500">Checks Styles &amp; Materials contradictions, rating/summary mismatches, typos, and ASHI scope wording. Nothing changes unless you approve it.</p>
+        </div>
+        <button type="button" onclick="closeProofreadModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
+      </div>
+      <div id="proofreadResultsContainer" class="space-y-2.5 overflow-y-auto flex-1"></div>
+      <div class="flex justify-end pt-2 border-t border-slate-200">
+        <button type="button" onclick="closeProofreadModal()" class="px-4 py-2 rounded-xl bg-davis-navy text-white text-xs font-bold">Done</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Desktop Photo Annotation & Editor Modal -->
   <div id="photoEditorModal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
     <div class="bg-white rounded-2xl max-w-6xl w-[95vw] p-5 space-y-3 shadow-2xl border border-slate-200 max-h-[94vh] flex flex-col">
@@ -249,6 +274,7 @@
         <button type="button" id="toolTextBtn" onclick="setPhotoTool('text')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">Text</button>
         <button type="button" id="toolZoomBtn" onclick="setPhotoTool('zoom')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">Zoom Box</button>
         <button type="button" id="toolCropBtn" onclick="setPhotoTool('crop')" class="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold">Crop</button>
+        <button type="button" id="photoSecondEyesBtn" onclick="runPhotoSecondEyesScan()" class="hidden md:inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 border border-indigo-300 hover:bg-indigo-100 text-indigo-800 font-bold transition" title="Private AI second-set-of-eyes check on this photo (never touches report)">2nd Eyes</button>
         <button type="button" id="applyCropBtn" onclick="applyPhotoCrop()" class="hidden px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white font-bold">Apply Crop</button>
         <button type="button" onclick="rotatePhotoEditor(-90)" title="Rotate 90° Left" class="px-2 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold">&#8634; 90&deg;</button>
         <button type="button" onclick="rotatePhotoEditor(90)" title="Rotate 90° Right" class="px-2 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-bold">&#8635; 90&deg;</button>
@@ -281,6 +307,13 @@
           <input id="photoContrast" type="range" min="50" max="150" value="100" oninput="updatePhotoFilters()" class="flex-grow" />
           <span id="photoContrastVal" class="w-10 text-right font-mono">100%</span>
         </label>
+      </div>
+      <div id="photoSecondEyesBox" class="hidden rounded-xl border border-indigo-200 bg-indigo-50/70 p-3 space-y-2 text-xs">
+        <div class="flex items-center justify-between gap-2">
+          <span class="font-extrabold text-indigo-900 uppercase tracking-wider text-[10px]">Private 2nd Eyes Checklist (Not added to report)</span>
+          <button type="button" onclick="document.getElementById('photoSecondEyesBox').classList.add('hidden')" class="text-slate-500 hover:text-slate-800 font-bold text-xs">Dismiss</button>
+        </div>
+        <div id="photoSecondEyesList" class="space-y-1.5"></div>
       </div>
       <div class="flex-1 overflow-auto flex items-center justify-center bg-slate-900 rounded-xl p-2 min-h-[260px]">
         <canvas id="photoEditorCanvas" class="max-w-full max-h-[68vh] cursor-crosshair touch-none rounded-lg"></canvas>
@@ -3612,6 +3645,7 @@
       if (cv) cv.textContent = '100%';
       const colSel = document.getElementById('photoColorSelect');
       if (colSel) colSel.value = getRememberedPhotoColor();
+      document.getElementById('photoSecondEyesBox')?.classList.add('hidden');
       document.getElementById('photoEditorModal').classList.remove('hidden');
       const canvas = document.getElementById('photoEditorCanvas');
       const img = new Image();
@@ -5241,11 +5275,26 @@
             <!-- Field Notes & AI Narrative -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-2.5 border-t border-slate-200">
               <div class="space-y-1.5">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between gap-1.5">
                   <label class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Field notes (for AI)</label>
-                  <button type="button" onclick="generateAINarrative(${state.activeSecIdx}, ${itemIdx})" ${isBusy ? 'disabled' : ''} class="px-3 py-1 rounded-lg bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-[11px] font-bold transition">${isBusy ? 'Rewriting...' : 'Rewrite with AI'}</button>
+                  <div class="flex items-center gap-1.5">
+                    <button type="button" id="dhiMicBtn-${state.activeSecIdx}-${itemIdx}" onclick="toggleItemVoiceDictation(${state.activeSecIdx}, ${itemIdx})" title="Dictate field notes by voice" class="px-2 py-1 rounded-lg border text-[11px] font-bold transition ${(state.voiceTarget && state.voiceTarget.secIdx === state.activeSecIdx && state.voiceTarget.itemIdx === itemIdx) ? 'bg-rose-600 border-rose-600 text-white animate-pulse' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">${(state.voiceTarget && state.voiceTarget.secIdx === state.activeSecIdx && state.voiceTarget.itemIdx === itemIdx) ? 'Stop Mic' : 'Mic'}</button>
+                    ${((it.photos || []).length > 0 && !String(it.roughNotes || '').trim())
+                      ? `<button type="button" onclick="startPhotoFollowUpQA(${state.activeSecIdx}, ${itemIdx})" ${isBusy ? 'disabled' : ''} class="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-[11px] font-bold transition">${isBusy ? 'Looking...' : 'Draft from Photo'}</button>`
+                      : `<button type="button" onclick="generateAINarrative(${state.activeSecIdx}, ${itemIdx})" ${isBusy ? 'disabled' : ''} class="px-3 py-1 rounded-lg bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-[11px] font-bold transition">${isBusy ? 'Rewriting...' : 'Rewrite with AI'}</button>`}
+                  </div>
                 </div>
-                <textarea data-pair-ta="item-${state.activeSecIdx}-${itemIdx}" rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'roughNotes', this.value)" placeholder="Quick field notes (e.g., east gutter downspout discharging onto driveway)..." class="w-full p-2.5 rounded-xl border border-slate-300 text-xs leading-relaxed resize-y">${esc(it.roughNotes || '')}</textarea>
+                <textarea id="dhiRoughTa-${state.activeSecIdx}-${itemIdx}" data-pair-ta="item-${state.activeSecIdx}-${itemIdx}" rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'roughNotes', this.value); updateInlineSmartMatch(${state.activeSecIdx}, ${itemIdx}, this.value);" placeholder="Quick field notes (or tap Mic to dictate)..." class="w-full p-2.5 rounded-xl border border-slate-300 text-xs leading-relaxed resize-y">${esc(it.roughNotes || '')}</textarea>
+                <div id="dhiSmartMatch-${state.activeSecIdx}-${itemIdx}">${renderSmartMatchHTML(state.activeSecIdx, itemIdx, it.roughNotes || '')}</div>
+                ${(state.photoQA && state.photoQA.itemId === it.id) ? renderPhotoQABoxHTML(state.activeSecIdx, itemIdx, state.photoQA) : ''}
+                ${(it._aiSuggestDefect && !(selectedRatings.includes('RR') && it.isSummary)) ? `
+                  <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-300 text-[11px] text-amber-900">
+                    <span class="font-bold">AI suggests marking RR + Summary</span>
+                    <div class="flex items-center gap-1">
+                      <button type="button" onclick="applyAIDefectSuggestion(${state.activeSecIdx}, ${itemIdx})" class="px-2 py-0.5 rounded bg-amber-600 text-white font-bold">Apply</button>
+                      <button type="button" onclick="dismissAIDefectSuggestion(${state.activeSecIdx}, ${itemIdx})" class="px-1.5 py-0.5 text-amber-700 font-bold">&times;</button>
+                    </div>
+                  </div>` : ''}
               </div>
               <div class="space-y-1.5">
                 <div class="flex items-center justify-between gap-1">
@@ -5286,6 +5335,7 @@
                     <button type="button" data-url="${esc(pl.url)}" data-street="${esc(plStreet)}" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; dhiOpenFieldPermitLookup(this);" class="w-full text-left px-3 py-2 rounded-lg bg-sky-50 border border-sky-200 text-davis-navy text-xs font-bold">${esc(pl.label)} &nearr;</button>
                     <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; toggleNpma33Panel();" class="w-full text-left px-3 py-2 rounded-lg border text-xs font-bold ${state.showNpma33 ? 'bg-indigo-600 border-indigo-600 text-white' : (npmaEnabled ? 'bg-indigo-50 border-indigo-300 text-indigo-800' : 'border-slate-200 bg-slate-50 text-slate-700')}">NPMA-33 (WDI)${npmaEnabled ? ' ✓' : ''}</button>
                     <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; runWholeHomeAITask();" ${state.taskRunning ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg bg-indigo-600 disabled:opacity-60 text-white text-xs font-bold">${state.taskRunning ? esc(state.taskProgressText || 'Running AI task...') : `Run AI task (${pendingAI} pending)`}</button>
+                    <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; runReportAIProofread();" ${state.proofreadBusy ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-800 text-xs font-bold">${state.proofreadBusy ? 'Proofreading...' : 'AI Proofread Report'}</button>
                     <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; toggleEditTemplateMode();" class="w-full text-left px-3 py-2 rounded-lg border text-xs font-bold ${state.editTemplateMode ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-700'}">${state.editTemplateMode ? 'Editing template' : 'Edit template'}</button>
                     <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; confirmMobilePublish();" ${state.uploading ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg bg-emerald-600 disabled:opacity-60 text-white text-xs font-extrabold">Publish to customer portal</button>
                   </div>
@@ -5306,6 +5356,7 @@
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <button type="button" onclick="runWholeHomeAITask()" ${state.taskRunning ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold transition">${state.taskRunning ? esc(state.taskProgressText || 'Running AI task...') : `Run AI task (${pendingAI} pending)`}</button>
+                <button type="button" onclick="runReportAIProofread()" ${state.proofreadBusy ? 'disabled' : ''} class="px-3 py-2 rounded-xl border border-indigo-300 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-60 text-indigo-800 text-xs font-bold transition">${state.proofreadBusy ? 'Proofreading...' : 'AI Proofread'}</button>
                 <button type="button" onclick="state.showPhotoTray=!state.showPhotoTray; render();" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.showPhotoTray ? 'bg-sky-600 border-sky-600 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">Photo tray (${state.photoTray.length})</button>
                 <button type="button" onclick="toggleNpma33Panel()" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.showNpma33 ? 'bg-indigo-600 border-indigo-600 text-white' : (npmaEnabled ? 'bg-indigo-50 border-indigo-300 text-indigo-800 hover:border-indigo-500' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700')}">NPMA-33 (WDI)${npmaEnabled ? ' ✓' : ''}</button>
                 <button type="button" onclick="toggleEditTemplateMode()" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.editTemplateMode ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">${state.editTemplateMode ? 'Editing template' : 'Edit template'}</button>
@@ -5718,6 +5769,403 @@
       try { saved = localStorage.getItem('dhi_field_theme') || 'dark'; } catch (_e) {}
       applyFieldDesktopTheme(saved);
     })();
+
+
+    // =========================================================================
+    // v2.0-ai: VOICE DICTATION, OFFLINE SMART MATCH, PHOTO Q&A, 2ND EYES & PROOFREAD
+    // =========================================================================
+    let dhiSpeechRec = null;
+
+    function toggleItemVoiceDictation(secIdx, itemIdx) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        toast('Voice dictation is not supported in this browser (works best in Chrome / Edge).');
+        return;
+      }
+      if (state.voiceTarget && state.voiceTarget.secIdx === secIdx && state.voiceTarget.itemIdx === itemIdx) {
+        try { if (dhiSpeechRec) dhiSpeechRec.stop(); } catch (_e) {}
+        state.voiceTarget = null;
+        render();
+        return;
+      }
+      if (dhiSpeechRec) {
+        try { dhiSpeechRec.stop(); } catch (_e) {}
+      }
+      const rec = new SR();
+      rec.lang = 'en-US';
+      rec.continuous = true;
+      rec.interimResults = false;
+      state.voiceTarget = { secIdx, itemIdx };
+      dhiSpeechRec = rec;
+      render();
+      toast('Listening... speak your field notes.');
+      rec.onresult = (ev) => {
+        let spoken = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          if (ev.results[i].isFinal) spoken += (ev.results[i][0]?.transcript || '') + ' ';
+        }
+        spoken = spoken.trim();
+        if (!spoken) return;
+        const it = state.draft?.sections?.[secIdx]?.items?.[itemIdx];
+        if (!it) return;
+        it.roughNotes = it.roughNotes ? (it.roughNotes.trim() + ' ' + spoken) : spoken;
+        saveDraftLocally(true);
+        const ta = document.getElementById('dhiRoughTa-' + secIdx + '-' + itemIdx);
+        if (ta) ta.value = it.roughNotes;
+        updateInlineSmartMatch(secIdx, itemIdx, it.roughNotes);
+      };
+      rec.onerror = (ev) => {
+        if (ev.error !== 'no-speech' && ev.error !== 'aborted') toast('Mic error: ' + ev.error);
+      };
+      rec.onend = () => {
+        if (state.voiceTarget && state.voiceTarget.secIdx === secIdx && state.voiceTarget.itemIdx === itemIdx) {
+          state.voiceTarget = null;
+          render();
+        }
+      };
+      try { rec.start(); } catch (e) { state.voiceTarget = null; render(); toast('Could not start microphone.'); }
+    }
+
+    function getSmartLibraryMatches(secIdx, itemIdx, rawQuery) {
+      const q = String(rawQuery || '').trim().toLowerCase();
+      if (q.length < 3) return [];
+      const sec = state.draft?.sections?.[secIdx];
+      const it = sec?.items?.[itemIdx];
+      if (!sec || !it) return [];
+      const allLib = state.commentLibrary || [];
+      if (!allLib.length) return [];
+
+      const activeSecName = String(sec.name || '').trim().toLowerCase();
+      const activeItemTitle = dhiCleanItemTitleForLib(it.title || '');
+      const stopWords = new Set(['the','and','for','with','was','are','this','that','from','have','has','not','but','near','into','onto','over','under']);
+      const tokens = q.split(/[^a-z0-9]+/).filter(w => w.length >= 3 && !stopWords.has(w));
+      if (!tokens.length) return [];
+
+      const itemPool = allLib.filter(c => dhiLibMatchesItem(c, activeSecName, activeItemTitle));
+      const secPool = allLib.filter(c => dhiLibMatchesSec(c, activeSecName));
+      const pool = itemPool.length ? itemPool : secPool;
+
+      const scored = [];
+      for (const c of pool) {
+        const hay = ((c.title || '') + ' ' + (c.body || '')).toLowerCase();
+        let hits = 0;
+        for (const t of tokens) {
+          if (hay.includes(t)) hits++;
+        }
+        if (hits === 0) continue;
+        const isExactItem = itemPool.includes(c) ? 1 : 0;
+        const score = hits * 10 + isExactItem * 5 + Math.min(10, Number(c.use_count) || 0);
+        scored.push({ c, score });
+      }
+      // If item pool yielded zero keyword hits, fall back to section pool
+      if (!scored.length && pool === itemPool && secPool.length > itemPool.length) {
+        for (const c of secPool) {
+          const hay = ((c.title || '') + ' ' + (c.body || '')).toLowerCase();
+          let hits = 0;
+          for (const t of tokens) { if (hay.includes(t)) hits++; }
+          if (hits > 0) scored.push({ c, score: hits * 10 + Math.min(10, Number(c.use_count) || 0) });
+        }
+      }
+      scored.sort((a, b) => b.score - a.score || (Number(b.c.use_count) || 0) - (Number(a.c.use_count) || 0));
+      return scored.slice(0, 3).map(x => x.c);
+    }
+
+    function renderSmartMatchHTML(secIdx, itemIdx, rawQuery) {
+      const matches = getSmartLibraryMatches(secIdx, itemIdx, rawQuery);
+      if (!matches.length) return '';
+      return `
+        <div class="rounded-xl border border-sky-200 bg-sky-50/70 p-2 space-y-1.5">
+          <div class="text-[10px] font-extrabold uppercase tracking-wider text-davis-navy">Library Smart Match (Offline)</div>
+          ${matches.map(c => `
+            <div class="flex items-start justify-between gap-2 p-1.5 rounded-lg bg-white border border-slate-200 text-[11px]">
+              <div class="min-w-0">
+                <div class="font-bold text-slate-900 truncate">${esc(c.title)}${Number(c.use_count) > 0 ? ` <span class="text-[10px] text-sky-700 font-semibold">(${Number(c.use_count)}x)</span>` : ''}</div>
+                <div class="text-slate-600 line-clamp-1 truncate">${esc(c.body || '')}</div>
+              </div>
+              <button type="button" onclick="insertSmartMatchComment(${secIdx}, ${itemIdx}, '${c.id}')" class="px-2 py-1 rounded-md bg-davis-navy hover:bg-davis-dark text-white text-[10px] font-bold shrink-0">Insert</button>
+            </div>
+          `).join('')}
+        </div>`;
+    }
+
+    function updateInlineSmartMatch(secIdx, itemIdx, val) {
+      const el = document.getElementById('dhiSmartMatch-' + secIdx + '-' + itemIdx);
+      if (el) el.innerHTML = renderSmartMatchHTML(secIdx, itemIdx, val);
+    }
+
+    function insertSmartMatchComment(secIdx, itemIdx, commentId) {
+      const c = (state.commentLibrary || []).find(x => String(x.id) === String(commentId));
+      const it = state.draft?.sections?.[secIdx]?.items?.[itemIdx];
+      if (!c || !it) return;
+      it.narrative = it.narrative ? (it.narrative + '\n\n' + c.body) : c.body;
+      c.use_count = (Number(c.use_count) || 0) + 1;
+      try { sb.from('comment_library').update({ use_count: c.use_count }).eq('id', c.id).then(() => {}).catch(() => {}); } catch (_e) {}
+      saveDraftLocally(true);
+      render();
+      toast('Inserted library match.');
+    }
+
+    function renderPhotoQABoxHTML(secIdx, itemIdx, qa) {
+      return `
+        <div class="rounded-xl border-2 border-indigo-300 bg-indigo-50/70 p-3 space-y-2.5 text-xs">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-700">Photo Check &amp; Follow-Up</div>
+              ${qa.observation ? `<div class="font-semibold text-slate-800 mt-0.5">${esc(qa.observation)}</div>` : ''}
+            </div>
+            <button type="button" onclick="state.photoQA=null; render();" class="text-slate-400 hover:text-slate-700 font-bold text-sm">&times;</button>
+          </div>
+          ${(qa.questions || []).length ? `
+            <div class="space-y-2">
+              ${qa.questions.map((q, qIdx) => `
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-700 mb-0.5">${esc(q)}</label>
+                  <input id="dhiPhotoQAAns-${qIdx}" type="text" value="${esc((qa.answers && qa.answers[qIdx]) || '')}" oninput="if(state.photoQA){state.photoQA.answers[${qIdx}]=this.value;}" placeholder="Type your answer (any length)..." class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                </div>
+              `).join('')}
+            </div>
+          ` : '<div class="text-[11px] text-slate-600">Photo looks self-explanatory. Ready to draft your narrative!</div>'}
+          <div class="flex flex-wrap items-center justify-end gap-1.5 pt-1">
+            <button type="button" onclick="submitPhotoFollowUpQA(${secIdx}, ${itemIdx}, true)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-[11px] font-bold">Skip &amp; Draft Now</button>
+            <button type="button" onclick="submitPhotoFollowUpQA(${secIdx}, ${itemIdx}, false)" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold">Generate Narrative</button>
+          </div>
+        </div>`;
+    }
+
+    async function startPhotoFollowUpQA(secIdx, itemIdx) {
+      const sec = state.draft?.sections?.[secIdx];
+      const it = sec?.items?.[itemIdx];
+      if (!sec || !it || !(it.photos && it.photos.length)) return;
+      if (!navigator.onLine) { toast('Connect to internet to analyze photos with AI.'); return; }
+      state.aiBusyItemId = it.id;
+      render();
+      try {
+        const photoPayloads = [];
+        for (const p of (it.photos || []).slice(0, 3)) {
+          if (p.mediaType === 'video') continue;
+          const srcUrl = p.dataUrl || p.signedUrl || '';
+          const b64 = srcUrl ? await urlToBase64(srcUrl) : null;
+          if (b64) photoPayloads.push(b64);
+        }
+        if (!photoPayloads.length) {
+          state.aiBusyItemId = null;
+          render();
+          toast('No still photos available to analyze.');
+          return;
+        }
+        const { data, error } = await sb.functions.invoke('generate-narrative', {
+          body: {
+            action: 'photo_questions',
+            model: state.aiModel,
+            sectionName: sec.name,
+            itemTitle: it.title,
+            propertyInfo: state.draft.propertyInfo || {},
+            stylesMaterials: sec.stylesMaterials || [],
+            photos: photoPayloads
+          }
+        });
+        if (error) throw new Error(error.message);
+        if (data && data.error) throw new Error(data.error);
+        if (data && data.suggestDefect) it._aiSuggestDefect = true;
+        const qs = Array.isArray(data?.questions) ? data.questions.filter(Boolean) : [];
+        state.photoQA = {
+          itemId: it.id,
+          observation: data?.observation || '',
+          questions: qs,
+          answers: qs.map(() => '')
+        };
+      } catch (err) {
+        toast('Photo check error: ' + (err.message || err));
+      } finally {
+        state.aiBusyItemId = null;
+        render();
+      }
+    }
+
+    async function submitPhotoFollowUpQA(secIdx, itemIdx, skipAnswers) {
+      const it = state.draft?.sections?.[secIdx]?.items?.[itemIdx];
+      const qa = state.photoQA;
+      if (!it) return;
+      if (qa && !skipAnswers) {
+        const parts = [];
+        if (qa.observation) parts.push('Photo shows: ' + qa.observation);
+        (qa.questions || []).forEach((q, idx) => {
+          const ansEl = document.getElementById('dhiPhotoQAAns-' + idx);
+          const ans = (ansEl ? ansEl.value : (qa.answers && qa.answers[idx]) || '').trim();
+          if (ans) parts.push(q + ' ' + ans);
+        });
+        if (parts.length) {
+          it.roughNotes = parts.join('\n');
+          saveDraftLocally(true);
+        }
+      }
+      state.photoQA = null;
+      await generateAINarrative(secIdx, itemIdx);
+    }
+
+    function applyAIDefectSuggestion(secIdx, itemIdx) {
+      const it = state.draft?.sections?.[secIdx]?.items?.[itemIdx];
+      if (!it) return;
+      const list = getItemStatuses(it).slice();
+      if (!list.includes('RR')) list.push('RR');
+      if (!list.includes('IN') && !list.includes('NI') && !list.includes('NP')) list.unshift('IN');
+      it.statuses = list;
+      it.status = list.join(', ');
+      it.isSummary = true;
+      it._aiSuggestDefect = false;
+      saveDraftLocally(true);
+      render();
+      toast('Applied RR + Summary.');
+    }
+
+    function dismissAIDefectSuggestion(secIdx, itemIdx) {
+      const it = state.draft?.sections?.[secIdx]?.items?.[itemIdx];
+      if (!it) return;
+      it._aiSuggestDefect = false;
+      render();
+    }
+
+    async function runPhotoSecondEyesScan() {
+      if (!photoEditCtx || !state.draft) return;
+      if (!navigator.onLine) { toast('Connect to internet to run 2nd Eyes.'); return; }
+      const sec = state.draft.sections[photoEditCtx.secIdx];
+      const it = sec?.items?.[photoEditCtx.itemIdx];
+      const canvas = document.getElementById('photoEditorCanvas');
+      if (!it || !canvas) return;
+      const btn = document.getElementById('photoSecondEyesBtn');
+      const box = document.getElementById('photoSecondEyesBox');
+      const listEl = document.getElementById('photoSecondEyesList');
+      if (btn) { btn.disabled = true; btn.textContent = 'Scanning...'; }
+      try {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const { data, error } = await sb.functions.invoke('generate-narrative', {
+          body: {
+            action: 'second_eyes',
+            model: state.aiModel,
+            sectionName: sec.name,
+            itemTitle: it.title,
+            photoBase64: dataUrl
+          }
+        });
+        if (error) throw new Error(error.message);
+        if (data && data.error) throw new Error(data.error);
+        const findings = Array.isArray(data?.findings) ? data.findings : [];
+        if (box && listEl) {
+          box.classList.remove('hidden');
+          listEl.innerHTML = findings.length
+            ? findings.map((f, i) => `
+              <div class="flex items-start justify-between gap-2 bg-white rounded-lg border border-indigo-100 px-2.5 py-1.5">
+                <span class="text-slate-800">${esc(f)}</span>
+                <button type="button" data-note="${esc(f)}" onclick="appendSecondEyesToNotes(this.dataset.note)" class="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shrink-0">+ Add to Notes</button>
+              </div>`).join('')
+            : '<div class="text-slate-600">No additional obvious defects spotted in this frame.</div>';
+        }
+      } catch (err) {
+        toast('2nd Eyes error: ' + (err.message || err));
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '2nd Eyes'; }
+      }
+    }
+
+    function appendSecondEyesToNotes(noteText) {
+      if (!photoEditCtx || !state.draft || !noteText) return;
+      const it = state.draft.sections[photoEditCtx.secIdx]?.items?.[photoEditCtx.itemIdx];
+      if (!it) return;
+      it.roughNotes = it.roughNotes ? (it.roughNotes.trim() + '\n' + noteText) : noteText;
+      saveDraftLocally(true);
+      toast('Added observation to Field Notes.');
+    }
+
+    function closeProofreadModal() {
+      document.getElementById('proofreadModal')?.classList.add('hidden');
+    }
+
+    async function runReportAIProofread() {
+      if (!state.draft || state.proofreadBusy) return;
+      if (!navigator.onLine) { toast('Connect to internet to run AI Proofread.'); return; }
+      state.proofreadBusy = true;
+      render();
+      try {
+        const { data, error } = await sb.functions.invoke('generate-narrative', {
+          body: {
+            action: 'proofread_report',
+            model: state.aiModel,
+            sections: state.draft.sections || []
+          }
+        });
+        if (error) throw new Error(error.message);
+        if (data && data.error) throw new Error(data.error);
+        state.proofreadIssues = Array.isArray(data?.issues) ? data.issues : [];
+        renderProofreadResults();
+        document.getElementById('proofreadModal')?.classList.remove('hidden');
+      } catch (err) {
+        toast('AI Proofread failed: ' + (err.message || err));
+      } finally {
+        state.proofreadBusy = false;
+        render();
+      }
+    }
+
+    function renderProofreadResults() {
+      const cont = document.getElementById('proofreadResultsContainer');
+      if (!cont) return;
+      const issues = state.proofreadIssues || [];
+      if (!issues.length) {
+        cont.innerHTML = '<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-center text-xs font-bold text-emerald-800">Report looks clean! No contradictions, rating mismatches, or typos flagged.</div>';
+        return;
+      }
+      cont.innerHTML = issues.map((iss, idx) => `
+        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5 text-xs">
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-extrabold uppercase">${esc(iss.category || 'Review')}</span>
+              <span class="font-extrabold text-slate-900 ml-1">${esc(iss.code || '')} ${esc(iss.title || '')}</span>
+            </div>
+            <button type="button" onclick="jumpToProofreadIssue(${idx})" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-[11px] font-bold shrink-0">Jump to Item</button>
+          </div>
+          <p class="text-slate-700 leading-relaxed">${esc(iss.reason || '')}</p>
+          ${iss.suggestedFix ? `
+            <div class="rounded-lg bg-white border border-sky-200 p-2 space-y-1.5">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-sky-700">Suggested Wording</div>
+              <p class="text-slate-800 whitespace-pre-line">${esc(iss.suggestedFix)}</p>
+              <button type="button" onclick="applyProofreadFix(${idx})" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold">Apply Suggested Fix</button>
+            </div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    function jumpToProofreadIssue(idx) {
+      const iss = (state.proofreadIssues || [])[idx];
+      if (!iss || typeof iss.secIdx !== 'number') return;
+      closeProofreadModal();
+      const it = state.draft?.sections?.[iss.secIdx]?.items?.[iss.itemIdx];
+      if (it && it.collapsed) it.collapsed = false;
+      state.activeSecIdx = iss.secIdx;
+      state.mobileViewMode = 'items';
+      render();
+      setTimeout(() => {
+        const el = document.getElementById('dhiItemCard-' + iss.secIdx + '-' + iss.itemIdx);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('ring-2', 'ring-indigo-500');
+          setTimeout(() => el.classList.remove('ring-2', 'ring-indigo-500'), 1800);
+        }
+      }, 60);
+    }
+
+    function applyProofreadFix(idx) {
+      const iss = (state.proofreadIssues || [])[idx];
+      if (!iss || !iss.suggestedFix) return;
+      const it = state.draft?.sections?.[iss.secIdx]?.items?.[iss.itemIdx];
+      if (!it) return;
+      it.narrative = iss.suggestedFix;
+      state.proofreadIssues.splice(idx, 1);
+      saveDraftLocally(true);
+      renderProofreadResults();
+      render();
+      toast('Applied suggested wording.');
+    }
+
 
     // Register Field App offline Service Worker + request persistent IndexedDB storage
     (function initFieldOfflineProtection() {
