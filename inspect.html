@@ -647,6 +647,7 @@
       pruneExpiredBackups().catch(() => {});
 
       // 2. If online, refresh from Supabase (with a 6s timeout so weak signal never hangs boot)
+      let cloudInspectionsLoaded = false;
       if (navigator.onLine) {
         try {
           const cloudPromise = Promise.all([
@@ -658,6 +659,7 @@
           const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000));
           const [iRes, setRes, libRes, tplRes] = await Promise.race([cloudPromise, timeoutPromise]);
           if (Array.isArray(iRes.data)) {
+            cloudInspectionsLoaded = true;
             state.inspections = iRes.data;
             try {
               const cPaths = state.inspections.map(x => x.property_info && x.property_info.coverPhotoPath).filter(Boolean);
@@ -689,19 +691,31 @@
         } catch (_e) {}
       }
 
-      // 3. Also ensure any local drafts in IndexedDB appear in the picker list if offline
+      // 3. Online: prune stale local IndexedDB drafts for inspections deleted from Supabase; Offline: surface local drafts
       try {
         const localDrafts = await idbGetAll('drafts');
-        for (const d of localDrafts) {
-          if (d && d.inspectionId && !(state.inspections || []).some(i => i.id === d.inspectionId)) {
-            state.inspections.unshift({
-              id: d.inspectionId,
-              address: d.address || 'Local Offline Draft',
-              client_name: (d.propertyInfo && d.propertyInfo.clientName) || '',
-              inspection_date: (d.propertyInfo && d.propertyInfo.inspectionDate) || '',
-              property_info: d.propertyInfo || {},
-              report_notified: false
-            });
+        const liveIds = new Set((state.inspections || []).map(i => i.id));
+        if (cloudInspectionsLoaded) {
+          for (const d of localDrafts) {
+            if (d && d.inspectionId && !liveIds.has(d.inspectionId)) {
+              await idbDelete('drafts', d.inspectionId).catch(() => {});
+              if (localStorage.getItem('dhi_field_active_insp_id') === d.inspectionId) {
+                localStorage.removeItem('dhi_field_active_insp_id');
+              }
+            }
+          }
+        } else {
+          for (const d of localDrafts) {
+            if (d && d.inspectionId && !liveIds.has(d.inspectionId)) {
+              state.inspections.unshift({
+                id: d.inspectionId,
+                address: d.address || 'Local Offline Draft',
+                client_name: (d.propertyInfo && d.propertyInfo.clientName) || '',
+                inspection_date: (d.propertyInfo && d.propertyInfo.inspectionDate) || '',
+                property_info: d.propertyInfo || {},
+                report_notified: false
+              });
+            }
           }
         }
       } catch (_e) {}
@@ -6038,12 +6052,27 @@
       if (btn) { btn.disabled = true; btn.textContent = 'Scanning...'; }
       try {
         const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const allSM = [];
+        const prevNarratives = [];
+        (state.draft.sections || []).forEach(s => {
+          (s.stylesMaterials || []).forEach(sm => {
+            if (sm.value) allSM.push({ section: s.name, label: sm.label, value: sm.value });
+          });
+          (s.items || []).forEach(other => {
+            if (other.id !== it.id && other.narrative && other.narrative.trim()) {
+              prevNarratives.push({ code: other.code, title: other.title, narrative: other.narrative.trim() });
+            }
+          });
+        });
         const { data, error } = await sb.functions.invoke('generate-narrative', {
           body: {
             action: 'second_eyes',
             model: state.aiModel,
             sectionName: sec.name,
             itemTitle: it.title,
+            propertyInfo: state.draft.propertyInfo || {},
+            stylesMaterials: allSM,
+            previousNarratives: prevNarratives.slice(-60),
             photoBase64: dataUrl
           }
         });

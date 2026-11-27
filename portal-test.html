@@ -313,7 +313,7 @@
   <main id="mainContentContainer" class="flex-grow max-w-6xl w-full mx-auto px-4 py-6 pb-12">
 
     <!-- Toast Notification Banner -->
-    <div id="toastBanner" class="hidden fixed bottom-5 right-5 left-5 sm:left-auto sm:max-w-md z-50 rounded-xl shadow-xl border p-4 transition-all duration-300 bg-slate-900 text-white border-slate-700">
+    <div id="toastBanner" class="hidden fixed bottom-5 right-5 left-5 sm:left-auto sm:max-w-md z-[9999] rounded-xl shadow-xl border p-4 transition-all duration-300 bg-slate-900 text-white border-slate-700">
       <div class="flex items-start justify-between gap-3">
         <div class="flex items-start gap-2.5">
           <span id="toastIcon" class="mt-0.5 text-emerald-400">
@@ -1184,7 +1184,7 @@
     <!-- ================================================================= -->
         <div id="page-portal" class="hidden w-full">
       <div id="protoPortalRoot" class="w-full space-y-6"></div>
-      <div id="protoToast" class="hidden fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-lg"></div>
+      <div id="protoToast" class="hidden fixed bottom-5 right-5 z-[9999] bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-lg"></div>
     </div>
     </div>
 
@@ -1992,15 +1992,21 @@
     }
 
     function dhiSyncMobilePortalBtn() {
-      const btn = document.getElementById('nav-portal-mobile');
-      if (!btn) return;
       const isSignedIn = (typeof protoState !== 'undefined') && protoState.role && protoState.role !== 'login';
       const onPortalPage = (typeof APP_STATE !== 'undefined') && APP_STATE.currentPage === 'portal';
-      btn.textContent = isSignedIn ? 'Dashboard' : 'Login';
-      if (onPortalPage || isSignedIn) {
-        btn.className = 'px-2.5 py-1.5 rounded-lg border border-davis-navy bg-davis-light text-davis-navy text-xs font-bold transition';
-      } else {
-        btn.className = 'px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-xs font-bold transition';
+      const label = isSignedIn ? 'Dashboard' : 'Login';
+      const btn = document.getElementById('nav-portal-mobile');
+      if (btn) {
+        btn.textContent = label;
+        if (onPortalPage || isSignedIn) {
+          btn.className = 'px-2.5 py-1.5 rounded-lg border border-davis-navy bg-davis-light text-davis-navy text-xs font-bold transition';
+        } else {
+          btn.className = 'px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-xs font-bold transition';
+        }
+      }
+      const deskBtn = document.getElementById('nav-portal');
+      if (deskBtn) {
+        deskBtn.textContent = label;
       }
     }
 
@@ -6069,10 +6075,14 @@
               <span class="px-2 py-1 rounded bg-white border border-slate-200"><strong>Preferred Date:</strong> ${r.preferredDate || 'Flexible'}</span>
               ${(r.addons && r.addons.length) ? `<span class="px-2 py-1 rounded bg-white border border-slate-200"><strong>Add-Ons:</strong> ${r.addons.join(', ')}</span>` : ''}
             </div>
-            ${r.notes && r.notes !== 'None' ? `<p class="text-xs text-slate-700 bg-white rounded-lg p-2.5 border border-slate-200 whitespace-pre-line"><strong>Notes:</strong> ${escapeHtml(r.notes)}</p>` : ''}
-            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
-              <button type="button" onclick="protoDeleteRequest('${r.id}')" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold shrink-0 transition">Delete</button>
-              <button type="button" onclick="protoConvertRequestToInspection('${r.id}')" class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold text-center transition">Convert to Inspection &rarr;</button>
+            <div class="flex flex-col md:flex-row md:items-stretch justify-between gap-2.5 pt-1">
+              ${r.notes && r.notes !== 'None'
+                ? `<p class="flex-1 min-w-0 text-xs text-slate-700 bg-white rounded-lg p-2.5 border border-slate-200 whitespace-pre-line"><strong>Notes:</strong> ${escapeHtml(r.notes)}</p>`
+                : `<div class="hidden md:block flex-1"></div>`}
+              <div class="flex items-center justify-end gap-2 shrink-0 ${r.notes && r.notes !== 'None' ? 'md:border-l md:border-slate-300 md:pl-3' : 'md:border-l md:border-slate-200 md:pl-3'}">
+                <button type="button" onclick="protoDeleteRequest('${r.id}')" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold shrink-0 transition">Delete</button>
+                <button type="button" onclick="protoConvertRequestToInspection('${r.id}')" class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold text-center transition">Convert to Inspection &rarr;</button>
+              </div>
             </div>
           </div>`;
           })()}
@@ -6641,23 +6651,23 @@
                     </div>
                   </div>
                 </div>
-                <div>
-                  <div class="flex items-center justify-between gap-2 mb-1">
-                    <label class="font-bold text-slate-700">Inspection Date ${pre.scheduleWithAgent ? '<span class="text-slate-400 font-normal">(Schedule with Agent)</span>' : '*'}</label>
-                  </div>
-                  <input id="protoNewDateOnly" type="date" value="${escapeHtml(pre.scheduleWithAgent ? '' : (pre.dateOnly || ''))}" ${pre.scheduleWithAgent ? 'disabled' : ''} class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm ${pre.scheduleWithAgent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}" />
-                </div>
-                <div>
-                  <div class="flex items-center justify-between gap-2 mb-1">
-                    <label class="font-bold text-slate-700">Inspection Time ${pre.scheduleWithAgent ? '' : '*'}</label>
-                    <label class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-davis-navy cursor-pointer select-none">
-                      <input id="protoNewScheduleWithAgent" type="checkbox" ${pre.scheduleWithAgent ? 'checked' : ''} onchange="protoSaveNewInspDraftInputs(); renderProtoPortal();" class="rounded border-slate-300 text-davis-navy" />
-                      <span>Schedule with Agent</span>
+                <div class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+                  <div class="sm:col-span-4">
+                    <label class="flex items-center gap-2 px-2.5 py-2.5 rounded-lg border ${pre.scheduleWithAgent ? 'border-davis-navy bg-davis-light/60 text-davis-navy' : 'border-slate-300 bg-slate-50 text-slate-700'} text-xs font-bold cursor-pointer select-none h-[42px] transition">
+                      <input id="protoNewScheduleWithAgent" type="checkbox" ${pre.scheduleWithAgent ? 'checked' : ''} onchange="protoSaveNewInspDraftInputs(); renderProtoPortal();" class="rounded border-slate-300 text-davis-navy shrink-0" />
+                      <span class="leading-tight">Schedule w/ Agent</span>
                     </label>
                   </div>
-                  <select id="protoNewTimeOnly" ${pre.scheduleWithAgent ? 'disabled' : ''} class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm ${pre.scheduleWithAgent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}">
-                    ${timeOptionsHTML}
-                  </select>
+                  <div class="sm:col-span-4">
+                    <label class="block font-bold text-slate-700 mb-1">Inspection Date ${pre.scheduleWithAgent ? '' : '*'}</label>
+                    <input id="protoNewDateOnly" type="date" value="${escapeHtml(pre.scheduleWithAgent ? '' : (pre.dateOnly || ''))}" ${pre.scheduleWithAgent ? 'disabled' : ''} class="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-sm h-[42px] ${pre.scheduleWithAgent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}" />
+                  </div>
+                  <div class="sm:col-span-4">
+                    <label class="block font-bold text-slate-700 mb-1">Inspection Time ${pre.scheduleWithAgent ? '' : '*'}</label>
+                    <select id="protoNewTimeOnly" ${pre.scheduleWithAgent ? 'disabled' : ''} class="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-sm h-[42px] ${pre.scheduleWithAgent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}">
+                      ${timeOptionsHTML}
+                    </select>
+                  </div>
                 </div>
                 <div class="sm:col-span-2">
                   <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
@@ -6736,7 +6746,7 @@
                     <span class="text-xs font-extrabold uppercase tracking-wider text-slate-700">Click to Add Service or Discount</span>
                     <div class="flex flex-wrap gap-1.5">${catTabsHTML}</div>
                   </div>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-56 overflow-y-auto pr-1">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 min-h-[260px] max-h-[420px] overflow-y-auto pr-1 content-start">
                     ${catalogPillsHTML || '<div class="text-xs text-slate-400 italic py-3">No items in this category.</div>'}
                   </div>
                 </div>
@@ -6866,6 +6876,7 @@
                   ${contactTabBtns}
                   <span class="h-6 w-px bg-slate-400/70 mx-1 shrink-0" aria-hidden="true"></span>
                   ${analyticsTabBtn}
+                  <button type="button" onclick="dhiOpenAdminAiRulesModal()" class="px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap bg-white border border-slate-200 text-slate-700 hover:border-davis-navy">AI Rules</button>
                 </div>
                 <a href="./inspect.html" class="w-44 text-center px-3 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-xs font-extrabold transition shadow-sm shrink-0 whitespace-nowrap">Field &amp; Report App &rarr;</a>
               </div>
@@ -6983,6 +6994,7 @@
     function protoSaveNewInspDraftInputs() {
       const streetEl = document.getElementById('protoNewStreet');
       if (!streetEl) return;
+      const prev = protoState.newInspDraft || {};
       const street = streetEl.value || '';
       const city = document.getElementById('protoNewCity')?.value || '';
       const state = document.getElementById('protoNewState')?.value || 'CO';
@@ -13107,7 +13119,7 @@
       protoSaveNewInspDraftInputs();
       const pre = protoState.newInspDraft || {};
       const lineItems = protoState.draftLineItems || [];
-      const total = lineItems.reduce((s, x) => s + Number(x.price || 0) * Number(x.qty || 1), 0);
+      const total = lineItems.reduce((s, x) => s + Number(x.unitPrice ?? x.price ?? 0) * Number(x.qty ?? 1), 0);
       const addr = [pre.street, pre.city, pre.state, pre.zip].filter(Boolean).join(', ') || pre.address || 'the property';
       const dateStr = pre.scheduleWithAgent ? '' : dhiFormatAdminDateLabel(pre.dateOnly, pre.timeOnly);
       const recipientMode = document.getElementById('dhiQuoteRecipient')?.value || 'customer';
@@ -13124,7 +13136,7 @@
             address: addr,
             dateStr,
             scheduleWithAgent: !!pre.scheduleWithAgent,
-            lineItems: lineItems.map(li => ({ name: li.name, price: Number(li.price || 0) * Number(li.qty || 1) })),
+            lineItems: lineItems.map(li => ({ name: li.name, price: Number(li.unitPrice ?? li.price ?? 0) * Number(li.qty ?? 1) })),
             total,
             format: fmt
           }
@@ -13164,7 +13176,7 @@
       protoSaveNewInspDraftInputs();
       const pre = protoState.newInspDraft || {};
       const lineItems = (protoState.draftLineItems || []).map(x => ({ ...x }));
-      const total = lineItems.reduce((s, x) => s + Number(x.price || 0) * Number(x.qty || 1), 0);
+      const total = lineItems.reduce((s, x) => s + Number(x.unitPrice ?? x.price ?? 0) * Number(x.qty ?? 1), 0);
       return {
         newInspDraft: { ...pre },
         lineItems,
@@ -13237,7 +13249,7 @@
             questionUrl = `${baseOrigin}?quote_action=question&req_id=${encodeURIComponent(saved.reqId)}&token=${encodeURIComponent(saved.quoteToken)}`;
           }
         }
-        const lineItems = (protoState.draftLineItems || []).map(li => ({ name: li.name, price: Number(li.price || 0) * Number(li.qty || 1) }));
+        const lineItems = (protoState.draftLineItems || []).map(li => ({ name: li.name, price: Number(li.unitPrice ?? li.price ?? 0) * Number(li.qty ?? 1) }));
         const totalAmount = lineItems.reduce((s, x) => s + Number(x.price || 0), 0);
         for (const t of targets) {
           const { data, error } = await dhiSupabase.functions.invoke('send-portal-email', {
@@ -13262,6 +13274,114 @@
         protoToastMsg('Email failed: ' + (err.message || err));
       } finally {
         if (btn) { btn.disabled = false; btn.textContent = 'Send Branded Email'; }
+      }
+    }
+
+
+    // --- v2.0.2-ai: Admin Portal AI Rules Modal (Isolated from Field App & CREC NTC43) ---
+    const DHI_DEFAULT_ADMIN_MODEL = 'gemini-3.8-flash';
+    const DHI_DEFAULT_RECAP_RULES = "Write 3 to 5 concise, plain-English sentences in Matt's grounded, helpful, non-alarmist voice.\nHighlight the most important big-ticket or safety takeaways naturally without sounding dramatic.\nNEVER mention AI, automated generation, or bots.\nDo NOT use em dashes or emojis.";
+    const DHI_DEFAULT_QUOTE_RULES = "Write in Matt's warm, direct, everyday voice. NEVER mention AI.\nClearly state the proposed date/time (or that Matt will coordinate directly with their agent if Schedule with Agent is checked) AND include the itemized pricing breakdown and total.\nKeep it friendly, clear, and easy to skim. Do NOT use em dashes or emojis.";
+
+    async function dhiOpenAdminAiRulesModal() {
+      const modal = document.getElementById('dhiAdminAiRulesModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      const modelSel = document.getElementById('dhiAdminAiModelSelect');
+      const recapTa = document.getElementById('dhiAdminRecapRulesInput');
+      const quoteTa = document.getElementById('dhiAdminQuoteRulesInput');
+      const statusEl = document.getElementById('dhiAdminAiModelStatus');
+      if (statusEl) statusEl.textContent = 'Loading saved settings & available Gemini models...';
+
+      let savedModel = DHI_DEFAULT_ADMIN_MODEL;
+      let savedRecap = DHI_DEFAULT_RECAP_RULES;
+      let savedQuote = DHI_DEFAULT_QUOTE_RULES;
+
+      if (dhiIsLiveSession()) {
+        try {
+          const { data } = await dhiSupabase
+            .from('app_settings')
+            .select('key, value')
+            .in('key', ['ai_admin_model', 'ai_recap_rules', 'ai_quote_rules']);
+          if (Array.isArray(data)) {
+            data.forEach(row => {
+              if (row.key === 'ai_admin_model' && row.value) savedModel = row.value;
+              if (row.key === 'ai_recap_rules' && row.value) savedRecap = row.value;
+              if (row.key === 'ai_quote_rules' && row.value) savedQuote = row.value;
+            });
+          }
+        } catch (_e) {}
+      }
+
+      if (recapTa) recapTa.value = savedRecap;
+      if (quoteTa) quoteTa.value = savedQuote;
+
+      const fallbackOpts = [
+        { id: 'gemini-3.8-flash', displayName: 'Gemini 3.8 Flash (Recommended Admin Default)' },
+        { id: 'gemini-3.5-flash-lite', displayName: 'Gemini 3.5 Flash-Lite (Fastest / Lowest Cost)' },
+        { id: 'gemini-4-hydrogen', displayName: 'Gemini 4 Hydrogen' }
+      ];
+      let models = fallbackOpts;
+      if (dhiIsLiveSession()) {
+        try {
+          const { data, error } = await dhiSupabase.functions.invoke('generate-narrative', { body: { action: 'list_models' } });
+          if (!error && data && Array.isArray(data.models) && data.models.length) {
+            models = data.models;
+            if (statusEl) statusEl.textContent = `Loaded ${models.length} live Gemini models. If Google ever retires a model, the app automatically falls back to a live Flash model.`;
+          } else if (statusEl) {
+            statusEl.textContent = 'Showing standard Gemini models (live refresh unavailable right now).';
+          }
+        } catch (_e) {
+          if (statusEl) statusEl.textContent = 'Showing standard Gemini models.';
+        }
+      } else if (statusEl) {
+        statusEl.textContent = 'Demo mode: changes apply in this preview session.';
+      }
+
+      if (modelSel) {
+        const hasSaved = models.some(m => m.id === savedModel);
+        const list = hasSaved ? models : [{ id: savedModel, displayName: savedModel + ' (Saved)' }, ...models];
+        modelSel.innerHTML = list.map(m => `<option value="${escapeHtml(m.id)}" ${m.id === savedModel ? 'selected' : ''}>${escapeHtml(m.displayName || m.id)} (${escapeHtml(m.id)})</option>`).join('');
+      }
+    }
+
+    function dhiCloseAdminAiRulesModal() {
+      document.getElementById('dhiAdminAiRulesModal')?.classList.add('hidden');
+    }
+
+    function dhiResetAdminAiRule(which) {
+      if (which === 'recap') {
+        const el = document.getElementById('dhiAdminRecapRulesInput');
+        if (el) el.value = DHI_DEFAULT_RECAP_RULES;
+      } else if (which === 'quote') {
+        const el = document.getElementById('dhiAdminQuoteRulesInput');
+        if (el) el.value = DHI_DEFAULT_QUOTE_RULES;
+      }
+      protoToastMsg('Restored default rules. Click Save AI Rules to apply.');
+    }
+
+    async function dhiSaveAdminAiRules() {
+      const modelVal = (document.getElementById('dhiAdminAiModelSelect')?.value || DHI_DEFAULT_ADMIN_MODEL).trim();
+      const recapVal = (document.getElementById('dhiAdminRecapRulesInput')?.value || '').trim() || DHI_DEFAULT_RECAP_RULES;
+      const quoteVal = (document.getElementById('dhiAdminQuoteRulesInput')?.value || '').trim() || DHI_DEFAULT_QUOTE_RULES;
+      const btn = document.getElementById('dhiSaveAdminAiRulesBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+      try {
+        if (dhiIsLiveSession()) {
+          const rows = [
+            { key: 'ai_admin_model', value: modelVal, updated_at: new Date().toISOString() },
+            { key: 'ai_recap_rules', value: recapVal, updated_at: new Date().toISOString() },
+            { key: 'ai_quote_rules', value: quoteVal, updated_at: new Date().toISOString() }
+          ];
+          const { error } = await dhiSupabase.from('app_settings').upsert(rows, { onConflict: 'key' });
+          if (error) throw new Error(error.message);
+        }
+        dhiCloseAdminAiRulesModal();
+        protoToastMsg('Admin AI Rules saved!');
+      } catch (err) {
+        protoToastMsg('Could not save AI Rules: ' + (err.message || err));
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save AI Rules'; }
       }
     }
 
@@ -13805,6 +13925,50 @@
     </div>
   </div>
 
+
+  <!-- Admin Portal AI Rules Modal (v2.0.2-ai) -->
+  <div id="dhiAdminAiRulesModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) dhiCloseAdminAiRulesModal()">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div class="px-5 py-4 bg-davis-navy text-white flex items-center justify-between gap-3 shrink-0">
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-widest text-sky-300">Admin Portal Automation</div>
+          <h3 class="text-base font-extrabold">Admin AI Rules (Emails &amp; Texts)</h3>
+        </div>
+        <button type="button" onclick="dhiCloseAdminAiRulesModal()" class="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold">&times;</button>
+      </div>
+      <div class="p-5 space-y-4 text-xs overflow-y-auto flex-1">
+        <div class="rounded-xl border border-sky-200 bg-sky-50/70 p-3 text-[11px] text-slate-700 leading-relaxed">
+          <strong class="text-davis-navy">Isolated Scope:</strong> Settings here apply <strong>only</strong> to Admin email/text drafts (<strong>Inspection Recaps</strong> and <strong>Quote &amp; Availability Responses</strong>). They do <strong>not</strong> affect your Field App report narratives or the Colorado CREC NTC43 Objection Builder.
+        </div>
+
+        <div class="space-y-1.5">
+          <label for="dhiAdminAiModelSelect" class="block font-extrabold text-slate-800">Admin AI Model (Lower-Tier Fast Model)</label>
+          <select id="dhiAdminAiModelSelect" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-900 focus:border-davis-navy outline-none"></select>
+          <p id="dhiAdminAiModelStatus" class="text-[11px] text-slate-500">Loading available Gemini models...</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between gap-2">
+            <label for="dhiAdminRecapRulesInput" class="font-extrabold text-slate-800">Inspection Recap Tone &amp; Rules (Emails &amp; Texts)</label>
+            <button type="button" onclick="dhiResetAdminAiRule('recap')" class="text-[11px] font-bold text-davis-navy hover:underline">Reset Default</button>
+          </div>
+          <textarea id="dhiAdminRecapRulesInput" rows="4" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 leading-relaxed focus:border-davis-navy outline-none resize-y"></textarea>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between gap-2">
+            <label for="dhiAdminQuoteRulesInput" class="font-extrabold text-slate-800">Quote &amp; Availability Response Rules (Requests / New Inspection)</label>
+            <button type="button" onclick="dhiResetAdminAiRule('quote')" class="text-[11px] font-bold text-davis-navy hover:underline">Reset Default</button>
+          </div>
+          <textarea id="dhiAdminQuoteRulesInput" rows="4" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 leading-relaxed focus:border-davis-navy outline-none resize-y"></textarea>
+        </div>
+      </div>
+      <div class="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2 shrink-0">
+        <button type="button" onclick="dhiCloseAdminAiRulesModal()" class="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-bold">Cancel</button>
+        <button type="button" id="dhiSaveAdminAiRulesBtn" onclick="dhiSaveAdminAiRules()" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-extrabold transition">Save AI Rules</button>
+      </div>
+    </div>
+  </div>
 
   <!-- AI Inspection Recap Modal (v2.0-ai) -->
   <div id="dhiRecapModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) dhiCloseRecapModal()">
