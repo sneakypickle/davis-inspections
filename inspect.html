@@ -212,15 +212,19 @@
     <div class="bg-white rounded-2xl max-w-xl w-full p-5 space-y-4 shadow-2xl border border-slate-200 max-h-[82vh] flex flex-col">
       <div class="flex items-start justify-between gap-2">
         <div>
-          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Crash Recovery (Every 2 Minutes)</span>
-          <h3 class="text-base font-extrabold text-slate-900">Local phone backups</h3>
-          <p class="text-xs text-slate-500">Up to 5 rolling snapshots per inspection are saved automatically to IndexedDB every 2 minutes while editing.</p>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Crash Recovery (Every 5 Minutes)</span>
+          <h3 class="text-base font-extrabold text-slate-900">Local device backups</h3>
+          <p class="text-xs text-slate-500">Up to 20 rolling snapshots per inspection are saved every 5 minutes while editing and auto-cleared after 5 days.</p>
         </div>
         <button type="button" onclick="closeBackupsModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
       </div>
-      <div class="flex gap-2">
-        <button type="button" onclick="createManualBackupSnapshot()" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white text-xs font-bold">Take snapshot now</button>
-        <button type="button" onclick="exportActiveDraftJson()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold">Download JSON backup</button>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="createManualBackupSnapshot()" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white text-xs font-bold">Take snapshot now</button>
+          <button type="button" onclick="exportActiveDraftJson()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold">Download JSON backup</button>
+          <button type="button" onclick="clearOldBackupSnapshots()" class="px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold">Clear Old Backups</button>
+        </div>
+        <span id="backupsSizeInfo" class="text-[11px] font-semibold text-slate-500"></span>
       </div>
       <div id="backupsListContainer" class="space-y-2 overflow-y-auto flex-1"></div>
     </div>
@@ -422,11 +426,12 @@
     // =========================================================================
     function openLocalDB() {
       return new Promise((resolve, reject) => {
-        const req = indexedDB.open('DhiFieldDB_v1', 1);
+        const req = indexedDB.open('DhiFieldDB_v1', 2);
         req.onupgradeneeded = (e) => {
           const db = e.target.result;
           if (!db.objectStoreNames.contains('drafts')) db.createObjectStore('drafts', { keyPath: 'inspectionId' });
           if (!db.objectStoreNames.contains('backups')) db.createObjectStore('backups', { keyPath: 'backupId' });
+          if (!db.objectStoreNames.contains('cache')) db.createObjectStore('cache', { keyPath: 'key' });
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
@@ -483,6 +488,20 @@
       if (!silent) toast('Saved locally on device.');
     }
 
+    async function pruneExpiredBackups() {
+      const cutoffMs = Date.now() - (5 * 24 * 60 * 60 * 1000); // 5 days
+      const all = await idbGetAll('backups');
+      let removed = 0;
+      for (const b of all) {
+        const ts = b && b.savedAt ? new Date(b.savedAt).getTime() : 0;
+        if (!ts || ts < cutoffMs) {
+          await idbDelete('backups', b.backupId);
+          removed++;
+        }
+      }
+      return removed;
+    }
+
     async function createBackupSnapshot(isAuto) {
       if (!state.draft) return;
       const now = new Date();
@@ -494,24 +513,25 @@
         draft: JSON.parse(JSON.stringify(state.draft))
       };
       await idbPut('backups', snap);
-      // Prune to keep latest 5 snapshots per inspection
+      await pruneExpiredBackups();
+      // Keep latest 20 snapshots per inspection
       const all = (await idbGetAll('backups'))
         .filter(b => b.inspectionId === state.draft.inspectionId)
         .sort((a, b) => b.savedAt.localeCompare(a.savedAt));
-      for (const old of all.slice(5)) {
+      for (const old of all.slice(20)) {
         await idbDelete('backups', old.backupId);
       }
       const badge = document.getElementById('hdrBackupBadge');
       if (badge) badge.textContent = 'Backup ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      if (!isAuto) toast('Backup snapshot saved on phone.');
+      if (!isAuto) toast('Backup snapshot saved on device.');
     }
 
-    // Automatic 2-minute backup timer
+    // Automatic 5-minute backup timer
     setInterval(() => {
       if (state.draft) {
         createBackupSnapshot(true).catch(() => {});
       }
-    }, 120000);
+    }, 300000);
 
     // Save on page hide / app backgrounding
     document.addEventListener('visibilitychange', () => {
@@ -547,6 +567,39 @@
       });
     }
 
+    async function saveFieldMetaCache() {
+      try {
+        await idbPut('cache', {
+          key: 'meta',
+          inspections: state.inspections || [],
+          commentLibrary: state.commentLibrary || [],
+          templates: state.templates || [],
+          activeTemplateId: state.activeTemplateId || null,
+          globalInstructions: state.globalInstructions || '',
+          aiModel: state.aiModel || '',
+          savedAt: new Date().toISOString()
+        });
+      } catch (_e) {}
+    }
+
+    async function loadFieldMetaCache() {
+      try {
+        const cached = await idbGet('cache', 'meta');
+        if (!cached) return false;
+        if (Array.isArray(cached.inspections) && cached.inspections.length) state.inspections = cached.inspections;
+        if (Array.isArray(cached.commentLibrary) && cached.commentLibrary.length) state.commentLibrary = cached.commentLibrary;
+        if (Array.isArray(cached.templates) && cached.templates.length) {
+          state.templates = cached.templates;
+          state.activeTemplateId = cached.activeTemplateId || cached.templates[0].id;
+        }
+        if (cached.globalInstructions) state.globalInstructions = cached.globalInstructions;
+        if (cached.aiModel) state.aiModel = cached.aiModel;
+        return true;
+      } catch (_e) {
+        return false;
+      }
+    }
+
     async function onSignedIn(user) {
       if ((user.email || '').toLowerCase() !== 'matt@davis-inspections.com') {
         toast('Inspector account (Matt@Davis-Inspections.com) required.');
@@ -555,54 +608,88 @@
       }
       state.user = user;
       document.getElementById('hdrSignOutBtn')?.classList.remove('hidden');
-      try {
-        const [iRes, setRes, libRes, tplRes] = await Promise.all([
-          sb.from('inspections').select('*').order('created_at', { ascending: false }),
-          sb.from('app_settings').select('*').in('key', ['ai_narrative_instructions', 'ai_model']),
-          sb.from('comment_library').select('*').order('section_name', { ascending: true }),
-          sb.from('inspection_templates').select('*').order('name', { ascending: true })
-        ]);
-        if (Array.isArray(iRes.data)) {
-          state.inspections = iRes.data;
-          try {
-            const cPaths = state.inspections.map(x => x.property_info && x.property_info.coverPhotoPath).filter(Boolean);
-            if (cPaths.length) {
-              const { data: signedCovers } = await sb.storage.from('reports').createSignedUrls(cPaths, 60 * 60 * 6);
-              if (Array.isArray(signedCovers)) {
-                const cMap = new Map(signedCovers.filter(s => s && s.path && s.signedUrl).map(s => [s.path, s.signedUrl]));
-                state.inspections.forEach(x => {
-                  const cp = x.property_info && x.property_info.coverPhotoPath;
-                  if (cp && cMap.has(cp)) x._coverPhotoSignedUrl = cMap.get(cp);
-                });
+
+      // 1. Hydrate from local IndexedDB cache immediately so offline/dead-zone startup always has inspections, library, and templates
+      await loadFieldMetaCache();
+      pruneExpiredBackups().catch(() => {});
+
+      // 2. If online, refresh from Supabase (with a 6s timeout so weak signal never hangs boot)
+      if (navigator.onLine) {
+        try {
+          const cloudPromise = Promise.all([
+            sb.from('inspections').select('*').order('created_at', { ascending: false }),
+            sb.from('app_settings').select('*').in('key', ['ai_narrative_instructions', 'ai_model']),
+            sb.from('comment_library').select('*').order('section_name', { ascending: true }),
+            sb.from('inspection_templates').select('*').order('name', { ascending: true })
+          ]);
+          const timeoutPromise = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000));
+          const [iRes, setRes, libRes, tplRes] = await Promise.race([cloudPromise, timeoutPromise]);
+          if (Array.isArray(iRes.data)) {
+            state.inspections = iRes.data;
+            try {
+              const cPaths = state.inspections.map(x => x.property_info && x.property_info.coverPhotoPath).filter(Boolean);
+              if (cPaths.length) {
+                const { data: signedCovers } = await sb.storage.from('reports').createSignedUrls(cPaths, 60 * 60 * 6);
+                if (Array.isArray(signedCovers)) {
+                  const cMap = new Map(signedCovers.filter(s => s && s.path && s.signedUrl).map(s => [s.path, s.signedUrl]));
+                  state.inspections.forEach(x => {
+                    const cp = x.property_info && x.property_info.coverPhotoPath;
+                    if (cp && cMap.has(cp)) x._coverPhotoSignedUrl = cMap.get(cp);
+                  });
+                }
               }
-            }
-          } catch (_e) {}
-        }
-        if (Array.isArray(setRes.data)) {
-          setRes.data.forEach(row => {
-            if (row.key === 'ai_narrative_instructions' && row.value) state.globalInstructions = row.value;
-            if (row.key === 'ai_model' && row.value) state.aiModel = /^gemini-[12]\./i.test(row.value) ? 'gemini-4-hydrogen' : row.value;
-          });
-        }
-        if (Array.isArray(libRes.data)) state.commentLibrary = libRes.data;
-        if (Array.isArray(tplRes.data) && tplRes.data.length) {
-          state.templates = tplRes.data;
-          const def = tplRes.data.find(t => t.is_default) || tplRes.data[0];
-          state.activeTemplateId = def.id;
-        }
-      } catch (e) {
-        console.warn('Offline or load warning:', e);
+            } catch (_e) {}
+          }
+          if (Array.isArray(setRes.data)) {
+            setRes.data.forEach(row => {
+              if (row.key === 'ai_narrative_instructions' && row.value) state.globalInstructions = row.value;
+              if (row.key === 'ai_model' && row.value) state.aiModel = /^gemini-[12]\./i.test(row.value) ? 'gemini-4-hydrogen' : row.value;
+            });
+          }
+          if (Array.isArray(libRes.data)) state.commentLibrary = libRes.data;
+          if (Array.isArray(tplRes.data) && tplRes.data.length) {
+            state.templates = tplRes.data;
+            const def = tplRes.data.find(t => t.is_default) || tplRes.data[0];
+            state.activeTemplateId = def.id;
+          }
+          await saveFieldMetaCache();
+        } catch (_e) {}
       }
+
+      // 3. Also ensure any local drafts in IndexedDB appear in the picker list if offline
+      try {
+        const localDrafts = await idbGetAll('drafts');
+        for (const d of localDrafts) {
+          if (d && d.inspectionId && !(state.inspections || []).some(i => i.id === d.inspectionId)) {
+            state.inspections.unshift({
+              id: d.inspectionId,
+              address: d.address || 'Local Offline Draft',
+              client_name: (d.propertyInfo && d.propertyInfo.clientName) || '',
+              inspection_date: (d.propertyInfo && d.propertyInfo.inspectionDate) || '',
+              property_info: d.propertyInfo || {},
+              report_notified: false
+            });
+          }
+        }
+      } catch (_e) {}
+
+      // 4. Auto-reopen URL inspection or last active inspection (works 100% offline!)
       try {
         const urlId = new URLSearchParams(window.location.search).get('id');
-        if (urlId && !state.draft && (state.inspections || []).some(i => i.id === urlId)) {
-          await openInspectionDraft(urlId, false);
-          return;
+        if (urlId) {
+          const hasLocalUrl = !!(await idbGet('drafts', urlId));
+          if (hasLocalUrl || (state.inspections || []).some(i => i.id === urlId)) {
+            await openInspectionDraft(urlId, false);
+            return;
+          }
         }
         const resumeId = localStorage.getItem('dhi_field_active_insp_id');
-        if (resumeId && !state.draft && (state.inspections || []).some(i => i.id === resumeId)) {
-          await openInspectionDraft(resumeId, true);
-          return;
+        if (resumeId && !state.draft) {
+          const hasLocalResume = !!(await idbGet('drafts', resumeId));
+          if (hasLocalResume || (state.inspections || []).some(i => i.id === resumeId)) {
+            await openInspectionDraft(resumeId, true);
+            return;
+          }
         }
       } catch (_e) {}
       render();
@@ -1076,9 +1163,16 @@
     }
 
     async function openInspectionDraft(inspId, restoreSavedSection) {
-      const insp = state.inspections.find(i => i.id === inspId);
-      if (!insp) return;
       const localDraft = await idbGet('drafts', inspId);
+      let insp = (state.inspections || []).find(i => i.id === inspId);
+      if (!insp && localDraft) {
+        insp = {
+          id: inspId,
+          address: localDraft.address || 'Local Inspection Draft',
+          property_info: localDraft.propertyInfo || {}
+        };
+      }
+      if (!insp) return;
       const cloudDraft = (insp.draft_data && Array.isArray(insp.draft_data.sections) && insp.draft_data.sections.length) ? insp.draft_data : null;
 
       let chosen = null;
@@ -1098,7 +1192,7 @@
             if (p.storagePath && !p.dataUrl && !p.blob) toSign.push(p.storagePath);
             if (p.posterPath && !p.posterDataUrl) toSign.push(p.posterPath);
       })));
-      if (toSign.length) {
+      if (toSign.length && navigator.onLine) {
         try {
           const { data: signed } = await sb.storage.from('reports').createSignedUrls(toSign, 3600);
           const sMap = new Map((signed || []).map(x => [x.path, x.signedUrl]));
@@ -1128,7 +1222,7 @@
         localStorage.setItem('dhi_field_active_sec', String(nextSec));
       } catch (_e) {}
       document.getElementById('hdrTitle').textContent = insp.address || 'Inspection';
-      await saveDraftLocally(true);
+      await idbPut('drafts', chosen);
       render();
     }
 
@@ -4797,7 +4891,15 @@
     async function openBackupsModal() {
       if (!state.user) return;
       document.getElementById('backupsModal').classList.remove('hidden');
-      const all = (await idbGetAll('backups'))
+      await pruneExpiredBackups();
+      const everyBackup = await idbGetAll('backups');
+      let totalBytes = 0;
+      everyBackup.forEach(b => { try { totalBytes += JSON.stringify(b).length; } catch (_e) {} });
+      const mbStr = (totalBytes / (1024 * 1024)).toFixed(1);
+      const sizeEl = document.getElementById('backupsSizeInfo');
+      if (sizeEl) sizeEl.textContent = `${everyBackup.length} total backup${everyBackup.length === 1 ? '' : 's'} (~${mbStr} MB)`;
+
+      const all = everyBackup
         .filter(b => !state.draft || b.inspectionId === state.draft.inspectionId)
         .sort((a, b) => b.savedAt.localeCompare(a.savedAt));
       const cont = document.getElementById('backupsListContainer');
@@ -4809,7 +4911,31 @@
           </div>
           <button type="button" onclick="restoreBackupSnapshot('${b.backupId}')" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white font-bold">Restore</button>
         </div>
-      `).join('') || '<div class="text-xs text-slate-400 text-center py-6">No local backup snapshots yet. They save automatically every 2 minutes.</div>';
+      `).join('') || '<div class="text-xs text-slate-400 text-center py-6">No local backup snapshots yet. They save automatically every 5 minutes.</div>';
+    }
+
+    async function clearOldBackupSnapshots() {
+      const all = await idbGetAll('backups');
+      const activeId = state.draft ? state.draft.inspectionId : null;
+      const toRemove = activeId ? all.filter(b => b.inspectionId !== activeId) : all;
+      if (!toRemove.length) {
+        toast(activeId ? 'No backups from other inspections to clear.' : 'No local backups to clear.');
+        return;
+      }
+      const msg = activeId
+        ? `Clear ${toRemove.length} backup snapshot${toRemove.length === 1 ? '' : 's'} from other inspections? (Backups for your current open inspection will be kept.)`
+        : `Clear all ${toRemove.length} local backup snapshot${toRemove.length === 1 ? '' : 's'} from this device?`;
+      if (!confirm(msg)) return;
+      for (const b of toRemove) {
+        await idbDelete('backups', b.backupId);
+      }
+      toast(`Cleared ${toRemove.length} old backup${toRemove.length === 1 ? '' : 's'}.`);
+      openBackupsModal();
+    }
+
+    function confirmMobilePublish() {
+      if (!confirm('Publish this report to the Customer & Agent Portal? (No email is sent until you send it from the Admin Dashboard.)')) return;
+      uploadDraftToSupabase(true);
     }
     function closeBackupsModal() { document.getElementById('backupsModal').classList.add('hidden'); }
     async function createManualBackupSnapshot() { await createBackupSnapshot(false); openBackupsModal(); }
@@ -4920,7 +5046,7 @@
             <div class="bg-white rounded-2xl border border-slate-200 p-5 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 class="text-lg font-extrabold text-slate-900">Select an inspection</h1>
-                <p class="text-xs text-slate-500">Work offline (auto-backed up every 2 minutes), then upload when done and polish photos/narratives at home.</p>
+                <p class="text-xs text-slate-500">Work offline (auto-backed up every 5 minutes), then upload when done and polish photos/narratives at home.</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
 
@@ -5150,7 +5276,7 @@
             <div class="md:hidden space-y-2">
               <div class="flex items-center justify-between gap-2">
                 <button type="button" onclick="closeActiveDraft()" class="px-2.5 py-1.5 rounded-xl border border-slate-300 bg-slate-50 text-xs font-bold text-slate-700 shrink-0">&larr; Inspections</button>
-                <span class="text-[11px] font-bold truncate ${state.draft.dirty ? 'text-amber-700' : 'text-emerald-700'}">${state.draft.dirty ? 'Unsynced' : 'Synced'}</span>
+                <span class="text-[11px] font-bold truncate ${state.draft.dirty ? 'text-amber-700' : 'text-emerald-700'}">${state.draft.dirty ? 'Saved locally' : 'In cloud'}</span>
                 <details id="dhiMobileToolsDropdown" class="relative shrink-0">
                   <summary class="list-none cursor-pointer px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-50 text-xs font-bold text-slate-700 inline-flex items-center gap-1">
                     <span>Tools</span>
@@ -5161,7 +5287,7 @@
                     <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; toggleNpma33Panel();" class="w-full text-left px-3 py-2 rounded-lg border text-xs font-bold ${state.showNpma33 ? 'bg-indigo-600 border-indigo-600 text-white' : (npmaEnabled ? 'bg-indigo-50 border-indigo-300 text-indigo-800' : 'border-slate-200 bg-slate-50 text-slate-700')}">NPMA-33 (WDI)${npmaEnabled ? ' ✓' : ''}</button>
                     <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; runWholeHomeAITask();" ${state.taskRunning ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg bg-indigo-600 disabled:opacity-60 text-white text-xs font-bold">${state.taskRunning ? esc(state.taskProgressText || 'Running AI task...') : `Run AI task (${pendingAI} pending)`}</button>
                     <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; toggleEditTemplateMode();" class="w-full text-left px-3 py-2 rounded-lg border text-xs font-bold ${state.editTemplateMode ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-700'}">${state.editTemplateMode ? 'Editing template' : 'Edit template'}</button>
-                    <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; uploadDraftToSupabase(true);" ${state.uploading ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg bg-emerald-600 disabled:opacity-60 text-white text-xs font-extrabold">Publish to customer portal</button>
+                    <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; confirmMobilePublish();" ${state.uploading ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg bg-emerald-600 disabled:opacity-60 text-white text-xs font-extrabold">Publish to customer portal</button>
                   </div>
                 </details>
               </div>
@@ -5176,7 +5302,7 @@
               <div class="flex flex-wrap items-center gap-2">
                 <button type="button" onclick="closeActiveDraft()" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">&larr; All inspections</button>
                 <button type="button" id="dhiTopPermitLink" data-url="${esc(pl.url)}" data-street="${esc(plStreet)}" onclick="dhiOpenFieldPermitLookup(this)" class="px-3 py-1.5 rounded-xl border border-sky-200 bg-sky-50 hover:border-davis-navy text-davis-navy text-xs font-bold transition">${esc(pl.label)} &nearr;</button>
-                <span class="text-xs font-bold text-slate-500">${state.draft.dirty ? 'Unsynced local changes' : 'Synced'}</span>
+                <span class="text-xs font-bold text-slate-500">${state.draft.dirty ? 'Saved locally' : 'In cloud'}</span>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <button type="button" onclick="runWholeHomeAITask()" ${state.taskRunning ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold transition">${state.taskRunning ? esc(state.taskProgressText || 'Running AI task...') : `Run AI task (${pendingAI} pending)`}</button>
