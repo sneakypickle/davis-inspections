@@ -1210,6 +1210,7 @@
     }
 
     async function openInspectionDraft(inspId, restoreSavedSection) {
+      state.aiExpandedItems = {};
       const localDraft = await idbGet('drafts', inspId);
       let insp = (state.inspections || []).find(i => i.id === inspId);
       if (!insp && localDraft) {
@@ -2982,6 +2983,10 @@
         if (data && data.error) throw new Error(data.error);
         if (data && data.narrative) {
           it.narrative = data.narrative;
+          if (window.innerWidth >= 768) {
+            state.aiExpandedItems = state.aiExpandedItems || {};
+            state.aiExpandedItems[it.id] = true;
+          }
           await saveDraftLocally(true);
           toast('Narrative generated!');
         }
@@ -5318,7 +5323,7 @@
                     <button type="button" onclick="saveNarrativeToLibrary(${state.activeSecIdx}, ${itemIdx})" class="px-2.5 py-1 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold">+ Save to library</button>
                   </div>
                 </div>
-                <textarea data-pair-ta="item-${state.activeSecIdx}-${itemIdx}" rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'narrative', this.value)" placeholder="Final 3-sentence narrative (edit freely or click Rewrite with AI / Library)..." class="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50/50 text-xs leading-relaxed resize-y">${esc(it.narrative || '')}</textarea>
+                <textarea id="dhiNarrativeTa-${state.activeSecIdx}-${itemIdx}" data-ai-narrative-item="${esc(it.id)}" data-pair-ta="item-${state.activeSecIdx}-${itemIdx}" rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'narrative', this.value)" placeholder="Final 3-sentence narrative (edit freely or click Rewrite with AI / Library)..." class="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50/50 text-xs leading-relaxed resize-y">${esc(it.narrative || '')}</textarea>
               </div>
             </div>`}
           </div>
@@ -5753,6 +5758,21 @@
           requestAnimationFrame(() => { syncing = false; });
         }
       });
+      if (window.innerWidth >= 768 && state.aiExpandedItems) {
+        document.querySelectorAll('textarea[data-ai-narrative-item]').forEach(narTa => {
+          const itemId = narTa.getAttribute('data-ai-narrative-item');
+          if (!itemId || !state.aiExpandedItems[itemId]) return;
+          narTa.style.height = 'auto';
+          const h = Math.max(narTa.scrollHeight + 8, 96);
+          narTa.style.height = h + 'px';
+          const pairKey = narTa.getAttribute('data-pair-ta');
+          if (pairKey) {
+            document.querySelectorAll(`textarea[data-pair-ta="${pairKey}"]`).forEach(peer => {
+              if (peer !== narTa) peer.style.height = h + 'px';
+            });
+          }
+        });
+      }
       document.querySelectorAll('textarea[data-pair-ta]').forEach(ta => dhiTaResizeObserver.observe(ta));
     }
 
