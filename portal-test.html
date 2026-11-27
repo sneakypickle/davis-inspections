@@ -669,7 +669,7 @@
               <div class="sm:col-span-3 space-y-1.5">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <label for="reqPreferredDate" class="block text-xs font-semibold text-slate-700">Preferred Date / Window</label>
-                  <label class="inline-flex items-center gap-1.5 text-xs font-semibold text-davis-navy cursor-pointer select-none">
+                  <label id="reqScheduleWithAgentWrap" class="inline-flex items-center gap-1.5 text-xs font-semibold text-davis-navy cursor-pointer select-none">
                     <input type="checkbox" id="reqScheduleWithAgent" onchange="dhiTogglePublicScheduleWithAgent(this.checked)" class="rounded border-slate-300 text-davis-navy" />
                     <span>Schedule directly with my agent</span>
                   </label>
@@ -2185,6 +2185,8 @@
       const heading = document.getElementById('reqCounterpartyHeading');
       const noAgentWrap = document.getElementById('reqNoAgentWrap');
       const noAgentCheck = document.getElementById('reqNoAgentCheck');
+      const schedAgentWrap = document.getElementById('reqScheduleWithAgentWrap');
+      const schedAgentCheck = document.getElementById('reqScheduleWithAgent');
       const row = document.getElementById('reqCounterpartyRow');
       const nameInp = document.getElementById('reqCounterpartyName');
       const emailInp = document.getElementById('reqCounterpartyEmail');
@@ -2195,6 +2197,11 @@
         heading.innerHTML = 'Customer <span class="text-rose-600">*</span>';
         if (noAgentWrap) noAgentWrap.classList.add('hidden');
         if (noAgentCheck) noAgentCheck.checked = false;
+        if (schedAgentWrap) schedAgentWrap.classList.add('hidden');
+        if (schedAgentCheck && schedAgentCheck.checked) {
+          schedAgentCheck.checked = false;
+          if (typeof dhiTogglePublicScheduleWithAgent === 'function') dhiTogglePublicScheduleWithAgent(false);
+        }
         row.classList.remove('hidden');
         nameInp.required = true;
         nameInp.placeholder = 'Buyer / Client Name *';
@@ -2206,6 +2213,11 @@
           ? 'Real Estate Agent <span class="text-slate-400 font-normal normal-case">(None)</span>'
           : 'Real Estate Agent <span class="text-rose-600">*</span>';
         if (noAgentWrap) noAgentWrap.classList.remove('hidden');
+        if (schedAgentWrap) schedAgentWrap.classList.toggle('hidden', noAgent);
+        if (noAgent && schedAgentCheck && schedAgentCheck.checked) {
+          schedAgentCheck.checked = false;
+          if (typeof dhiTogglePublicScheduleWithAgent === 'function') dhiTogglePublicScheduleWithAgent(false);
+        }
         if (noAgent) {
           row.classList.add('hidden');
           nameInp.required = false;
@@ -6651,22 +6663,22 @@
                     </div>
                   </div>
                 </div>
-                <div class="sm:col-span-2 grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
-                  <div class="sm:col-span-4">
-                    <label class="flex items-center gap-2 px-2.5 py-2.5 rounded-lg border ${pre.scheduleWithAgent ? 'border-davis-navy bg-davis-light/60 text-davis-navy' : 'border-slate-300 bg-slate-50 text-slate-700'} text-xs font-bold cursor-pointer select-none h-[42px] transition">
-                      <input id="protoNewScheduleWithAgent" type="checkbox" ${pre.scheduleWithAgent ? 'checked' : ''} onchange="protoSaveNewInspDraftInputs(); renderProtoPortal();" class="rounded border-slate-300 text-davis-navy shrink-0" />
-                      <span class="leading-tight">Schedule w/ Agent</span>
-                    </label>
-                  </div>
-                  <div class="sm:col-span-4">
-                    <label class="block font-bold text-slate-700 mb-1">Inspection Date ${pre.scheduleWithAgent ? '' : '*'}</label>
-                    <input id="protoNewDateOnly" type="date" value="${escapeHtml(pre.scheduleWithAgent ? '' : (pre.dateOnly || ''))}" ${pre.scheduleWithAgent ? 'disabled' : ''} class="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-sm h-[42px] ${pre.scheduleWithAgent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}" />
-                  </div>
-                  <div class="sm:col-span-4">
-                    <label class="block font-bold text-slate-700 mb-1">Inspection Time ${pre.scheduleWithAgent ? '' : '*'}</label>
-                    <select id="protoNewTimeOnly" ${pre.scheduleWithAgent ? 'disabled' : ''} class="w-full px-2.5 py-2 rounded-lg border border-slate-300 text-sm h-[42px] ${pre.scheduleWithAgent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}">
-                      ${timeOptionsHTML}
-                    </select>
+                <div class="sm:col-span-2 space-y-2.5">
+                  <label class="flex items-center gap-2.5 px-3 py-2 rounded-xl border ${pre.scheduleWithAgent ? 'border-davis-navy bg-davis-light/60 text-davis-navy' : 'border-slate-200 bg-slate-50 text-slate-700'} text-xs font-bold cursor-pointer select-none transition">
+                    <input id="protoNewScheduleWithAgent" type="checkbox" ${pre.scheduleWithAgent ? 'checked' : ''} onchange="protoSaveNewInspDraftInputs(); renderProtoPortal();" class="rounded border-slate-300 text-davis-navy shrink-0" />
+                    <span>Schedule with Agent <span class="font-normal text-slate-500">(leave date &amp; time blank for now)</span></span>
+                  </label>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label class="block font-bold text-slate-700 mb-1">Inspection Date ${pre.scheduleWithAgent ? '' : '*'}</label>
+                      <input id="protoNewDateOnly" type="date" value="${escapeHtml(pre.scheduleWithAgent ? '' : (pre.dateOnly || ''))}" ${pre.scheduleWithAgent ? 'disabled' : ''} class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm ${pre.scheduleWithAgent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-700 mb-1">Inspection Time ${pre.scheduleWithAgent ? '' : '*'}</label>
+                      <select id="protoNewTimeOnly" ${pre.scheduleWithAgent ? 'disabled' : ''} class="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm ${pre.scheduleWithAgent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}">
+                        ${timeOptionsHTML}
+                      </select>
+                    </div>
                   </div>
                 </div>
                 <div class="sm:col-span-2">
@@ -13414,24 +13426,46 @@
       try {
         let findings = [];
         if (dhiIsLiveSession() && insp.id !== 'insp-demo') {
-          const { data: fRows } = await dhiSupabase
+          const { data: fRows, error: fErr } = await dhiSupabase
             .from('inspection_findings')
             .select('item_code, category, title, severity, is_summary, narrative')
-            .eq('inspection_id', insp.id);
-          if (Array.isArray(fRows)) {
-            findings = fRows.filter(f => f.is_summary || String(f.severity || '').toLowerCase().includes('repair'));
-            if (!findings.length) findings = fRows.slice(0, 12);
-          }
+            .eq('inspection_id', insp.id)
+            .order('item_code', { ascending: true });
+          if (fErr) throw new Error('Could not load report findings: ' + fErr.message);
+          const withText = (Array.isArray(fRows) ? fRows : []).filter(f => String(f.narrative || '').trim().length > 0);
+          const isKeyFinding = (f) => {
+            if (f.is_summary) return true;
+            const sev = String(f.severity || '').toLowerCase();
+            return sev.includes('repair') || sev.includes('replace') || sev.includes('safety') || sev.includes('defect') || sev.includes('monitor') || /rr/.test(sev);
+          };
+          const priority = withText.filter(isKeyFinding);
+          findings = priority.length ? priority : withText;
+        } else if (Array.isArray(protoState.findings) && protoState.findings.length) {
+          findings = protoState.findings
+            .filter(f => String(f.narrative || '').trim().length > 0)
+            .map(f => ({
+              item_code: f.code || '',
+              category: f.category || '',
+              title: f.title || '',
+              severity: f.severity || '',
+              is_summary: !!f.isSummary,
+              narrative: f.narrative || ''
+            }));
+        }
+        if (!findings.length) {
+          protoToastMsg('No completed findings with narratives were found for this report.');
+          return;
         }
         const recipientName = audience === 'agent' ? (insp.agentName || '') : (insp.clientName || '');
         const { data, error } = await dhiSupabase.functions.invoke('generate-narrative', {
           body: {
             action: 'draft_recap',
             address: insp.address || '',
+            propertyInfo: insp.propertyInfo || {},
             recipientName,
             audience,
             format,
-            findings
+            findings: findings.slice(0, 40)
           }
         });
         if (error) throw new Error(error.message);
