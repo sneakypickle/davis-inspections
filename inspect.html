@@ -5884,12 +5884,24 @@
       return scored.slice(0, 3).map(x => x.c);
     }
 
+    function dismissSmartMatch(secIdx, itemIdx) {
+      const it = state.draft?.sections?.[secIdx]?.items?.[itemIdx];
+      if (it) it._dismissSmartMatch = true;
+      const el = document.getElementById('dhiSmartMatch-' + secIdx + '-' + itemIdx);
+      if (el) el.innerHTML = '';
+    }
+
     function renderSmartMatchHTML(secIdx, itemIdx, rawQuery) {
+      const it = state.draft?.sections?.[secIdx]?.items?.[itemIdx];
+      if (it && (it._dismissSmartMatch || (it.narrative && it.narrative.trim()))) return '';
       const matches = getSmartLibraryMatches(secIdx, itemIdx, rawQuery);
       if (!matches.length) return '';
       return `
         <div class="rounded-xl border border-sky-200 bg-sky-50/70 p-2 space-y-1.5">
-          <div class="text-[10px] font-extrabold uppercase tracking-wider text-davis-navy">Library Smart Match (Offline)</div>
+          <div class="flex items-center justify-between gap-2">
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-davis-navy">Library Smart Match (Offline)</div>
+            <button type="button" onclick="dismissSmartMatch(${secIdx}, ${itemIdx})" title="Close Library Smart Match" class="px-1.5 py-0.5 rounded text-[11px] font-bold text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 leading-none">&times;</button>
+          </div>
           ${matches.map(c => `
             <div class="flex items-start justify-between gap-2 p-1.5 rounded-lg bg-white border border-slate-200 text-[11px]">
               <div class="min-w-0">

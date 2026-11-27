@@ -3,7 +3,7 @@
 // if the browser reloads in a zero-signal basement or rural property.
 // Never intercepts Supabase API/storage requests or non-GET requests.
 
-const CACHE_NAME = 'dhi-field-shell-v2.0.4-ai';
+const CACHE_NAME = 'dhi-field-shell-v2.0.5-ai';
 const SHELL_URLS = [
   './inspect.html',
   './field-manifest.json',

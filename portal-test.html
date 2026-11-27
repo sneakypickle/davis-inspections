@@ -670,7 +670,7 @@
                 <div id="reqScheduleWithAgentWrap" class="sm:col-span-6">
                   <label id="reqScheduleWithAgentBox" class="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy text-slate-800 text-xs sm:text-sm font-bold cursor-pointer select-none min-h-[42px] transition">
                     <input type="checkbox" id="reqScheduleWithAgent" onchange="dhiTogglePublicScheduleWithAgent(this.checked)" class="rounded border-slate-300 text-davis-navy shrink-0" />
-                    <span>Schedule directly with my agent</span>
+                    <span>Schedule with my agent</span>
                   </label>
                 </div>
                 <div id="reqPreferredDateWrap" class="sm:col-span-6">
@@ -13189,6 +13189,7 @@
           body: {
             action: 'draft_quote_response',
             recipientName,
+            recipientMode,
             address: addr,
             dateStr,
             scheduleWithAgent: !!pre.scheduleWithAgent,
