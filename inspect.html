@@ -183,7 +183,19 @@
         </select>
         <p class="text-[11px] text-slate-500">Applies to camera photos, gallery uploads, Photo Tray imports, and saved annotations. Cover photos stay at 1200px.</p>
       </div>
-      <textarea id="globalInstructionsInput" rows="10" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono leading-relaxed focus:ring-2 focus:ring-davis-navy focus:outline-none"></textarea>
+      <div class="max-h-[55vh] overflow-y-auto space-y-3 pr-1">
+        <div class="space-y-1">
+          <label for="globalInstructionsInput" class="block text-xs font-extrabold text-slate-800">Full Residential Report AI Rules (3-Sentence Narratives)</label>
+          <textarea id="globalInstructionsInput" rows="7" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono leading-relaxed focus:ring-2 focus:ring-davis-navy focus:outline-none"></textarea>
+        </div>
+        <div class="space-y-1 pt-2 border-t border-slate-200">
+          <div class="flex items-center justify-between gap-2">
+            <label for="prelistingInstructionsInput" class="block text-xs font-extrabold text-slate-800">Pre-Listing/Defects List AI Rules (Locked to Pre-Listing Template)</label>
+            <button type="button" onclick="resetPrelistingInstructions()" class="text-[11px] font-bold text-davis-navy hover:underline">Reset Default</button>
+          </div>
+          <textarea id="prelistingInstructionsInput" rows="5" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono leading-relaxed focus:ring-2 focus:ring-davis-navy focus:outline-none"></textarea>
+        </div>
+      </div>
       <div class="flex justify-end gap-2">
         <button type="button" onclick="closeInstructionsModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">Cancel</button>
         <button type="button" onclick="saveGlobalInstructions()" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Save to Supabase</button>
@@ -375,7 +387,7 @@
   <script>
     const DHI_SUPABASE_URL = 'https://uzelxunzussqmxrzeyke.supabase.co';
     const DHI_SUPABASE_ANON_KEY = 'sb_publishable_-XO_qBYL5CDILZR05KpaDA_0qMDmYi3';
-    const DHI_TEMPLATE = [{"num": "1", "name": "Roofing", "optional": false, "stylesMaterials": [{"label": "Roof Inspection Method", "options": ["Ground", "Ladder", "Walked Roof", "Binoculars", "Drone", "Not Inspected (Snow/Ice/Unsafe)"]}, {"label": "Roof Covering", "options": ["3-Tab Fiberglass", "Asphalt Roll", "Asphalt/Fiberglass", "Built-Up (Tar & Gravel)", "Clay Tile", "Concrete Tile", "Dimensional", "EPDM Membrane (Black)", "Exposed-Fastener/Corrugated Metal", "Modified Bitumen", "Not Visible (Snow/Obstruction)", "Slate", "Standing Seam Metal", "Stone-Coated Steel", "T-Lock Shingles", "TPO/PVC Membrane (White)", "Wood Shakes/Shingles (Cedar)"]}, {"label": "Skylights", "options": ["None", "One", "Two", "Three", "Four", "5+", "Fixed", "Fixed Glass with Vent Flap", "Ventilating (Manual)", "Ventilating (Motorized)", "Roof Windows", "Site-Built/Custom", "Solar Tube", "Acrylic/Plastic Dome"]}, {"label": "Exterior Chimney", "options": ["N/A", "Block", "Brick", "Direct-Vent Termination", "EIFS (Synthetic Stucco)", "Engineered Wood/Composite", "Fiber Cement", "Framed Chase", "Hardboard (Masonite)", "Metal Flue Pipe", "Metal Siding", "Stone/Manufactured Stone Veneer", "Stove Pipe", "Stucco (Traditional)", "Vinyl Siding", "Wood", "Wood Panel (T1-11)"]}], "items": [{"code": "1.0", "title": "Roof Coverings"}, {"code": "1.1", "title": "Flashings"}, {"code": "1.2", "title": "Skylights, Chimneys & Roof Penetrations"}, {"code": "1.3", "title": "Roof Drainage Systems"}]}, {"num": "2", "name": "Exterior", "optional": false, "stylesMaterials": [{"label": "Siding Material", "options": ["Brick Veneer", "Cedar", "Concrete Block/CMU", "EIFS (Synthetic Stucco)", "Engineered Wood/Composite", "Fiber Cement", "Full Brick", "Hardboard (Masonite)", "Logs", "Metal", "Stone/Manufactured Stone Veneer", "Stucco (Traditional)", "Vinyl", "Wood"]}, {"label": "Siding Style", "options": ["Beaded", "Bevel", "Board and Batten", "Brick", "Channel Rustic", "Drop/German", "Horizontal Lap", "Log", "Panel/Sheet", "RB&B (Reverse Board and Batten)", "Shake/Shingle", "Shiplap", "Stone/Masonry", "Stucco", "T-111", "Tongue and Groove", "V-Groove", "Vertical"]}, {"label": "Window Frame Material", "options": ["Aluminum", "Clad Wood", "Fiberglass/Composite", "Mixed", "Vinyl", "Wood"]}, {"label": "Exterior Entry Doors", "options": ["Fiberglass", "French/Double", "Hollow Core", "Insulated Glass", "Single Pane", "Sliding Glass", "Solid Core", "Steel/Metal", "Storm/Screen Door", "Wood"]}, {"label": "Porches, Decks & Patios", "options": ["Balcony", "Composite Deck", "Concrete Patio", "Covered Patio/Pergola", "Covered Porch", "None", "Paver/Stone Patio", "Porch", "Ramp", "Screened Porch/Sunroom", "Walkway/Sidewalk", "Wood Deck"]}, {"label": "Driveway", "options": ["Alley Access", "Asphalt", "Concrete", "Dirt", "Gravel/Road Base", "None", "Parking Lot", "Pavers/Brick", "Shared Access", "Street Parking"]}], "items": [{"code": "2.0", "title": "Wall Cladding, Flashing & Trim"}, {"code": "2.1", "title": "Exterior Doors"}, {"code": "2.2", "title": "Windows"}, {"code": "2.3", "title": "Decks, Porches, Patios, Steps & Railings"}, {"code": "2.4", "title": "Grading, Drainage, Driveways, Walkways & Retaining Walls"}, {"code": "2.5", "title": "Eaves, Soffits & Fascia"}, {"code": "2.6", "title": "Other"}, {"code": "2.7", "title": "Additional Buildings on Property"}]}, {"num": "3", "name": "Garage", "optional": false, "stylesMaterials": [{"label": "Garage Type", "options": ["Attached", "Detached", "Tuck-Under", "Carport", "None"]}, {"label": "Garage Door Type", "options": ["N/A", "One Manual", "Two Manual", "Three Manual", "4+ Manual", "One Automatic", "Two Automatic", "Three Automatic", "4+ Automatic", "Tilt-Up/One-Piece"]}, {"label": "Garage Door Material", "options": ["N/A", "Fiberglass", "Hardboard/Composite", "Insulated", "Non-Insulated", "Steel/Metal", "Vinyl", "Window/Glass Inserts", "Wood"]}, {"label": "Garage Door Opener Brand", "options": ["N/A", "All Star", "Amarr", "Chamberlain", "Craftsman", "Genie", "LiftMaster", "Linear", "Marantec", "Martin", "Overhead Door", "Raynor", "Ryobi", "Skylink", "Sommer", "Stanley", "Wayne-Dalton", "Unknown"]}], "items": [{"code": "3.0", "title": "Detached Garage Roof & Structure"}, {"code": "3.1", "title": "Garage Ceilings"}, {"code": "3.2", "title": "Garage Walls & Fire Separation"}, {"code": "3.3", "title": "Garage Floor"}, {"code": "3.4", "title": "Garage Doors"}, {"code": "3.5", "title": "Garage-to-Home Entry Door"}, {"code": "3.6", "title": "Garage Door Operators & Safety Reverse"}]}, {"num": "4", "name": "Interiors", "optional": false, "stylesMaterials": [{"label": "Ceiling Materials", "options": ["Acoustic/Popcorn Texture", "Ceiling Tile", "Compressed Board", "Drywall", "Exposed Joists/Beams", "Plaster", "Suspended/Drop Ceiling", "Unfinished", "Vinyl-Over-Board", "Wood"]}, {"label": "Wall Material", "options": ["Brick/Stone", "Compressed Board", "Concrete/Block", "Drywall", "Paneling", "Plaster", "Tile", "Unfinished", "Vinyl-Over-Board", "Wood"]}, {"label": "Floor Coverings", "options": ["Bamboo", "Brick", "Carpet", "Cork", "Engineered Hardwood", "Epoxy/Resin", "Finished Concrete", "Hardwood", "Laminate", "Linoleum", "LVP", "LVP (Floating/Click-Lock)", "LVP (Glue-Down)", "LVT", "Old 9\" Square Tile (Possible Asbestos)", "Peel-and-Stick Vinyl/Tile", "Softwood/Pine", "Stone", "Tile", "Unfinished Concrete", "Unfinished/Subfloor", "Vinyl Sheet"]}, {"label": "Interior Doors", "options": ["Barn", "Bifold", "French", "Hollow Core", "Masonite/Composite", "Metal", "Pocket", "Sliding", "Solid Core", "Wood"]}, {"label": "Window Types", "options": ["Awning", "Casement", "Double-Hung", "Double-Pane/Insulated", "Fixed/Picture", "Jalousie", "Mixed", "Single Pane", "Single-Hung", "Sliders", "Storm Windows", "Triple-Pane"]}, {"label": "Cabinetry", "options": ["Laminate", "MDF/Particleboard", "Melamine", "Metal", "Thermofoil", "Veneer", "Wood"]}, {"label": "Countertop", "options": ["Butcher Block/Wood", "Concrete", "Cultured Marble", "Epoxy/Resin", "Granite", "Laminate", "Marble", "Quartz", "Quartzite", "Slate", "Soapstone", "Solid Surface (Corian)", "Stainless Steel/Metal", "Stone", "Tile"]}, {"label": "Refrigerator Opening Width", "options": []}, {"label": "Refrigerator Opening Height", "options": []}], "items": [{"code": "4.0", "title": "Ceilings"}, {"code": "4.1", "title": "Walls"}, {"code": "4.2", "title": "Floors"}, {"code": "4.3", "title": "Steps, Stairways, Balconies & Railings"}, {"code": "4.4", "title": "Countertops & Cabinets"}, {"code": "4.5", "title": "Interior Doors"}, {"code": "4.6", "title": "Interior Windows"}, {"code": "4.7", "title": "Pests"}]}, {"num": "5", "name": "Structural Components", "optional": false, "stylesMaterials": [{"label": "Foundation", "options": ["Brick", "Crawlspace", "Full Basement", "ICF (Insulated Concrete Form)", "Masonry Block", "Not Visible", "Partial Basement", "Pier and Beam", "Post-Tension Slab", "Poured Concrete", "Skirting", "Slab-on-Grade", "Stone/Rock", "Structural Wood Floor", "Underpinning", "Walkout Basement"]}, {"label": "Crawlspace Inspection Method", "options": ["Blocked/Sealed Access", "Crawled", "Debris", "From Entry", "Limited Access", "Low Clearance", "No Access Hatch", "No Crawlspace", "Obstructed", "Pests", "Standing Water", "Unsafe Conditions", "Walked"]}, {"label": "Columns or Piers", "options": ["Adjustable Steel Jack Posts", "Brick Piers", "Caissons/Drilled Piers", "Concrete Piers", "Dry-Stacked Rock or Stone", "Load-Bearing/Supporting Walls", "Masonry Block", "Not Visible", "Steel Lally Columns", "Wood Posts/Piers"]}, {"label": "Floor Structure", "options": ["2 x 6", "2 x 8", "2 x 10", "2 x 12", "Concrete Slab", "Engineered Floor Trusses", "Engineered I-Joists", "Log Joists", "LVL/Engineered Beam", "Not Visible", "Steel I-Beam", "Wood Beams", "Wood Joists"]}, {"label": "Wall Structure", "options": ["2 x 4 Wood", "2 x 6 Wood", "Brick", "ICF (Insulated Concrete Form)", "Log", "Masonry/Concrete Block", "Metal Studs", "Not Visible", "Poured Concrete", "Wood Framed"]}, {"label": "Ceiling Structure", "options": ["2 x 4", "2 x 6", "2 x 8", "2 x 10", "2 x 12", "Engineered I-Joists", "Engineered Wood Trusses", "Log Beams/Joists", "Not Visible", "Wood Joists"]}, {"label": "Attic Access & Features", "options": ["Catwalk/Decking", "Gable/Exterior Access", "Knee-Wall Door", "Light in Attic", "No Access Found", "No Attic", "No Storage", "Pull-Down Stairs", "Scuttle/Attic Hatch", "Storage", "Walk-Up Stairs"]}, {"label": "Attic Inspection Method", "options": ["Blocked/Sealed Access", "Deep Insulation (Joists Concealed)", "From Entry", "Inaccessible", "Limited Access", "Low Clearance", "No Attic", "Walked"]}, {"label": "Roof Type", "options": ["A-Frame", "Combination/Mixed", "Flat/Low-Slope", "Gable", "Gambrel", "Hip", "Hip and Valley", "Mansard", "Shed"]}, {"label": "Roof Structure", "options": ["2 x 4 Rafters", "2 x 6 Rafters", "2 x 8 Rafters", "2 x 10 Rafters", "2 x 12 Rafters", "Engineered Wood Trusses", "Not Visible", "OSB Sheathing", "Plywood Sheathing", "Skip Sheathing/Wood Slats", "Steel Trusses", "Stick-Built", "Wood Plank Sheathing"]}], "items": [{"code": "5.0", "title": "Foundations, Basement & Crawlspace"}, {"code": "5.1", "title": "Structural Walls"}, {"code": "5.2", "title": "Columns & Piers"}, {"code": "5.3", "title": "Structural Floors"}, {"code": "5.4", "title": "Structural Ceilings"}, {"code": "5.5", "title": "Roof Structure & Attic"}]}, {"num": "6", "name": "Plumbing System", "optional": false, "stylesMaterials": [{"label": "Water Source", "options": ["Cistern", "Private Well", "Public/Municipal", "Shared Well", "Spring", "Unable to Determine"]}, {"label": "Sewage Disposal", "options": ["Public Sewer", "Private Septic", "Cess Pit", "Unable to Determine"]}, {"label": "Water Filters", "options": ["None", "Not Inspected (Outside ASHI Scope)", "Reverse Osmosis (Under-Sink)", "Sediment Filter", "UV Purifier", "Water Softener/Conditioner", "Whole-House Filtration"]}, {"label": "Main Water Supply Piping", "options": ["Brass", "Copper", "CPVC", "Galvanized Steel", "Lead", "Not Visible", "PEX", "Polybutylene (Gray)", "Polyethylene (HDPE/Black)", "PVC"]}, {"label": "Interior Water Distribution Piping", "options": ["Brass", "Copper", "CPVC", "Galvanized Steel", "Mixed", "Not Visible", "PEX", "Polybutylene (Gray)", "PVC", "Stainless Steel"]}, {"label": "Drain, Waste & Vent Piping", "options": ["ABS", "Cast Iron", "Copper", "Galvanized Steel", "Lead", "Mixed", "Not Visible", "PVC", "Stainless Steel"]}, {"label": "Washer Drain Size", "options": ["1 1/2\" Diameter (Undersized)", "2\" Diameter", "Drains to Laundry Sink/Tub", "None", "Not Visible"]}, {"label": "Water Heater Location", "options": ["Attic", "Basement", "Closet", "Concealed", "Crawlspace", "Garage", "Garage Closet", "Laundry Room", "Main Floor", "No Water Heater", "Under Stairs", "Upper Level", "Utility/Mechanical Room"]}, {"label": "Water Heater Power Source", "options": ["Electric", "Heat Pump/Hybrid (Electric)", "Indirect/Combi-Boiler", "Natural Gas", "Propane (LP)", "Shared/Central (HOA)", "Solar-Assisted"]}, {"label": "Water Heater Capacity", "options": ["30 Gallon", "40 Gallon", "(2) 40 Gallon", "50 Gallon", "(2) 50 Gallon", "65 Gallon", "75 Gallon", "80 Gallon", "100 Gallon", "Tankless", "Point-of-Use/Under-Sink", "Two Units", "Unknown"]}, {"label": "Water Heater Brand", "options": ["A.O. Smith", "Amana", "American", "Amtrol", "Aquastar", "Bosch", "Bradford-White", "Burnham", "GE", "HTP", "Kenmore", "Lennox", "Lochinvar", "Navien", "Noritz", "Peerless", "Raypak", "Reliance", "Rheem", "Richmond", "Rinnai", "Ruud", "State", "Takagi", "Whirlpool", "None", "Not Visible", "Unknown"]}], "items": [{"code": "6.0", "title": "Drain, Waste & Vent Systems"}, {"code": "6.1", "title": "Water Supply, Distribution & Fixtures"}, {"code": "6.2", "title": "Water Heater, Controls & Venting"}, {"code": "6.3", "title": "Main Water Shut-Off Valve"}, {"code": "6.4", "title": "Fuel Distribution & Gas Piping"}, {"code": "6.5", "title": "Main Fuel Shut-Off Valve"}, {"code": "6.6", "title": "Sump Pump & Pit"}]}, {"num": "7", "name": "Electrical System", "optional": false, "stylesMaterials": [{"label": "Electrical Service Conductors", "options": ["120 Volts Only", "120/240 Volts", "Aluminum", "Copper", "Not Visible", "Overhead Service", "Underground Service"]}, {"label": "Panel Capacity", "options": ["60 AMP", "100 AMP", "125 AMP", "150 AMP", "200 AMP", "225 AMP", "(2) 100 AMP Service Panels", "(2) 150 AMP Service Panels", "(2) 200 AMP Service Panels", "Subpanel Present", "Unable to Determine"]}, {"label": "Panel Type", "options": ["Circuit Breakers", "Fuses"]}, {"label": "Panel Brand", "options": ["ABB", "Bryant", "Challenger", "Crouse-Hinds", "Cutler-Hammer", "Eaton", "Federal Pacific (FPE/Stab-Lok)", "General Electric", "General Switch", "Gould", "ITE", "Leviton", "Milbank", "Murray", "Pushmatic (Bulldog)", "Siemens", "Square D", "Sylvania", "Thomas & Betts", "Westinghouse", "Zinsco", "Unknown"]}, {"label": "Branch Circuit Wiring", "options": ["Copper", "Aluminum (240V Multi-Strand)", "Aluminum (15/20A Solid-Strand)", "Copper-Clad Aluminum", "Not Visible"]}, {"label": "Wiring Methods", "options": ["BX/Armored Cable (AC/MC)", "Cloth-Sheathed (Older NM)", "Conduit", "Knob & Tube", "NM-B/Romex", "Not Visible", "UF (Underground Feeder)"]}, {"label": "Solar/PV System", "options": ["None", "Roof-Mounted (Not Inspected)", "Ground-Mounted (Not Inspected)", "Battery Backup Present"]}], "items": [{"code": "7.0", "title": "Service Entrance Conductors"}, {"code": "7.1", "title": "Service, Grounding & Electrical Panels"}, {"code": "7.2", "title": "Branch Circuits & Breakers"}, {"code": "7.3", "title": "Lights, Switches, Fans & Receptacles"}, {"code": "7.4", "title": "Wet-Location, Garage & Exterior Receptacles"}, {"code": "7.5", "title": "GFCI Protection"}, {"code": "7.6", "title": "Panel Locations"}, {"code": "7.7", "title": "Smoke & Carbon Monoxide Alarms"}]}, {"num": "8", "name": "HVAC", "optional": false, "stylesMaterials": [{"label": "Heat Type", "options": ["Direct Vent Wall Furnace", "Dual-Fuel (Heat Pump & Furnace)", "Ductless Mini-Split (Heat Pump)", "Electric Baseboard", "Floor Furnace", "Forced Air", "Geothermal Heat Pump", "Heat Pump Forced Air", "Hydronic Boiler (Baseboard/Radiators)", "Hydronic Radiant Floor", "Radiant Ceiling", "Radiant Floor", "Space Heater", "Steam Boiler", "Vented Room Heater", "None"]}, {"label": "Energy Source", "options": ["Electric", "Geothermal", "Natural Gas", "Oil", "Propane (LP)", "Solar", "Wood/Pellet"]}, {"label": "Number of Heating Systems", "options": ["One", "Two", "Three", "Four", "Five", "None"]}, {"label": "Heating Equipment Brand", "options": ["Aire-Flo", "AirEase", "Amana", "American Standard", "Ameristar", "Arcoaire", "Armstrong", "Bosch", "Bryant", "Burnham", "Carrier", "Champion", "ClimateMaster", "Coleman", "Comfortmaker", "Daikin", "Day & Night", "Ducane", "Dunkirk", "Empire", "Frigidaire", "Fujitsu", "General Electric", "Gibson", "Goodman", "Guardian", "Heil", "Intertherm", "Janitrol", "Kenmore", "Lennox", "LG", "Lochinvar", "Luxaire", "Miller", "Mitsubishi", "MRCOOL", "Navien", "Nordyne", "Payne", "Rheem", "Ruud", "Tempstar", "Trane", "Weil-McLain", "York", "Not Visible", "Unknown"]}, {"label": "Ductwork", "options": ["Fiberglass Ductboard", "Flex Duct", "Insulated", "N/A", "Non-Insulated", "Not Visible", "Partially Insulated", "Possible Asbestos Sleeving", "Possible Asbestos Tape", "Sheet Metal/Galvanized", "Under-Slab Ducts"]}, {"label": "Filter Type", "options": ["Disposable", "Electronic Air Cleaner", "Media/Cartridge (4\"-5\")", "Missing", "N/A", "Not Located/Not Visible", "Washable"]}, {"label": "Filter Size", "options": ["10x20", "10x24", "10x30", "12x12", "12x20", "12x24", "12x30", "14x14", "14x20", "14x24", "14x25", "14x30", "15x20", "16x16", "16x20", "16x24", "16x25", "16x25x4", "16x25x5", "18x18", "18x20", "18x24", "20x20", "20x24", "20x25", "20x25x4", "20x25x5", "20x30", "24x24", "25x25", "Two Filters", "Three Filters", "Four Filters", "N/A", "Not Visible/Missing"]}, {"label": "Whole-House Humidifier", "options": ["None", "Bypass/Flow-Through", "Steam", "Not Tested"]}, {"label": "Cooling Equipment Type", "options": ["Central Air Conditioner", "Ductless Mini-Split", "Evaporative/Swamp Cooler", "Heat Pump Forced Air", "None", "Not Tested (Outdoor Temp Below 60°F)", "Packaged/Rooftop Unit", "Whole-House Fan", "Window AC"]}, {"label": "Number of Cooling Systems", "options": ["None", "One", "Two", "Three", "Four", "Five"]}, {"label": "Cooling Equipment Brand", "options": ["Aire-Flo", "AirEase", "Amana", "American Standard", "Ameristar", "Arcoaire", "Armstrong", "Bosch", "Breezair", "Bryant", "Carrier", "Champion", "ClimateMaster", "Coleman", "Comfortmaker", "Daikin", "Day & Night", "Ducane", "Friedrich", "Frigidaire", "Fujitsu", "General Electric", "Gibson", "Goodman", "Guardian", "Heil", "Intertherm", "Janitrol", "Kenmore", "Lennox", "LG", "Luxaire", "MasterCool", "Mitsubishi", "MRCOOL", "Nordyne", "Payne", "Rheem", "Ruud", "Tempstar", "Trane", "York", "None", "Not Visible", "Unknown"]}, {"label": "Thermostat Type", "options": ["Smart/Wi-Fi", "Programmable", "Manual", "Multi-Zone"]}, {"label": "Fireplace Type", "options": ["Direct-Vent Gas (Sealed Glass)", "Electric", "Gas/LP Log Starter", "Insert", "Non-Vented Gas Logs", "None", "Pellet Burning", "Propane Gas Logs (Non-Vented)", "Propane Gas Logs (Vented)", "Sealed Off", "Stand-Alone Stove", "Vented Gas Logs", "Wood-Burning (Factory-Built/Zero-Clearance)", "Wood-Burning (Masonry)"]}, {"label": "Number of Fireplaces", "options": ["None", "One", "Two", "Three", "Four", "Five", "Not Tested (Pilot Off/No Fuel)"]}], "items": [{"code": "8.0", "title": "Heating Equipment"}, {"code": "8.1", "title": "Heating Controls & Thermostats"}, {"code": "8.2", "title": "Heating Safety Controls"}, {"code": "8.3", "title": "Ductwork, Piping, Blowers & Distribution"}, {"code": "8.4", "title": "Room Heat Sources"}, {"code": "8.5", "title": "Chimneys, Flues & Vents"}, {"code": "8.6", "title": "Solid-Fuel Fireplaces & Woodstoves"}, {"code": "8.7", "title": "Gas Fireplaces & Logs"}, {"code": "8.8", "title": "Cooling & Air Handler Equipment"}, {"code": "8.9", "title": "Cooling Controls & Thermostats"}]}, {"num": "9", "name": "Insulation & Ventilation", "optional": false, "stylesMaterials": [{"label": "Attic Insulation", "options": ["Batt/Roll", "Blown", "Cellulose", "Faced (Kraft/Paper)", "Fiberglass", "Mineral/Rock Wool", "None", "Not Visible/Inaccessible", "Perlite", "Spray Foam", "Unfaced", "Unknown", "Vermiculite (Possible Asbestos)"]}, {"label": "Attic Ventilation", "options": ["Box/Static Roof Vents", "Gable Vents", "None Found", "Powered Attic Fan", "Ridge Vents", "Shingle-Over Intake Vents", "Soffit Vents", "Solar-Powered Fan", "Turbines", "Unvented/Conditioned Attic"]}, {"label": "Floor System Insulation", "options": ["Batt/Roll", "Faced (Kraft/Paper)", "Fiberglass", "Loose Fill (Netted)", "Mineral/Rock Wool", "None", "Not Visible", "Reflective System (Foil Faced)", "Rigid Foam Board", "Spray Foam", "Unfaced"]}, {"label": "Crawlspace Ventilation & Vapor Barrier", "options": ["Foundation Vents", "Conditioned/Encapsulated", "Vapor Barrier Present", "Partial Vapor Barrier", "No Vapor Barrier", "No Crawlspace"]}, {"label": "Bath/Kitchen Exhaust Venting", "options": ["Vented to Exterior", "Vented to Attic", "Recirculating", "Window Only", "Not Visible"]}, {"label": "Dryer Power Source", "options": ["120V Only (Stackable/Heat Pump)", "240V Electric", "Gas & 240V Electric", "Natural Gas", "None", "Not Visible", "Propane (LP)"]}, {"label": "Dryer Vent", "options": ["Flexible Foil/Metal", "Flexible Vinyl", "Mixed", "None", "Not Visible", "PVC/Plastic", "Rigid Metal", "Semi-Rigid Metal", "Ventless/Condensing"]}], "items": [{"code": "9.0", "title": "Attic Insulation"}, {"code": "9.1", "title": "Exterior Wall Insulation"}, {"code": "9.2", "title": "Subfloor & Crawlspace Insulation"}, {"code": "9.3", "title": "Vapor Retarders"}, {"code": "9.4", "title": "Attic & Foundation Ventilation"}, {"code": "9.5", "title": "Kitchen, Bath & Laundry Exhaust Venting"}, {"code": "9.6", "title": "Attic Ventilation Fans & Controls"}, {"code": "9.7", "title": "Radon Mitigation Systems"}]}, {"num": "10", "name": "Built-In Kitchen Appliances", "optional": false, "stylesMaterials": [{"label": "Range/Oven", "options": ["Gas", "Electric", "Dual-Fuel", "Induction", "Amana", "BlueStar", "Bosch", "Café", "Dacor", "DCS", "Electrolux", "Fisher & Paykel", "Forno", "Frigidaire", "Gaggenau", "General Electric", "Haier", "Hisense", "Hotpoint", "IKEA", "Insignia", "Jenn-Air", "Kenmore", "KitchenAid", "LG", "Maytag", "Midea", "Miele", "Monogram", "NXR", "Roper", "Samsung", "Thermador", "Thor", "Viking", "Whirlpool", "Wolf", "ZLINE", "None", "Brand Not Visible", "Unknown"]}, {"label": "Range Hood", "options": ["Over-the-Range Microwave", "Vented to Exterior", "Vented (Destination Not Visible)", "Recirculating", "Downdraft", "Amana", "Bosch", "Broan", "Café", "Custom-Made", "Dacor", "Fantech", "Frigidaire", "Gaggenau", "General Electric", "Hotpoint", "Jenn-Air", "Kenmore", "KitchenAid", "LG", "Maytag", "Monogram", "NuTone", "NXR", "Samsung", "Thermador", "Vent-A-Hood", "Viking", "Whirlpool", "Wolf", "Zephyr", "ZLINE", "None", "Brand Not Visible", "Unknown"]}, {"label": "Built-In Microwave", "options": ["Drawer Microwave", "Amana", "Bosch", "Café", "Dacor", "Electrolux", "Frigidaire", "General Electric", "Haier", "Hotpoint", "IKEA", "Insignia", "Jenn-Air", "Kenmore", "KitchenAid", "LG", "Maytag", "Midea", "Miele", "Monogram", "Panasonic", "Roper", "Samsung", "Sharp", "Thermador", "Viking", "Whirlpool", "Wolf", "ZLINE", "None", "Brand Not Visible", "Unknown"]}, {"label": "Dishwasher Brand", "options": ["Amana", "Asko", "Bosch", "Café", "Cove", "Dacor", "DCS", "Electrolux", "Fisher & Paykel", "Frigidaire", "Gaggenau", "General Electric", "Haier", "Hotpoint", "IKEA", "Insignia", "Jenn-Air", "Kenmore", "KitchenAid", "LG", "Maytag", "Midea", "Miele", "Monogram", "Roper", "Samsung", "Thermador", "Viking", "Whirlpool", "ZLINE", "None", "Brand Not Visible", "Unknown"]}, {"label": "Disposer Brand", "options": ["American Standard", "Badger", "Emerson", "Franke", "Frigidaire", "General Electric", "Hotpoint", "InSinkErator", "Jenn-Air", "Kenmore", "KitchenAid", "Kraus", "Maytag", "Moen", "Sinkmaster", "Viking", "Waste King", "Whirlaway", "Whirlpool", "None", "Brand Not Visible", "Unknown"]}, {"label": "Refrigerator Brand", "options": ["Amana", "Bosch", "Café", "Dacor", "Electrolux", "Fisher & Paykel", "Forno", "Frigidaire", "General Electric", "Haier", "Hisense", "Hotpoint", "IKEA", "Insignia", "Jenn-Air", "Kenmore", "KitchenAid", "LG", "Marvel", "Maytag", "Midea", "Miele", "Monogram", "Roper", "Samsung", "Sub-Zero", "Thermador", "Viking", "Whirlpool", "ZLINE", "None", "Not Inspected", "Brand Not Visible", "Unknown"]}], "items": [{"code": "10.0", "title": "Dishwasher"}, {"code": "10.1", "title": "Ranges, Ovens & Cooktops"}, {"code": "10.2", "title": "Range Hood"}, {"code": "10.3", "title": "Garbage Disposal"}, {"code": "10.4", "title": "Built-In Microwave"}, {"code": "10.5", "title": "Refrigerator"}, {"code": "10.6", "title": "Trash Compactor"}]}, {"num": "11", "name": "Additional Apartment / Cottage", "optional": true, "stylesMaterials": [{"label": "Roof Covering", "options": ["3-Tab Fiberglass", "Asphalt Roll", "Asphalt/Fiberglass", "Built-Up (Tar & Gravel)", "Clay Tile", "Concrete Tile", "Dimensional", "EPDM Membrane (Black)", "Exposed-Fastener/Corrugated Metal", "Modified Bitumen", "Not Visible (Snow/Obstruction)", "Slate", "Standing Seam Metal", "Stone-Coated Steel", "T-Lock Shingles", "TPO/PVC Membrane (White)", "Wood Shakes/Shingles (Cedar)"]}, {"label": "Siding Style", "options": ["Beaded", "Bevel", "Board and Batten", "Brick", "Channel Rustic", "Drop/German", "Horizontal Lap", "Log", "Panel/Sheet", "RB&B (Reverse Board and Batten)", "Shake/Shingle", "Shiplap", "Stone/Masonry", "Stucco", "T-111", "Tongue and Groove", "V-Groove", "Vertical"]}, {"label": "Plumbing Supply", "options": ["Brass", "Copper", "CPVC", "Galvanized Steel", "Lead", "Not Visible", "PEX", "Polybutylene (Gray)", "Polyethylene (HDPE/Black)", "PVC"]}, {"label": "Plumbing Distribution", "options": ["Brass", "Copper", "CPVC", "Galvanized Steel", "Mixed", "Not Visible", "PEX", "Polybutylene (Gray)", "PVC", "Stainless Steel"]}, {"label": "Water Heater Power Source", "options": ["Electric", "Heat Pump/Hybrid (Electric)", "Indirect/Combi-Boiler", "Natural Gas", "Propane (LP)", "Shared/Central (HOA)", "Solar-Assisted"]}, {"label": "Heat Type", "options": ["Direct Vent Wall Furnace", "Dual-Fuel (Heat Pump & Furnace)", "Ductless Mini-Split (Heat Pump)", "Electric Baseboard", "Floor Furnace", "Forced Air", "Geothermal Heat Pump", "Heat Pump Forced Air", "Hydronic Boiler (Baseboard/Radiators)", "Hydronic Radiant Floor", "Radiant Ceiling", "Radiant Floor", "Space Heater", "Steam Boiler", "Vented Room Heater", "None"]}], "items": [{"code": "11.0", "title": "Roof Coverings"}, {"code": "11.1", "title": "Wall Cladding, Flashing & Trim"}, {"code": "11.2", "title": "Windows"}, {"code": "11.3", "title": "Structural (Foundation & Framing)"}, {"code": "11.4", "title": "Exterior Doors"}, {"code": "11.5", "title": "Interior Doors"}, {"code": "11.6", "title": "Water Supply, Distribution & Fixtures"}, {"code": "11.7", "title": "Drain, Waste & Vent Systems"}, {"code": "11.8", "title": "Water Heater, Controls & Venting"}, {"code": "11.9", "title": "Electrical Devices & Fixtures"}, {"code": "11.10", "title": "Heating Equipment"}, {"code": "11.11", "title": "Cooling & Air Handler Equipment"}]}, {"num": "12", "name": "Outbuilding", "optional": true, "stylesMaterials": [], "items": [{"code": "12.0", "title": "Foundations"}, {"code": "12.1", "title": "Grading & Drainage"}, {"code": "12.2", "title": "Roof Coverings"}, {"code": "12.3", "title": "Roof Structure & Attic"}, {"code": "12.4", "title": "Walls (Interior & Exterior)"}, {"code": "12.5", "title": "Ceilings & Floors"}, {"code": "12.6", "title": "Doors (Interior & Exterior)"}, {"code": "12.7", "title": "Windows"}, {"code": "12.8", "title": "Fireplace & Chimney"}, {"code": "12.9", "title": "Porches, Decks & Carports (Attached)"}, {"code": "12.10", "title": "Service Entrance & Panels"}, {"code": "12.11", "title": "Branch Circuits, Connected Devices & Fixtures"}, {"code": "12.12", "title": "Smoke Alarms"}, {"code": "12.13", "title": "Heating Equipment"}, {"code": "12.14", "title": "Cooling Equipment"}, {"code": "12.15", "title": "Ducts & Vents"}, {"code": "12.16", "title": "Water Supply System & Fixtures"}, {"code": "12.17", "title": "Drains, Waste & Vents"}, {"code": "12.18", "title": "Water Heating Equipment"}, {"code": "12.19", "title": "Dishwasher"}, {"code": "12.20", "title": "Garbage Disposal"}, {"code": "12.21", "title": "Range Hood"}, {"code": "12.22", "title": "Ranges, Ovens & Cooktops"}, {"code": "12.23", "title": "Built-In Microwave"}, {"code": "12.24", "title": "Trash Compactor"}, {"code": "12.25", "title": "Bathroom Exhaust Fans & Heaters"}, {"code": "12.26", "title": "Garage Door Operators"}, {"code": "12.27", "title": "Dryer Vents"}]}, {"num": "13", "name": "Outdoor Cooking Equipment", "optional": true, "stylesMaterials": [{"label": "Fuel Source", "options": ["Natural Gas", "Propane (LP)", "Charcoal", "Electric", "Wood/Pellet"]}], "items": [{"code": "13.0", "title": "Cooking Equipment"}]}, {"num": "14", "name": "Additional Photos", "optional": true, "stylesMaterials": [], "items": [{"code": "14.0", "title": "Photos"}]}, {"num": "15", "name": "Defects (lists/photos)", "optional": true, "stylesMaterials": [], "items": [{"code": "15.0", "title": "A"}, {"code": "15.1", "title": "B"}, {"code": "15.2", "title": "C"}, {"code": "15.3", "title": "D"}, {"code": "15.4", "title": "E"}, {"code": "15.5", "title": "F"}, {"code": "15.6", "title": "G"}, {"code": "15.7", "title": "H"}]}];
+    const DHI_TEMPLATE = [{"num": "1", "name": "Roofing", "optional": false, "stylesMaterials": [{"label": "Roof Inspection Method", "options": ["Ground", "Ladder", "Walked Roof", "Binoculars", "Drone", "Not Inspected (Snow/Ice/Unsafe)"]}, {"label": "Roof Covering", "options": ["3-Tab Fiberglass", "Asphalt Roll", "Asphalt/Fiberglass", "Built-Up (Tar & Gravel)", "Clay Tile", "Concrete Tile", "Dimensional", "EPDM Membrane (Black)", "Exposed-Fastener/Corrugated Metal", "Modified Bitumen", "Not Visible (Snow/Obstruction)", "Slate", "Standing Seam Metal", "Stone-Coated Steel", "T-Lock Shingles", "TPO/PVC Membrane (White)", "Wood Shakes/Shingles (Cedar)"]}, {"label": "Skylights", "options": ["None", "One", "Two", "Three", "Four", "5+", "Fixed", "Fixed Glass with Vent Flap", "Ventilating (Manual)", "Ventilating (Motorized)", "Roof Windows", "Site-Built/Custom", "Solar Tube", "Acrylic/Plastic Dome"]}, {"label": "Exterior Chimney", "options": ["N/A", "Block", "Brick", "Direct-Vent Termination", "EIFS (Synthetic Stucco)", "Engineered Wood/Composite", "Fiber Cement", "Framed Chase", "Hardboard (Masonite)", "Metal Flue Pipe", "Metal Siding", "Stone/Manufactured Stone Veneer", "Stove Pipe", "Stucco (Traditional)", "Vinyl Siding", "Wood", "Wood Panel (T1-11)"]}], "items": [{"code": "1.0", "title": "Roof Coverings"}, {"code": "1.1", "title": "Flashings"}, {"code": "1.2", "title": "Skylights, Chimneys & Roof Penetrations"}, {"code": "1.3", "title": "Roof Drainage Systems"}]}, {"num": "2", "name": "Exterior", "optional": false, "stylesMaterials": [{"label": "Siding Material", "options": ["Brick Veneer", "Cedar", "Concrete Block/CMU", "EIFS (Synthetic Stucco)", "Engineered Wood/Composite", "Fiber Cement", "Full Brick", "Hardboard (Masonite)", "Logs", "Metal", "Stone/Manufactured Stone Veneer", "Stucco (Traditional)", "Vinyl", "Wood"]}, {"label": "Siding Style", "options": ["Beaded", "Bevel", "Board and Batten", "Brick", "Channel Rustic", "Drop/German", "Horizontal Lap", "Log", "Panel/Sheet", "RB&B (Reverse Board and Batten)", "Shake/Shingle", "Shiplap", "Stone/Masonry", "Stucco", "T-111", "Tongue and Groove", "V-Groove", "Vertical"]}, {"label": "Window Frame Material", "options": ["Aluminum", "Clad Wood", "Fiberglass/Composite", "Mixed", "Vinyl", "Wood"]}, {"label": "Exterior Entry Doors", "options": ["Fiberglass", "French/Double", "Hollow Core", "Insulated Glass", "Single Pane", "Sliding Glass", "Solid Core", "Steel/Metal", "Storm/Screen Door", "Wood"]}, {"label": "Porches, Decks & Patios", "options": ["Balcony", "Composite Deck", "Concrete Patio", "Covered Patio/Pergola", "Covered Porch", "None", "Paver/Stone Patio", "Porch", "Ramp", "Screened Porch/Sunroom", "Walkway/Sidewalk", "Wood Deck"]}, {"label": "Driveway", "options": ["Alley Access", "Asphalt", "Concrete", "Dirt", "Gravel/Road Base", "None", "Parking Lot", "Pavers/Brick", "Shared Access", "Street Parking"]}], "items": [{"code": "2.0", "title": "Wall Cladding, Flashing & Trim"}, {"code": "2.1", "title": "Exterior Doors"}, {"code": "2.2", "title": "Windows"}, {"code": "2.3", "title": "Decks, Porches, Patios, Steps & Railings"}, {"code": "2.4", "title": "Grading, Drainage, Driveways, Walkways & Retaining Walls"}, {"code": "2.5", "title": "Eaves, Soffits & Fascia"}, {"code": "2.6", "title": "Other"}, {"code": "2.7", "title": "Additional Buildings on Property"}]}, {"num": "3", "name": "Garage", "optional": false, "stylesMaterials": [{"label": "Garage Type", "options": ["Attached", "Detached", "Tuck-Under", "Carport", "None"]}, {"label": "Garage Door Type", "options": ["N/A", "One Manual", "Two Manual", "Three Manual", "4+ Manual", "One Automatic", "Two Automatic", "Three Automatic", "4+ Automatic", "Tilt-Up/One-Piece"]}, {"label": "Garage Door Material", "options": ["N/A", "Fiberglass", "Hardboard/Composite", "Insulated", "Non-Insulated", "Steel/Metal", "Vinyl", "Window/Glass Inserts", "Wood"]}, {"label": "Garage Door Opener Brand", "options": ["N/A", "All Star", "Amarr", "Chamberlain", "Craftsman", "Genie", "LiftMaster", "Linear", "Marantec", "Martin", "Overhead Door", "Raynor", "Ryobi", "Skylink", "Sommer", "Stanley", "Wayne-Dalton", "Unknown"]}], "items": [{"code": "3.0", "title": "Detached Garage Roof & Structure"}, {"code": "3.1", "title": "Garage Ceilings"}, {"code": "3.2", "title": "Garage Walls & Fire Separation"}, {"code": "3.3", "title": "Garage Floor"}, {"code": "3.4", "title": "Garage Doors"}, {"code": "3.5", "title": "Garage-to-Home Entry Door"}, {"code": "3.6", "title": "Garage Door Operators & Safety Reverse"}]}, {"num": "4", "name": "Interiors", "optional": false, "stylesMaterials": [{"label": "Ceiling Materials", "options": ["Acoustic/Popcorn Texture", "Ceiling Tile", "Compressed Board", "Drywall", "Exposed Joists/Beams", "Plaster", "Suspended/Drop Ceiling", "Unfinished", "Vinyl-Over-Board", "Wood"]}, {"label": "Wall Material", "options": ["Brick/Stone", "Compressed Board", "Concrete/Block", "Drywall", "Paneling", "Plaster", "Tile", "Unfinished", "Vinyl-Over-Board", "Wood"]}, {"label": "Floor Coverings", "options": ["Bamboo", "Brick", "Carpet", "Cork", "Engineered Hardwood", "Epoxy/Resin", "Finished Concrete", "Hardwood", "Laminate", "Linoleum", "LVP", "LVP (Floating/Click-Lock)", "LVP (Glue-Down)", "LVT", "Old 9\" Square Tile (Possible Asbestos)", "Peel-and-Stick Vinyl/Tile", "Softwood/Pine", "Stone", "Tile", "Unfinished Concrete", "Unfinished/Subfloor", "Vinyl Sheet"]}, {"label": "Interior Doors", "options": ["Barn", "Bifold", "French", "Hollow Core", "Masonite/Composite", "Metal", "Pocket", "Sliding", "Solid Core", "Wood"]}, {"label": "Window Types", "options": ["Awning", "Casement", "Double-Hung", "Double-Pane/Insulated", "Fixed/Picture", "Jalousie", "Mixed", "Single Pane", "Single-Hung", "Sliders", "Storm Windows", "Triple-Pane"]}, {"label": "Cabinetry", "options": ["Laminate", "MDF/Particleboard", "Melamine", "Metal", "Thermofoil", "Veneer", "Wood"]}, {"label": "Countertop", "options": ["Butcher Block/Wood", "Concrete", "Cultured Marble", "Epoxy/Resin", "Granite", "Laminate", "Marble", "Quartz", "Quartzite", "Slate", "Soapstone", "Solid Surface (Corian)", "Stainless Steel/Metal", "Stone", "Tile"]}, {"label": "Refrigerator Opening Width", "options": []}, {"label": "Refrigerator Opening Height", "options": []}], "items": [{"code": "4.0", "title": "Ceilings"}, {"code": "4.1", "title": "Walls"}, {"code": "4.2", "title": "Floors"}, {"code": "4.3", "title": "Steps, Stairways, Balconies & Railings"}, {"code": "4.4", "title": "Countertops & Cabinets"}, {"code": "4.5", "title": "Interior Doors"}, {"code": "4.6", "title": "Interior Windows"}, {"code": "4.7", "title": "Pests"}]}, {"num": "5", "name": "Structural Components", "optional": false, "stylesMaterials": [{"label": "Foundation", "options": ["Brick", "Crawlspace", "Full Basement", "ICF (Insulated Concrete Form)", "Masonry Block", "Not Visible", "Partial Basement", "Pier and Beam", "Post-Tension Slab", "Poured Concrete", "Skirting", "Slab-on-Grade", "Stone/Rock", "Structural Wood Floor", "Underpinning", "Walkout Basement"]}, {"label": "Crawlspace Inspection Method", "options": ["Blocked/Sealed Access", "Crawled", "Debris", "From Entry", "Limited Access", "Low Clearance", "No Access Hatch", "No Crawlspace", "Obstructed", "Pests", "Standing Water", "Unsafe Conditions", "Walked"]}, {"label": "Columns or Piers", "options": ["Adjustable Steel Jack Posts", "Brick Piers", "Caissons/Drilled Piers", "Concrete Piers", "Dry-Stacked Rock or Stone", "Load-Bearing/Supporting Walls", "Masonry Block", "Not Visible", "Steel Lally Columns", "Wood Posts/Piers"]}, {"label": "Floor Structure", "options": ["2 x 6", "2 x 8", "2 x 10", "2 x 12", "Concrete Slab", "Engineered Floor Trusses", "Engineered I-Joists", "Log Joists", "LVL/Engineered Beam", "Not Visible", "Steel I-Beam", "Wood Beams", "Wood Joists"]}, {"label": "Wall Structure", "options": ["2 x 4 Wood", "2 x 6 Wood", "Brick", "ICF (Insulated Concrete Form)", "Log", "Masonry/Concrete Block", "Metal Studs", "Not Visible", "Poured Concrete", "Wood Framed"]}, {"label": "Ceiling Structure", "options": ["2 x 4", "2 x 6", "2 x 8", "2 x 10", "2 x 12", "Engineered I-Joists", "Engineered Wood Trusses", "Log Beams/Joists", "Not Visible", "Wood Joists"]}, {"label": "Attic Access & Features", "options": ["Catwalk/Decking", "Gable/Exterior Access", "Knee-Wall Door", "Light in Attic", "No Access Found", "No Attic", "No Storage", "Pull-Down Stairs", "Scuttle/Attic Hatch", "Storage", "Walk-Up Stairs"]}, {"label": "Attic Inspection Method", "options": ["Blocked/Sealed Access", "Deep Insulation (Joists Concealed)", "From Entry", "Inaccessible", "Limited Access", "Low Clearance", "No Attic", "Walked"]}, {"label": "Roof Type", "options": ["A-Frame", "Combination/Mixed", "Flat/Low-Slope", "Gable", "Gambrel", "Hip", "Hip and Valley", "Mansard", "Shed"]}, {"label": "Roof Structure", "options": ["2 x 4 Rafters", "2 x 6 Rafters", "2 x 8 Rafters", "2 x 10 Rafters", "2 x 12 Rafters", "Engineered Wood Trusses", "Not Visible", "OSB Sheathing", "Plywood Sheathing", "Skip Sheathing/Wood Slats", "Steel Trusses", "Stick-Built", "Wood Plank Sheathing"]}], "items": [{"code": "5.0", "title": "Foundations, Basement & Crawlspace"}, {"code": "5.1", "title": "Structural Walls"}, {"code": "5.2", "title": "Columns & Piers"}, {"code": "5.3", "title": "Structural Floors"}, {"code": "5.4", "title": "Structural Ceilings"}, {"code": "5.5", "title": "Roof Structure & Attic"}]}, {"num": "6", "name": "Plumbing System", "optional": false, "stylesMaterials": [{"label": "Water Source", "options": ["Cistern", "Private Well", "Public/Municipal", "Shared Well", "Spring", "Unable to Determine"]}, {"label": "Sewage Disposal", "options": ["Public Sewer", "Private Septic", "Cess Pit", "Unable to Determine"]}, {"label": "Water Filters", "options": ["None", "Not Inspected (Outside ASHI Scope)", "Reverse Osmosis (Under-Sink)", "Sediment Filter", "UV Purifier", "Water Softener/Conditioner", "Whole-House Filtration"]}, {"label": "Main Water Supply Piping", "options": ["Brass", "Copper", "CPVC", "Galvanized Steel", "Lead", "Not Visible", "PEX", "Polybutylene (Gray)", "Polyethylene (HDPE/Black)", "PVC"]}, {"label": "Interior Water Distribution Piping", "options": ["Brass", "Copper", "CPVC", "Galvanized Steel", "Mixed", "Not Visible", "PEX", "Polybutylene (Gray)", "PVC", "Stainless Steel"]}, {"label": "Drain, Waste & Vent Piping", "options": ["ABS", "Cast Iron", "Copper", "Galvanized Steel", "Lead", "Mixed", "Not Visible", "PVC", "Stainless Steel"]}, {"label": "Washer Drain Size", "options": ["1 1/2\" Diameter (Undersized)", "2\" Diameter", "Drains to Laundry Sink/Tub", "None", "Not Visible"]}, {"label": "Water Heater Location", "options": ["Attic", "Basement", "Closet", "Concealed", "Crawlspace", "Garage", "Garage Closet", "Laundry Room", "Main Floor", "No Water Heater", "Under Stairs", "Upper Level", "Utility/Mechanical Room"]}, {"label": "Water Heater Power Source", "options": ["Electric", "Heat Pump/Hybrid (Electric)", "Indirect/Combi-Boiler", "Natural Gas", "Propane (LP)", "Shared/Central (HOA)", "Solar-Assisted"]}, {"label": "Water Heater Capacity", "options": ["30 Gallon", "40 Gallon", "(2) 40 Gallon", "50 Gallon", "(2) 50 Gallon", "65 Gallon", "75 Gallon", "80 Gallon", "100 Gallon", "Tankless", "Point-of-Use/Under-Sink", "Two Units", "Unknown"]}, {"label": "Water Heater Brand", "options": ["A.O. Smith", "Amana", "American", "Amtrol", "Aquastar", "Bosch", "Bradford-White", "Burnham", "GE", "HTP", "Kenmore", "Lennox", "Lochinvar", "Navien", "Noritz", "Peerless", "Raypak", "Reliance", "Rheem", "Richmond", "Rinnai", "Ruud", "State", "Takagi", "Whirlpool", "None", "Not Visible", "Unknown"]}], "items": [{"code": "6.0", "title": "Drain, Waste & Vent Systems"}, {"code": "6.1", "title": "Water Supply, Distribution & Fixtures"}, {"code": "6.2", "title": "Water Heater, Controls & Venting"}, {"code": "6.3", "title": "Main Water Shut-Off Valve"}, {"code": "6.4", "title": "Fuel Distribution & Gas Piping"}, {"code": "6.5", "title": "Main Fuel Shut-Off Valve"}, {"code": "6.6", "title": "Sump Pump & Pit"}]}, {"num": "7", "name": "Electrical System", "optional": false, "stylesMaterials": [{"label": "Electrical Service Conductors", "options": ["120 Volts Only", "120/240 Volts", "Aluminum", "Copper", "Not Visible", "Overhead Service", "Underground Service"]}, {"label": "Panel Capacity", "options": ["60 AMP", "100 AMP", "125 AMP", "150 AMP", "200 AMP", "225 AMP", "(2) 100 AMP Service Panels", "(2) 150 AMP Service Panels", "(2) 200 AMP Service Panels", "Subpanel Present", "Unable to Determine"]}, {"label": "Panel Type", "options": ["Circuit Breakers", "Fuses"]}, {"label": "Panel Brand", "options": ["ABB", "Bryant", "Challenger", "Crouse-Hinds", "Cutler-Hammer", "Eaton", "Federal Pacific (FPE/Stab-Lok)", "General Electric", "General Switch", "Gould", "ITE", "Leviton", "Milbank", "Murray", "Pushmatic (Bulldog)", "Siemens", "Square D", "Sylvania", "Thomas & Betts", "Westinghouse", "Zinsco", "Unknown"]}, {"label": "Branch Circuit Wiring", "options": ["Copper", "Aluminum (240V Multi-Strand)", "Aluminum (15/20A Solid-Strand)", "Copper-Clad Aluminum", "Not Visible"]}, {"label": "Wiring Methods", "options": ["BX/Armored Cable (AC/MC)", "Cloth-Sheathed (Older NM)", "Conduit", "Knob & Tube", "NM-B/Romex", "Not Visible", "UF (Underground Feeder)"]}, {"label": "Solar/PV System", "options": ["None", "Roof-Mounted (Not Inspected)", "Ground-Mounted (Not Inspected)", "Battery Backup Present"]}], "items": [{"code": "7.0", "title": "Service Entrance Conductors"}, {"code": "7.1", "title": "Service, Grounding & Electrical Panels"}, {"code": "7.2", "title": "Branch Circuits & Breakers"}, {"code": "7.3", "title": "Lights, Switches, Fans & Receptacles"}, {"code": "7.4", "title": "Wet-Location, Garage & Exterior Receptacles"}, {"code": "7.5", "title": "GFCI Protection"}, {"code": "7.6", "title": "Panel Locations"}, {"code": "7.7", "title": "Smoke & Carbon Monoxide Alarms"}]}, {"num": "8", "name": "HVAC", "optional": false, "stylesMaterials": [{"label": "Heat Type", "options": ["Direct Vent Wall Furnace", "Dual-Fuel (Heat Pump & Furnace)", "Ductless Mini-Split (Heat Pump)", "Electric Baseboard", "Floor Furnace", "Forced Air", "Geothermal Heat Pump", "Heat Pump Forced Air", "Hydronic Boiler (Baseboard/Radiators)", "Hydronic Radiant Floor", "Radiant Ceiling", "Radiant Floor", "Space Heater", "Steam Boiler", "Vented Room Heater", "None"]}, {"label": "Energy Source", "options": ["Electric", "Geothermal", "Natural Gas", "Oil", "Propane (LP)", "Solar", "Wood/Pellet"]}, {"label": "Number of Heating Systems", "options": ["One", "Two", "Three", "Four", "Five", "None"]}, {"label": "Heating Equipment Brand", "options": ["Aire-Flo", "AirEase", "Amana", "American Standard", "Ameristar", "Arcoaire", "Armstrong", "Bosch", "Bryant", "Burnham", "Carrier", "Champion", "ClimateMaster", "Coleman", "Comfortmaker", "Daikin", "Day & Night", "Ducane", "Dunkirk", "Empire", "Frigidaire", "Fujitsu", "General Electric", "Gibson", "Goodman", "Guardian", "Heil", "Intertherm", "Janitrol", "Kenmore", "Lennox", "LG", "Lochinvar", "Luxaire", "Miller", "Mitsubishi", "MRCOOL", "Navien", "Nordyne", "Payne", "Rheem", "Ruud", "Tempstar", "Trane", "Weil-McLain", "York", "Not Visible", "Unknown"]}, {"label": "Ductwork", "options": ["Fiberglass Ductboard", "Flex Duct", "Insulated", "N/A", "Non-Insulated", "Not Visible", "Partially Insulated", "Possible Asbestos Sleeving", "Possible Asbestos Tape", "Sheet Metal/Galvanized", "Under-Slab Ducts"]}, {"label": "Filter Type", "options": ["Disposable", "Electronic Air Cleaner", "Media/Cartridge (4\"-5\")", "Missing", "N/A", "Not Located/Not Visible", "Washable"]}, {"label": "Filter Size", "options": ["10x20", "10x24", "10x30", "12x12", "12x20", "12x24", "12x30", "14x14", "14x20", "14x24", "14x25", "14x30", "15x20", "16x16", "16x20", "16x24", "16x25", "16x25x4", "16x25x5", "18x18", "18x20", "18x24", "20x20", "20x24", "20x25", "20x25x4", "20x25x5", "20x30", "24x24", "25x25", "Two Filters", "Three Filters", "Four Filters", "N/A", "Not Visible/Missing"]}, {"label": "Whole-House Humidifier", "options": ["None", "Bypass/Flow-Through", "Steam", "Not Tested"]}, {"label": "Cooling Equipment Type", "options": ["Central Air Conditioner", "Ductless Mini-Split", "Evaporative/Swamp Cooler", "Heat Pump Forced Air", "None", "Not Tested (Outdoor Temp Below 60°F)", "Packaged/Rooftop Unit", "Whole-House Fan", "Window AC"]}, {"label": "Number of Cooling Systems", "options": ["None", "One", "Two", "Three", "Four", "Five"]}, {"label": "Cooling Equipment Brand", "options": ["Aire-Flo", "AirEase", "Amana", "American Standard", "Ameristar", "Arcoaire", "Armstrong", "Bosch", "Breezair", "Bryant", "Carrier", "Champion", "ClimateMaster", "Coleman", "Comfortmaker", "Daikin", "Day & Night", "Ducane", "Friedrich", "Frigidaire", "Fujitsu", "General Electric", "Gibson", "Goodman", "Guardian", "Heil", "Intertherm", "Janitrol", "Kenmore", "Lennox", "LG", "Luxaire", "MasterCool", "Mitsubishi", "MRCOOL", "Nordyne", "Payne", "Rheem", "Ruud", "Tempstar", "Trane", "York", "None", "Not Visible", "Unknown"]}, {"label": "Thermostat Type", "options": ["Smart/Wi-Fi", "Programmable", "Manual", "Multi-Zone"]}, {"label": "Fireplace Type", "options": ["Direct-Vent Gas (Sealed Glass)", "Electric", "Gas/LP Log Starter", "Insert", "Non-Vented Gas Logs", "None", "Pellet Burning", "Propane Gas Logs (Non-Vented)", "Propane Gas Logs (Vented)", "Sealed Off", "Stand-Alone Stove", "Vented Gas Logs", "Wood-Burning (Factory-Built/Zero-Clearance)", "Wood-Burning (Masonry)"]}, {"label": "Number of Fireplaces", "options": ["None", "One", "Two", "Three", "Four", "Five", "Not Tested (Pilot Off/No Fuel)"]}], "items": [{"code": "8.0", "title": "Heating Equipment"}, {"code": "8.1", "title": "Heating Controls & Thermostats"}, {"code": "8.2", "title": "Heating Safety Controls"}, {"code": "8.3", "title": "Ductwork, Piping, Blowers & Distribution"}, {"code": "8.4", "title": "Room Heat Sources"}, {"code": "8.5", "title": "Chimneys, Flues & Vents"}, {"code": "8.6", "title": "Solid-Fuel Fireplaces & Woodstoves"}, {"code": "8.7", "title": "Gas Fireplaces & Logs"}, {"code": "8.8", "title": "Cooling & Air Handler Equipment"}, {"code": "8.9", "title": "Cooling Controls & Thermostats"}]}, {"num": "9", "name": "Insulation & Ventilation", "optional": false, "stylesMaterials": [{"label": "Attic Insulation", "options": ["Batt/Roll", "Blown", "Cellulose", "Faced (Kraft/Paper)", "Fiberglass", "Mineral/Rock Wool", "None", "Not Visible/Inaccessible", "Perlite", "Spray Foam", "Unfaced", "Unknown", "Vermiculite (Possible Asbestos)"]}, {"label": "Attic Ventilation", "options": ["Box/Static Roof Vents", "Gable Vents", "None Found", "Powered Attic Fan", "Ridge Vents", "Shingle-Over Intake Vents", "Soffit Vents", "Solar-Powered Fan", "Turbines", "Unvented/Conditioned Attic"]}, {"label": "Floor System Insulation", "options": ["Batt/Roll", "Faced (Kraft/Paper)", "Fiberglass", "Loose Fill (Netted)", "Mineral/Rock Wool", "None", "Not Visible", "Reflective System (Foil Faced)", "Rigid Foam Board", "Spray Foam", "Unfaced"]}, {"label": "Crawlspace Ventilation & Vapor Barrier", "options": ["Foundation Vents", "Conditioned/Encapsulated", "Vapor Barrier Present", "Partial Vapor Barrier", "No Vapor Barrier", "No Crawlspace"]}, {"label": "Bath/Kitchen Exhaust Venting", "options": ["Vented to Exterior", "Vented to Attic", "Recirculating", "Window Only", "Not Visible"]}, {"label": "Dryer Power Source", "options": ["120V Only (Stackable/Heat Pump)", "240V Electric", "Gas & 240V Electric", "Natural Gas", "None", "Not Visible", "Propane (LP)"]}, {"label": "Dryer Vent", "options": ["Flexible Foil/Metal", "Flexible Vinyl", "Mixed", "None", "Not Visible", "PVC/Plastic", "Rigid Metal", "Semi-Rigid Metal", "Ventless/Condensing"]}], "items": [{"code": "9.0", "title": "Attic Insulation"}, {"code": "9.1", "title": "Exterior Wall Insulation"}, {"code": "9.2", "title": "Subfloor & Crawlspace Insulation"}, {"code": "9.3", "title": "Vapor Retarders"}, {"code": "9.4", "title": "Attic & Foundation Ventilation"}, {"code": "9.5", "title": "Kitchen, Bath & Laundry Exhaust Venting"}, {"code": "9.6", "title": "Attic Ventilation Fans & Controls"}, {"code": "9.7", "title": "Radon Mitigation Systems"}]}, {"num": "10", "name": "Built-In Kitchen Appliances", "optional": false, "stylesMaterials": [{"label": "Range/Oven", "options": ["Gas", "Electric", "Dual-Fuel", "Induction", "Amana", "BlueStar", "Bosch", "Café", "Dacor", "DCS", "Electrolux", "Fisher & Paykel", "Forno", "Frigidaire", "Gaggenau", "General Electric", "Haier", "Hisense", "Hotpoint", "IKEA", "Insignia", "Jenn-Air", "Kenmore", "KitchenAid", "LG", "Maytag", "Midea", "Miele", "Monogram", "NXR", "Roper", "Samsung", "Thermador", "Thor", "Viking", "Whirlpool", "Wolf", "ZLINE", "None", "Brand Not Visible", "Unknown"]}, {"label": "Range Hood", "options": ["Over-the-Range Microwave", "Vented to Exterior", "Vented (Destination Not Visible)", "Recirculating", "Downdraft", "Amana", "Bosch", "Broan", "Café", "Custom-Made", "Dacor", "Fantech", "Frigidaire", "Gaggenau", "General Electric", "Hotpoint", "Jenn-Air", "Kenmore", "KitchenAid", "LG", "Maytag", "Monogram", "NuTone", "NXR", "Samsung", "Thermador", "Vent-A-Hood", "Viking", "Whirlpool", "Wolf", "Zephyr", "ZLINE", "None", "Brand Not Visible", "Unknown"]}, {"label": "Built-In Microwave", "options": ["Drawer Microwave", "Amana", "Bosch", "Café", "Dacor", "Electrolux", "Frigidaire", "General Electric", "Haier", "Hotpoint", "IKEA", "Insignia", "Jenn-Air", "Kenmore", "KitchenAid", "LG", "Maytag", "Midea", "Miele", "Monogram", "Panasonic", "Roper", "Samsung", "Sharp", "Thermador", "Viking", "Whirlpool", "Wolf", "ZLINE", "None", "Brand Not Visible", "Unknown"]}, {"label": "Dishwasher Brand", "options": ["Amana", "Asko", "Bosch", "Café", "Cove", "Dacor", "DCS", "Electrolux", "Fisher & Paykel", "Frigidaire", "Gaggenau", "General Electric", "Haier", "Hotpoint", "IKEA", "Insignia", "Jenn-Air", "Kenmore", "KitchenAid", "LG", "Maytag", "Midea", "Miele", "Monogram", "Roper", "Samsung", "Thermador", "Viking", "Whirlpool", "ZLINE", "None", "Brand Not Visible", "Unknown"]}, {"label": "Disposer Brand", "options": ["American Standard", "Badger", "Emerson", "Franke", "Frigidaire", "General Electric", "Hotpoint", "InSinkErator", "Jenn-Air", "Kenmore", "KitchenAid", "Kraus", "Maytag", "Moen", "Sinkmaster", "Viking", "Waste King", "Whirlaway", "Whirlpool", "None", "Brand Not Visible", "Unknown"]}, {"label": "Refrigerator Brand", "options": ["Amana", "Bosch", "Café", "Dacor", "Electrolux", "Fisher & Paykel", "Forno", "Frigidaire", "General Electric", "Haier", "Hisense", "Hotpoint", "IKEA", "Insignia", "Jenn-Air", "Kenmore", "KitchenAid", "LG", "Marvel", "Maytag", "Midea", "Miele", "Monogram", "Roper", "Samsung", "Sub-Zero", "Thermador", "Viking", "Whirlpool", "ZLINE", "None", "Not Inspected", "Brand Not Visible", "Unknown"]}], "items": [{"code": "10.0", "title": "Dishwasher"}, {"code": "10.1", "title": "Ranges, Ovens & Cooktops"}, {"code": "10.2", "title": "Range Hood"}, {"code": "10.3", "title": "Garbage Disposal"}, {"code": "10.4", "title": "Built-In Microwave"}, {"code": "10.5", "title": "Refrigerator"}, {"code": "10.6", "title": "Trash Compactor"}]}, {"num": "11", "name": "Additional Apartment / Cottage", "optional": true, "stylesMaterials": [{"label": "Roof Covering", "options": ["3-Tab Fiberglass", "Asphalt Roll", "Asphalt/Fiberglass", "Built-Up (Tar & Gravel)", "Clay Tile", "Concrete Tile", "Dimensional", "EPDM Membrane (Black)", "Exposed-Fastener/Corrugated Metal", "Modified Bitumen", "Not Visible (Snow/Obstruction)", "Slate", "Standing Seam Metal", "Stone-Coated Steel", "T-Lock Shingles", "TPO/PVC Membrane (White)", "Wood Shakes/Shingles (Cedar)"]}, {"label": "Siding Style", "options": ["Beaded", "Bevel", "Board and Batten", "Brick", "Channel Rustic", "Drop/German", "Horizontal Lap", "Log", "Panel/Sheet", "RB&B (Reverse Board and Batten)", "Shake/Shingle", "Shiplap", "Stone/Masonry", "Stucco", "T-111", "Tongue and Groove", "V-Groove", "Vertical"]}, {"label": "Plumbing Supply", "options": ["Brass", "Copper", "CPVC", "Galvanized Steel", "Lead", "Not Visible", "PEX", "Polybutylene (Gray)", "Polyethylene (HDPE/Black)", "PVC"]}, {"label": "Plumbing Distribution", "options": ["Brass", "Copper", "CPVC", "Galvanized Steel", "Mixed", "Not Visible", "PEX", "Polybutylene (Gray)", "PVC", "Stainless Steel"]}, {"label": "Water Heater Power Source", "options": ["Electric", "Heat Pump/Hybrid (Electric)", "Indirect/Combi-Boiler", "Natural Gas", "Propane (LP)", "Shared/Central (HOA)", "Solar-Assisted"]}, {"label": "Heat Type", "options": ["Direct Vent Wall Furnace", "Dual-Fuel (Heat Pump & Furnace)", "Ductless Mini-Split (Heat Pump)", "Electric Baseboard", "Floor Furnace", "Forced Air", "Geothermal Heat Pump", "Heat Pump Forced Air", "Hydronic Boiler (Baseboard/Radiators)", "Hydronic Radiant Floor", "Radiant Ceiling", "Radiant Floor", "Space Heater", "Steam Boiler", "Vented Room Heater", "None"]}], "items": [{"code": "11.0", "title": "Roof Coverings"}, {"code": "11.1", "title": "Wall Cladding, Flashing & Trim"}, {"code": "11.2", "title": "Windows"}, {"code": "11.3", "title": "Structural (Foundation & Framing)"}, {"code": "11.4", "title": "Exterior Doors"}, {"code": "11.5", "title": "Interior Doors"}, {"code": "11.6", "title": "Water Supply, Distribution & Fixtures"}, {"code": "11.7", "title": "Drain, Waste & Vent Systems"}, {"code": "11.8", "title": "Water Heater, Controls & Venting"}, {"code": "11.9", "title": "Electrical Devices & Fixtures"}, {"code": "11.10", "title": "Heating Equipment"}, {"code": "11.11", "title": "Cooling & Air Handler Equipment"}]}, {"num": "12", "name": "Outbuilding", "optional": true, "stylesMaterials": [], "items": [{"code": "12.0", "title": "Foundations"}, {"code": "12.1", "title": "Grading & Drainage"}, {"code": "12.2", "title": "Roof Coverings"}, {"code": "12.3", "title": "Roof Structure & Attic"}, {"code": "12.4", "title": "Walls (Interior & Exterior)"}, {"code": "12.5", "title": "Ceilings & Floors"}, {"code": "12.6", "title": "Doors (Interior & Exterior)"}, {"code": "12.7", "title": "Windows"}, {"code": "12.8", "title": "Fireplace & Chimney"}, {"code": "12.9", "title": "Porches, Decks & Carports (Attached)"}, {"code": "12.10", "title": "Service Entrance & Panels"}, {"code": "12.11", "title": "Branch Circuits, Connected Devices & Fixtures"}, {"code": "12.12", "title": "Smoke Alarms"}, {"code": "12.13", "title": "Heating Equipment"}, {"code": "12.14", "title": "Cooling Equipment"}, {"code": "12.15", "title": "Ducts & Vents"}, {"code": "12.16", "title": "Water Supply System & Fixtures"}, {"code": "12.17", "title": "Drains, Waste & Vents"}, {"code": "12.18", "title": "Water Heating Equipment"}, {"code": "12.19", "title": "Dishwasher"}, {"code": "12.20", "title": "Garbage Disposal"}, {"code": "12.21", "title": "Range Hood"}, {"code": "12.22", "title": "Ranges, Ovens & Cooktops"}, {"code": "12.23", "title": "Built-In Microwave"}, {"code": "12.24", "title": "Trash Compactor"}, {"code": "12.25", "title": "Bathroom Exhaust Fans & Heaters"}, {"code": "12.26", "title": "Garage Door Operators"}, {"code": "12.27", "title": "Dryer Vents"}]}, {"num": "13", "name": "Outdoor Cooking Equipment", "optional": true, "stylesMaterials": [{"label": "Fuel Source", "options": ["Natural Gas", "Propane (LP)", "Charcoal", "Electric", "Wood/Pellet"]}], "items": [{"code": "13.0", "title": "Cooking Equipment"}]}, {"num": "14", "name": "Additional Photos", "optional": true, "stylesMaterials": [], "items": [{"code": "14.0", "title": "Photos"}]}];
     const DEFAULT_AI_INSTRUCTIONS = "For every item provided, create a formal, plain-speech, technically detailed, concise, and factually correct home inspection narrative (use search to verify technical items, materials, or standards when needed).\n\nStructure:\n- Write a concise three-sentence narrative (up to four sentences only if it is a complex item that needs more explanation): one sentence for the observation, one sentence for the implication/consequence, and one sentence for the recommendation.\n\nFollow these rules strictly:\n- All recommendations must start with the exact phrase \"Recommend that a...\".\n- Do not use the word \"immediate\" in any recommendation.\n- Do not use bolding, italics, bullet points, or long hyphens/em dashes in the text of the narrative (use commas or periods instead).\n- Do not use emojis, or insert videos or images.\n- No headlines, labels, preamble, or follow-up questions; output only the narrative paragraph.\n- Use careful judgment and do not overuse phrases like \"significant defect\" or \"major hazard.\" Describe the condition and its consequences factually and objectively.\n- Never mention, reference, or allude to any photograph, picture, or image in the narrative text (\"in the photo\", \"as pictured\", \"as shown\", etc.). Use any attached photos strictly to understand the physical defect details, since photos may later be added, swapped, or removed.\n- Take the property location, age, Styles & Materials, and prior narratives for this home into consideration so terminology and findings remain consistent across the report.";
 
     const sb = window.supabase.createClient(DHI_SUPABASE_URL, DHI_SUPABASE_ANON_KEY, {
@@ -397,9 +409,21 @@
       'Additional Apartment / Cottage',
       'Outbuilding',
       'Outdoor Cooking Equipment',
-      'Additional Photos',
-      'Defects (lists/photos)'
+      'Additional Photos'
     ];
+    const DHI_PRELISTING_TEMPLATE_NAME = 'Pre-Listing/Defects List';
+    const DHI_PRELISTING_TEMPLATE = {
+      id: 'local-prelisting',
+      name: DHI_PRELISTING_TEMPLATE_NAME,
+      is_default: false,
+      sections: [{ num: '1', name: 'Defects List', optional: false, stylesMaterials: [], items: [] }]
+    };
+    const DEFAULT_PRELISTING_INSTRUCTIONS = `Take this walk-through list and turn it into very concise home inspection narratives broken down by logical categories (such as Exterior & Roof, Interior, Plumbing, Electrical, HVAC, Structure).
+For every item:
+- First sentence describes the issue clearly and factually.
+- Second sentence describes the concern or implication.
+- Do NOT provide any recommendation for repair.
+- Do NOT reference photos or images, and keep formatting simple plain text (no em dashes, no emojis, no bolding, no bullet symbols inside the narrative).`;
 
     const state = {
       user: null,
@@ -420,6 +444,8 @@
       npmaBusy: false,
       showSM: true,
       globalInstructions: DEFAULT_AI_INSTRUCTIONS,
+      prelistingInstructions: DEFAULT_PRELISTING_INSTRUCTIONS,
+      prelistingBusy: false,
       aiModel: 'gemini-4-hydrogen',
       availableModels: [
         { id: 'gemini-4-hydrogen', displayName: 'Gemini 4 Hydrogen (Default)' },
@@ -428,7 +454,7 @@
         { id: 'gemini-3.8-flash', displayName: 'Gemini 3.8 Flash' },
         { id: 'gemini-3.8-flash', displayName: 'Gemini 3.8 Flash' }
       ],
-      templates: [{ id: 'local-default', name: 'Residential - By System', is_default: true, sections: DHI_TEMPLATE }],
+      templates: [{ id: 'local-default', name: 'Residential - By System', is_default: true, sections: DHI_TEMPLATE }, DHI_PRELISTING_TEMPLATE],
       smUsageCounts: {},
       activeTemplateId: 'local-default',
       editTemplateMode: false,
@@ -629,6 +655,7 @@
           state.activeTemplateId = cached.activeTemplateId || cached.templates[0].id;
         }
         if (cached.globalInstructions) state.globalInstructions = cached.globalInstructions;
+        if (cached.prelistingInstructions) state.prelistingInstructions = cached.prelistingInstructions;
         if (cached.aiModel) state.aiModel = cached.aiModel;
         return true;
       } catch (_e) {
@@ -655,7 +682,7 @@
         try {
           const cloudPromise = Promise.all([
             sb.from('inspections').select('*').order('created_at', { ascending: false }),
-            sb.from('app_settings').select('*').in('key', ['ai_narrative_instructions', 'ai_model', 'sm_option_usage_counts', 'sm_template_version']),
+            sb.from('app_settings').select('*').in('key', ['ai_narrative_instructions', 'ai_prelisting_instructions', 'ai_model', 'sm_option_usage_counts', 'sm_template_version']),
             sb.from('comment_library').select('*').order('section_name', { ascending: true }),
             sb.from('inspection_templates').select('*').order('name', { ascending: true })
           ]);
@@ -682,6 +709,7 @@
           if (Array.isArray(setRes.data)) {
             setRes.data.forEach(row => {
               if (row.key === 'ai_narrative_instructions' && row.value) state.globalInstructions = row.value;
+              if (row.key === 'ai_prelisting_instructions' && row.value) state.prelistingInstructions = row.value;
               if (row.key === 'ai_model' && row.value) state.aiModel = /^gemini-[12]\./i.test(row.value) ? 'gemini-4-hydrogen' : row.value;
               if (row.key === 'sm_option_usage_counts' && row.value) {
                 try {
@@ -697,21 +725,36 @@
             state.templates = tplRes.data;
             const def = tplRes.data.find(t => t.is_default) || tplRes.data[0];
             state.activeTemplateId = def.id;
-            // One-time safe sync of updated v2.0.7-ai Styles & Materials into the saved default Supabase template
-            // (updates ONLY stylesMaterials arrays; never touches custom inspection items or existing reports)
-            if (smTplVer !== 'v2.0.7-ai' && def && Array.isArray(def.sections)) {
+            // One-time safe sync of updated v2.0.8-ai Styles & Materials + remove Defects (lists/photos) from default Residential template
+            if (smTplVer !== 'v2.0.8-ai' && def && Array.isArray(def.sections)) {
               try {
                 const byName = new Map(DHI_TEMPLATE.map(s => [s.name, s.stylesMaterials]));
-                const updatedSecs = def.sections.map(sec => {
-                  if (!byName.has(sec.name)) return sec;
-                  const newSM = byName.get(sec.name).map(sm => ({ label: sm.label, options: sm.options.slice() }));
-                  return { ...sec, stylesMaterials: newSM };
-                });
+                const updatedSecs = def.sections
+                  .filter(sec => sec.name !== 'Defects (lists/photos)')
+                  .map(sec => {
+                    if (!byName.has(sec.name)) return sec;
+                    const newSM = byName.get(sec.name).map(sm => ({ label: sm.label, options: sm.options.slice() }));
+                    return { ...sec, stylesMaterials: newSM };
+                  });
                 def.sections = updatedSecs;
                 const nowIso = new Date().toISOString();
                 await sb.from('inspection_templates').update({ sections: updatedSecs, updated_at: nowIso }).eq('id', def.id);
-                await sb.from('app_settings').upsert({ key: 'sm_template_version', value: 'v2.0.7-ai', updated_at: nowIso }, { onConflict: 'key' });
+                await sb.from('app_settings').upsert({ key: 'sm_template_version', value: 'v2.0.8-ai', updated_at: nowIso }, { onConflict: 'key' });
               } catch (_e) {}
+            }
+            // Ensure dedicated Pre-Listing/Defects List template exists in Supabase
+            if (!state.templates.some(t => String(t.name || '').toLowerCase() === DHI_PRELISTING_TEMPLATE_NAME.toLowerCase())) {
+              try {
+                const { data: insertedPre } = await sb.from('inspection_templates').insert({
+                  name: DHI_PRELISTING_TEMPLATE_NAME,
+                  is_default: false,
+                  sections: DHI_PRELISTING_TEMPLATE.sections
+                }).select().single();
+                if (insertedPre) state.templates.push(insertedPre);
+                else state.templates.push(DHI_PRELISTING_TEMPLATE);
+              } catch (_e) {
+                state.templates.push(DHI_PRELISTING_TEMPLATE);
+              }
             }
           }
           await saveFieldMetaCache();
@@ -724,6 +767,20 @@
         const liveIds = new Set((state.inspections || []).map(i => i.id));
         if (cloudInspectionsLoaded) {
           for (const d of localDrafts) {
+            if (d && d.inspectionId && String(d.inspectionId).startsWith('local-scratch-')) {
+              if (!liveIds.has(d.inspectionId)) {
+                state.inspections.unshift({
+                  id: d.inspectionId,
+                  address: d.address || 'Blank Scratchpad Inspection',
+                  client_name: d.templateMode === 'prelisting' ? 'Pre-Listing/Defects List (Scratchpad)' : 'Local Scratchpad',
+                  inspection_date: d.updatedAt ? new Date(d.updatedAt).toLocaleDateString() : 'Local Only',
+                  property_info: d.propertyInfo || {},
+                  report_notified: false,
+                  _isScratchpad: true
+                });
+              }
+              continue;
+            }
             if (d && d.inspectionId && !liveIds.has(d.inspectionId)) {
               await idbDelete('drafts', d.inspectionId).catch(() => {});
               if (localStorage.getItem('dhi_field_active_insp_id') === d.inspectionId) {
@@ -1175,7 +1232,10 @@
 
     function buildBlankDraftFromTemplate(insp) {
       const tpl = getActiveTemplate();
-      const tplSecs = Array.isArray(tpl.sections) && tpl.sections.length ? tpl.sections : DHI_TEMPLATE;
+      const isPrelistingTpl = String(tpl.name || '').toLowerCase().includes('pre-listing') || String(tpl.id || '') === 'local-prelisting';
+      const tplSecs = isPrelistingTpl
+        ? []
+        : (Array.isArray(tpl.sections) && tpl.sections.length ? tpl.sections : DHI_TEMPLATE);
       const coreSections = tplSecs.filter(s => !s.optional).map(s => ({
         num: s.num,
         name: s.name,
@@ -1230,6 +1290,8 @@
         propertyInfo: pInfo,
         npma33: (basePInfo && basePInfo.npma33) ? basePInfo.npma33 : null,
         contacts,
+        templateMode: isPrelistingTpl ? 'prelisting' : 'residential',
+        prelistingRawNotes: '',
         sections: coreSections,
         updatedAt: new Date().toISOString(),
         dirty: false
@@ -3024,6 +3086,7 @@
           body: {
             model: state.aiModel || 'gemini-4-hydrogen',
             globalInstructions: state.globalInstructions,
+          prelistingInstructions: state.prelistingInstructions,
             propertyInfo: state.draft.propertyInfo,
             stylesMaterials: allSM,
             previousNarratives: prevNarratives,
@@ -4762,6 +4825,10 @@
     }
 
     async function uploadDraftToSupabase(publishToPortal, forcePublish = false) {
+      if (dhiIsScratchpadDraft(state.draft)) {
+        toast('Local scratchpad inspections cannot be uploaded or published to the customer portal.');
+        return;
+      }
       if (!state.draft || state.uploading) return;
       if (publishToPortal && !forcePublish) {
         const flagged = (state.draft.sections || []).map((sec, idx) => ({
@@ -4985,9 +5052,226 @@
       }
     }
 
+
+    // =========================================================================
+    // v2.0.8-ai: BLANK SCRATCHPAD INSPECTION & PRE-LISTING/DEFECTS LIST ENGINE
+    // =========================================================================
+    function dhiIsScratchpadDraft(draft) {
+      return !!(draft && String(draft.inspectionId || '').startsWith('local-scratch-'));
+    }
+
+    function dhiRenderPhotoTrayAsideHTML() {
+      if (!state.showPhotoTray) return '';
+      const szCfg = state.trayThumbSize === 'sm' ? { min: 130, h: 'h-28' } : (state.trayThumbSize === 'lg' ? { min: 270, h: 'h-56' } : { min: 195, h: 'h-40' });
+      return `
+        <div onmousedown="startTraySplitResize(event)" ontouchstart="startTraySplitResize(event)" title="Drag to resize Photo Tray" class="hidden lg:flex w-3 shrink-0 self-stretch cursor-col-resize items-center justify-center group select-none">
+          <div class="w-1 h-24 rounded-full bg-slate-300 group-hover:bg-sky-500 transition"></div>
+        </div>
+        <aside id="dhiPhotoTrayAside" style="width:${state.trayWidthPct}%" class="w-full lg:w-auto lg:shrink-0 lg:sticky lg:top-16 bg-white rounded-2xl border border-slate-300 shadow-sm p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div class="text-xs font-extrabold text-slate-900">Photo tray (${state.photoTray.length})</div>
+              <div class="text-[11px] text-slate-500">Drag onto any item card to insert &amp; edit. Drag divider to widen.</div>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <div class="inline-flex rounded-lg border border-slate-300 overflow-hidden bg-white text-[10px] font-bold">
+                <button type="button" onclick="setTrayThumbSize('sm')" class="px-2 py-1 ${state.trayThumbSize === 'sm' ? 'bg-davis-navy text-white' : 'text-slate-600 hover:bg-slate-100'}">S</button>
+                <button type="button" onclick="setTrayThumbSize('md')" class="px-2 py-1 ${state.trayThumbSize === 'md' ? 'bg-davis-navy text-white' : 'text-slate-600 hover:bg-slate-100'}">M</button>
+                <button type="button" onclick="setTrayThumbSize('lg')" class="px-2 py-1 ${state.trayThumbSize === 'lg' ? 'bg-davis-navy text-white' : 'text-slate-600 hover:bg-slate-100'}">L</button>
+              </div>
+              <button type="button" onclick="openPhotoFolderPicker(true)" class="px-2.5 py-1.5 rounded-lg bg-davis-navy text-white text-[11px] font-bold">Load folder</button>
+              <button type="button" onclick="openPhotoFolderPicker(false)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-[11px] font-bold">+ Files</button>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(${szCfg.min}px, 1fr)); gap: 0.625rem;" class="max-h-[78vh] overflow-y-auto pr-1">
+            ${state.photoTray.map(p => `
+              <div draggable="true" ondragstart="handleTrayDragStart(event, '${p.id}')" class="relative cursor-grab active:cursor-grabbing rounded-xl overflow-hidden border ${p.used ? 'border-emerald-400 opacity-75' : 'border-slate-300 hover:border-davis-navy'} bg-slate-100 shadow-sm">
+                <img src="${p.dataUrl}" class="w-full ${szCfg.h} object-cover pointer-events-none" />
+                ${p.name ? `<div class="px-1.5 py-1 text-[10px] font-semibold text-slate-600 bg-white/90 truncate border-t border-slate-200">${esc(p.name)}</div>` : ''}
+                ${p.used ? '<span class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold shadow">Used</span>' : ''}
+              </div>
+            `).join('') || '<div style="grid-column:1/-1" class="text-xs text-slate-400 text-center py-10 border border-dashed border-slate-200 rounded-xl">Click <strong>Load folder</strong> to open your inspection photos here.</div>'}
+          </div>
+        </aside>`;
+    }
+
+    async function openBlankScratchpadInspection() {
+      const tpl = getActiveTemplate();
+      const isPre = String(tpl.name || '').toLowerCase().includes('pre-listing') || String(tpl.id || '') === 'local-prelisting';
+      const scratchId = 'local-scratch-' + Date.now();
+      const nowLabel = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const addrLabel = isPre ? ('Blank Pre-Listing (' + nowLabel + ')') : ('Blank Inspection (' + nowLabel + ')');
+      const fakeInsp = {
+        id: scratchId,
+        address: addrLabel,
+        client_name: isPre ? 'Pre-Listing/Defects List (Scratchpad)' : 'Local Scratchpad',
+        inspection_date: nowLabel,
+        property_info: { address: addrLabel },
+        report_notified: false,
+        _isScratchpad: true
+      };
+      state.inspections = [fakeInsp, ...(state.inspections || [])];
+      const draft = buildBlankDraftFromTemplate(fakeInsp);
+      state.draft = draft;
+      state.activeId = scratchId;
+      state.activeSecIdx = 0;
+      state.aiExpandedItems = {};
+      await saveDraftLocally(true);
+      try { localStorage.setItem('dhi_field_active_insp_id', scratchId); } catch (_e) {}
+      render();
+      toast('Opened blank ' + (isPre ? 'Pre-Listing/Defects List' : 'Residential') + ' scratchpad (saved locally only).');
+    }
+
+    async function deleteScratchpadDraft(scratchId) {
+      if (!confirm('Delete this local blank scratchpad inspection?')) return;
+      await idbDelete('drafts', scratchId).catch(() => {});
+      state.inspections = (state.inspections || []).filter(i => i.id !== scratchId);
+      if (localStorage.getItem('dhi_field_active_insp_id') === scratchId) {
+        localStorage.removeItem('dhi_field_active_insp_id');
+      }
+      render();
+      toast('Scratchpad deleted.');
+    }
+
+    function updatePreListingRawNotes(val) {
+      if (!state.draft) return;
+      state.draft.prelistingRawNotes = val;
+      saveDraftLocally(true);
+    }
+
+    function togglePreListingMicDictation() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) { toast('Voice dictation is not supported in this browser.'); return; }
+      if (state.prelistingRec) {
+        try { state.prelistingRec.stop(); } catch (_e) {}
+        state.prelistingRec = null;
+        render();
+        return;
+      }
+      const rec = new SpeechRec();
+      rec.continuous = true;
+      rec.interimResults = false;
+      rec.lang = 'en-US';
+      rec.onresult = (ev) => {
+        if (!state.draft) return;
+        let spoken = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          if (ev.results[i].isFinal) spoken += ev.results[i][0].transcript + ' ';
+        }
+        spoken = spoken.trim();
+        if (spoken) {
+          state.draft.prelistingRawNotes = (state.draft.prelistingRawNotes || '').trim()
+            ? (state.draft.prelistingRawNotes.trim() + '\n- ' + spoken)
+            : ('- ' + spoken);
+          saveDraftLocally(true);
+          const ta = document.getElementById('dhiPreListingNotesInput');
+          if (ta) ta.value = state.draft.prelistingRawNotes;
+        }
+      };
+      rec.onerror = () => { state.prelistingRec = null; render(); };
+      rec.onend = () => { state.prelistingRec = null; render(); };
+      state.prelistingRec = rec;
+      rec.start();
+      render();
+    }
+
+    async function runPreListingGenerateList() {
+      if (!state.draft || state.prelistingBusy) return;
+      if (!navigator.onLine) { toast('Connect to internet to generate the Pre-Listing defect list.'); return; }
+      const rawNotes = String(state.draft.prelistingRawNotes || '').trim();
+      if (!rawNotes) { toast('Enter or dictate your walk-through notes first.'); return; }
+      if ((state.draft.sections || []).some(s => (s.items || []).length > 0)) {
+        if (!confirm('Regenerate the defect list from your notes? Existing items below will be replaced (photos already in the Photo Tray stay safe).')) return;
+      }
+      state.prelistingBusy = true;
+      render();
+      try {
+        const { data, error } = await sb.functions.invoke('generate-narrative', {
+          body: {
+            action: 'generate_prelisting_defects',
+            model: state.aiModel || 'gemini-4-hydrogen',
+            prelistingInstructions: state.prelistingInstructions || DEFAULT_PRELISTING_INSTRUCTIONS,
+            propertyInfo: state.draft.propertyInfo || {},
+            rawNotes
+          }
+        });
+        if (error) throw new Error(error.message || 'Generation failed');
+        if (data && data.error) throw new Error(data.error);
+        const cats = Array.isArray(data?.categories) ? data.categories : [];
+        if (!cats.length) {
+          toast('No defect items were returned. Add more detail to your notes and try again.');
+          return;
+        }
+        state.draft.sections = cats.map((cat, cIdx) => {
+          const secNum = String(cIdx + 1);
+          const items = (Array.isArray(cat.items) ? cat.items : []).map((it, iIdx) => ({
+            id: 'pre-' + secNum + '-' + iIdx + '-' + Date.now(),
+            code: secNum + '.' + (iIdx + 1),
+            title: String(it.title || 'Defect ' + (iIdx + 1)).trim(),
+            statuses: ['IN', 'RR'],
+            status: 'IN, RR',
+            isSummary: true,
+            roughNotes: '',
+            narrative: String(it.narrative || '').trim(),
+            photos: []
+          }));
+          return {
+            num: secNum,
+            name: String(cat.name || ('Category ' + secNum)).trim(),
+            optional: false,
+            stylesMaterials: [],
+            items
+          };
+        });
+        state.activeSecIdx = 0;
+        await saveDraftLocally(true);
+        const totalItems = state.draft.sections.reduce((s, sec) => s + (sec.items || []).length, 0);
+        toast(`Generated ${totalItems} defect item${totalItems === 1 ? '' : 's'} across ${state.draft.sections.length} categor${state.draft.sections.length === 1 ? 'y' : 'ies'}. Drop photos from the Photo Tray below!`);
+      } catch (err) {
+        toast('Pre-Listing AI error: ' + (err.message || err));
+      } finally {
+        state.prelistingBusy = false;
+        render();
+      }
+    }
+
+    function addPreListingManualItem(secIdx) {
+      if (!state.draft) return;
+      if (!Array.isArray(state.draft.sections) || !state.draft.sections.length) {
+        state.draft.sections = [{ num: '1', name: 'General Defects', optional: false, stylesMaterials: [], items: [] }];
+        secIdx = 0;
+      }
+      const sec = state.draft.sections[secIdx] || state.draft.sections[0];
+      const nextNum = (sec.items || []).length + 1;
+      sec.items.push({
+        id: 'pre-' + sec.num + '-' + nextNum + '-' + Date.now(),
+        code: sec.num + '.' + nextNum,
+        title: 'New Defect Item',
+        statuses: ['IN', 'RR'],
+        status: 'IN, RR',
+        isSummary: true,
+        roughNotes: '',
+        narrative: '',
+        photos: []
+      });
+      saveDraftLocally(true);
+      render();
+    }
+
+    function removePreListingItem(secIdx, itemIdx) {
+      const sec = state.draft?.sections?.[secIdx];
+      if (!sec) return;
+      sec.items.splice(itemIdx, 1);
+      if (!sec.items.length) state.draft.sections.splice(secIdx, 1);
+      saveDraftLocally(true);
+      render();
+    }
+
     function openInstructionsModal() {
       if (!state.user) return;
       document.getElementById('globalInstructionsInput').value = state.globalInstructions;
+      const preEl = document.getElementById('prelistingInstructionsInput');
+      if (preEl) preEl.value = state.prelistingInstructions || DEFAULT_PRELISTING_INSTRUCTIONS;
       const pqSel = document.getElementById('photoQualitySelect');
       if (pqSel) pqSel.value = state.photoQualityPreset || 'standard';
       renderModelSelectOptions();
@@ -4995,15 +5279,25 @@
       refreshAvailableModels();
     }
     function closeInstructionsModal() { document.getElementById('instructionsModal').classList.add('hidden'); }
+    function resetPrelistingInstructions() {
+      const el = document.getElementById('prelistingInstructionsInput');
+      if (el) el.value = DEFAULT_PRELISTING_INSTRUCTIONS;
+      toast('Restored default Pre-Listing AI rules. Click Save to apply.');
+    }
+
     async function saveGlobalInstructions() {
       const val = (document.getElementById('globalInstructionsInput')?.value || '').trim();
+      const preVal = (document.getElementById('prelistingInstructionsInput')?.value || '').trim() || DEFAULT_PRELISTING_INSTRUCTIONS;
       const chosenModel = document.getElementById('aiModelSelect')?.value || state.aiModel || 'gemini-4-hydrogen';
       if (!val) return;
       state.globalInstructions = val;
+      state.prelistingInstructions = preVal;
       state.aiModel = chosenModel;
+      saveFieldMetaCache().catch(() => {});
       const now = new Date().toISOString();
       const { error } = await sb.from('app_settings').upsert([
         { key: 'ai_narrative_instructions', value: val, updated_at: now },
+        { key: 'ai_prelisting_instructions', value: preVal, updated_at: now },
         { key: 'ai_model', value: chosenModel, updated_at: now }
       ]);
       if (error) { toast('Save failed: ' + error.message); return; }
@@ -5158,9 +5452,13 @@
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-              <button type="button" data-url="${esc(permitInfo.url)}" data-street="${esc(permitInfo.streetText || pInfo.street || (i.address || '').split(',')[0].trim())}" onclick="dhiOpenFieldPermitLookup(this)" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">${esc(permitInfo.label)} &nearr;</button>
-              <button type="button" onclick="openInspectionDraft('${i.id}')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Open in editor &rarr;</button>
-              <button type="button" onclick="hideInspectionFromFieldApp('${i.id}')" title="Remove from Field App list" class="px-2 py-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold transition">&times;</button>
+              ${String(i.id || '').startsWith('local-scratch-')
+                ? `<span class="px-2.5 py-1 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-extrabold">Scratchpad (Local)</span>
+                   <button type="button" onclick="openInspectionDraft('${i.id}')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Open &rarr;</button>
+                   <button type="button" onclick="deleteScratchpadDraft('${i.id}')" title="Delete local scratchpad" class="px-2.5 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Delete</button>`
+                : `<button type="button" data-url="${esc(permitInfo.url)}" data-street="${esc(permitInfo.streetText || pInfo.street || (i.address || '').split(',')[0].trim())}" onclick="dhiOpenFieldPermitLookup(this)" class="px-3 py-2 rounded-xl border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-xs font-bold transition">${esc(permitInfo.label)} &nearr;</button>
+                   <button type="button" onclick="openInspectionDraft('${i.id}')" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold">Open in editor &rarr;</button>
+                   <button type="button" onclick="hideInspectionFromFieldApp('${i.id}')" title="Remove from Field App list" class="px-2 py-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold transition">&times;</button>`}
             </div>
           </div>`;
         }).join('');
@@ -5177,10 +5475,95 @@
                 <select onchange="applyTemplateToNewInspection(this.value)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-800">
                   ${(state.templates || []).map(t => `<option value="${esc(t.id)}" ${String(t.id) === String(state.activeTemplateId) ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
                 </select>
+                <button type="button" onclick="openBlankScratchpadInspection()" class="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow-sm transition">+ Blank Inspection</button>
                 <span class="px-3 py-1 rounded-xl bg-sky-50 border border-sky-200 text-xs font-bold text-davis-navy">${state.commentLibrary.length} saved comments</span>
               </div>
             </div>
             <div class="space-y-2.5">${cards || '<div class="text-xs text-slate-400 text-center py-8">No scheduled inspections found yet. Create one in the Admin Portal first.</div>'}</div>
+          </div>
+        `;
+        return;
+      }
+
+      const isScratch = dhiIsScratchpadDraft(state.draft);
+      if (state.draft.templateMode === 'prelisting') {
+        const catBlocksHTML = (state.draft.sections || []).map((sc, sIdx) => `
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="px-4 py-2.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="px-2 py-0.5 rounded-md bg-davis-navy text-white text-[11px] font-extrabold">${esc(sc.num)}</span>
+                <input type="text" value="${esc(sc.name)}" oninput="state.draft.sections[${sIdx}].name=this.value; saveDraftLocally(true);" class="bg-transparent font-extrabold text-sm text-slate-900 focus:outline-none focus:bg-white focus:px-2 rounded" />
+                <span class="text-[11px] font-semibold text-slate-500">(${(sc.items || []).length})</span>
+              </div>
+              <button type="button" onclick="addPreListingManualItem(${sIdx})" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-[11px] font-bold text-slate-700">+ Add Item</button>
+            </div>
+            <div class="divide-y divide-slate-200">
+              ${(sc.items || []).map((it, iIdx) => `
+                <div class="p-3.5 space-y-2.5" ondragover="event.preventDefault(); this.classList.add('ring-2','ring-sky-400','bg-sky-50/40');" ondragleave="this.classList.remove('ring-2','ring-sky-400','bg-sky-50/40');" ondrop="this.classList.remove('ring-2','ring-sky-400','bg-sky-50/40'); handleItemPhotoDrop(event, ${sIdx}, ${iIdx});">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+                      <span class="text-xs font-extrabold text-slate-400">${esc(it.code)}</span>
+                      <input type="text" value="${esc(it.title)}" oninput="setItemField(${sIdx}, ${iIdx}, 'title', this.value)" class="flex-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-xs font-extrabold text-slate-900 focus:bg-white focus:border-davis-navy outline-none" />
+                    </div>
+                    <button type="button" onclick="removePreListingItem(${sIdx}, ${iIdx})" title="Remove item" class="px-2 py-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 text-xs font-bold">&times;</button>
+                  </div>
+                  <textarea rows="3" oninput="setItemField(${sIdx}, ${iIdx}, 'narrative', this.value)" placeholder="2-sentence defect narrative..." class="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-xs leading-relaxed text-slate-800 resize-y">${esc(it.narrative || '')}</textarea>
+                  <div class="flex flex-wrap items-center gap-2 p-2 rounded-xl border border-dashed border-slate-300 bg-slate-50/70">
+                    <button type="button" onclick="addPhotosToItem(${sIdx}, ${iIdx}, true)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-[11px] font-bold text-slate-700">+ Camera</button>
+                    <button type="button" onclick="addPhotosToItem(${sIdx}, ${iIdx}, false)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-[11px] font-bold text-slate-700">+ Gallery</button>
+                    ${(it.photos || []).map((p, pIdx) => `
+                      <div class="relative group">
+                        <img src="${esc(p.dataUrl || p.signedUrl || '')}" alt="Defect photo" onclick="openPhotoEditor(${sIdx}, ${iIdx}, ${pIdx})" class="w-16 h-16 rounded-lg object-cover border border-slate-300 cursor-pointer" />
+                        <button type="button" onclick="removePhoto(${sIdx}, ${iIdx}, ${pIdx})" class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center shadow">&times;</button>
+                      </div>
+                    `).join('')}
+                    ${!(it.photos || []).length ? '<span class="text-[11px] text-slate-400 italic">Drag photos here from Photo Tray, or tap + Camera / + Gallery</span>' : ''}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('');
+
+        root.innerHTML = `
+          <div class="space-y-4">
+            <div class="bg-white rounded-2xl border border-slate-300 p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-2.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="closeActiveDraft()" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">&larr; All inspections</button>
+                <span class="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-extrabold">Pre-Listing/Defects List</span>
+                ${isScratch ? '<span class="px-2.5 py-1 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 text-xs font-extrabold">Scratchpad (Local Only)</span>' : `${isScratch ? '<span class="px-2.5 py-1 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 text-xs font-extrabold">Scratchpad (Local Only)</span>' : `<span class="text-xs font-bold text-slate-500">${state.draft.dirty ? 'Saved locally' : 'In cloud'}</span>`}`}
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="state.showPhotoTray=!state.showPhotoTray; render();" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.showPhotoTray ? 'bg-sky-600 border-sky-600 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">Photo tray (${state.photoTray.length})</button>
+                <button type="button" onclick="saveDraftLocally(false)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-xs font-bold text-slate-700">Save locally</button>
+                ${isScratch ? '' : `
+                  <button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-bold">${state.uploading ? 'Uploading...' : 'Upload draft'}</button>
+                  <button type="button" onclick="uploadDraftToSupabase(true)" ${state.uploading ? 'disabled' : ''} class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-extrabold shadow-sm">Publish to portal</button>
+                `}
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div class="text-xs font-extrabold uppercase tracking-wider text-davis-navy">Walk-Through Notes (Single List for AI)</div>
+                  <p class="text-[11px] text-slate-500">Type or dictate all rough findings here, then click Generate Defect List to create categorized 2-sentence narratives with photo drop zones.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button type="button" onclick="togglePreListingMicDictation()" class="px-3 py-1.5 rounded-xl border text-xs font-bold transition ${state.prelistingRec ? 'bg-rose-600 border-rose-600 text-white animate-pulse' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">${state.prelistingRec ? 'Stop Mic' : 'Mic Dictate'}</button>
+                  <button type="button" onclick="addPreListingManualItem(0)" class="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-xs font-bold text-slate-700">+ Add Blank Item</button>
+                  <button type="button" onclick="runPreListingGenerateList()" ${state.prelistingBusy ? 'disabled' : ''} class="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-extrabold shadow-sm transition">${state.prelistingBusy ? 'Generating Defect List...' : 'Generate Defect List'}</button>
+                </div>
+              </div>
+              <textarea id="dhiPreListingNotesInput" rows="7" oninput="updatePreListingRawNotes(this.value)" placeholder="- Missing kickout flashing at right garage roof&#10;- Master bath GFCI did not trip when tested&#10;- Cracked caulking around kitchen sink..." class="w-full p-3 rounded-xl border border-slate-300 bg-slate-50/50 text-xs leading-relaxed text-slate-900 focus:bg-white focus:border-davis-navy outline-none resize-y">${esc(state.draft.prelistingRawNotes || '')}</textarea>
+            </div>
+
+            <div id="dhiSplitWorkspace" class="${state.showPhotoTray ? 'flex flex-col lg:flex-row items-start gap-3 lg:gap-0' : 'space-y-3'}">
+              <div class="${state.showPhotoTray ? 'w-full lg:flex-1 lg:min-w-[460px] lg:pr-2' : 'w-full'} space-y-3">
+                ${catBlocksHTML || '<div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs text-slate-500">No defect items generated yet. Enter your walk-through notes above and click <strong>Generate Defect List</strong>, or tap <strong>+ Add Blank Item</strong>.</div>'}
+              </div>
+              ${dhiRenderPhotoTrayAsideHTML()}
+            </div>
           </div>
         `;
         return;
@@ -5450,8 +5833,10 @@
                 <button type="button" onclick="toggleNpma33Panel()" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.showNpma33 ? 'bg-indigo-600 border-indigo-600 text-white' : (npmaEnabled ? 'bg-indigo-50 border-indigo-300 text-indigo-800 hover:border-indigo-500' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700')}">NPMA-33 (WDI)${npmaEnabled ? ' ✓' : ''}</button>
                 <button type="button" onclick="toggleEditTemplateMode()" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.editTemplateMode ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">${state.editTemplateMode ? 'Editing template' : 'Edit template'}</button>
                 <button type="button" onclick="saveDraftLocally(false)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-xs font-bold text-slate-700">Save locally</button>
-                <button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-bold">${state.uploading ? 'Uploading...' : 'Upload draft to cloud'}</button>
-                <button type="button" onclick="uploadDraftToSupabase(true)" ${state.uploading ? 'disabled' : ''} class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-extrabold shadow-sm">Publish to customer portal</button>
+                ${isScratch ? '' : `
+                  <button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-bold">${state.uploading ? 'Uploading...' : 'Upload draft to cloud'}</button>
+                  <button type="button" onclick="uploadDraftToSupabase(true)" ${state.uploading ? 'disabled' : ''} class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-extrabold shadow-sm">Publish to customer portal</button>
+                `}
               </div>
             </div>
           </div>`;
