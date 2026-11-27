@@ -5782,111 +5782,182 @@ function submitInspectionQuoteRequest(payload) {
           ? 'border-amber-300 bg-amber-50 hover:border-amber-500 text-amber-900'
           : 'border-slate-300 bg-slate-50 hover:border-davis-navy text-slate-700';
 
+        const custsList = dhiGetInspCustomers(insp);
+        const agsList = dhiGetInspAgents(insp);
+        const custLinksHTML = custsList.length
+          ? '<div class="text-slate-600">Customer: ' + custsList.map(c => `<button type="button" onclick="dhiOpenPersonFromCard('customer', '${(c.email || '').replace(/'/g, "\\'")}', '${(c.name || '').replace(/'/g, "\\'")}')" class="font-bold text-davis-navy hover:underline text-left">${escapeHtml(c.name || c.email)}</button>`).join('<span class="text-slate-400">, </span>') + '</div>'
+          : '';
+        const agLinksHTML = agsList.length
+          ? '<div class="text-slate-600">Agent: ' + agsList.map(a => `<button type="button" onclick="dhiOpenPersonFromCard('agent', '${(a.email || '').replace(/'/g, "\\'")}', '${(a.name || '').replace(/'/g, "\\'")}')" class="font-bold text-davis-navy hover:underline text-left">${escapeHtml(a.name || a.email)}</button>`).join('<span class="text-slate-400">, </span>') + '</div>'
+          : '';
+        const statusPillsHTML = `
+          ${insp.agreementRequired === false
+            ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">Standalone</span>`
+            : `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.agreementSigned ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${insp.agreementSigned ? 'Agreement Signed' : 'Needs Signature'}</span>`}
+          <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${insp.paid ? 'Paid ($' + total.toFixed(2) + ')' : 'Balance $' + total.toFixed(2)}</span>
+          <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.reportNotified ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'}">${insp.reportNotified ? 'Released' : 'Not Released'}</span>
+        `;
+        const extraDocPillsHTML = (insp.extraDocs && insp.extraDocs.length) ? `<div class="flex flex-wrap gap-1 pt-0.5">${dhiRenderAdminDocPills(insp)}</div>` : '';
+        const ps = dhiGetPermitShare(pInfo);
+        const psLabelStr = (ps.agent || ps.buyer)
+          ? ': ' + [ps.agent ? 'Agent' : '', ps.buyer ? 'Buyer' : ''].filter(Boolean).join(' & ')
+          : ': Off';
+        const permitShareDropdownHTML = `<details class="relative inline-block">
+          <summary class="list-none cursor-pointer inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy text-slate-600 text-[11px] font-semibold select-none">
+            <span>Share Permits${psLabelStr}</span>
+            <span class="text-[9px]">&#9662;</span>
+          </summary>
+          <div class="absolute left-0 mt-1 z-30 w-44 rounded-xl border border-slate-200 bg-white shadow-lg p-2.5 space-y-1.5 text-xs">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Show permit link to</div>
+            <label class="flex items-center gap-2 cursor-pointer text-slate-700 font-semibold">
+              <input type="checkbox" ${ps.agent ? 'checked' : ''} onchange="protoTogglePermitShare('${insp.id}', 'agent', this.checked)" class="rounded border-slate-300" />
+              <span>Agent</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer text-slate-700 font-semibold">
+              <input type="checkbox" ${ps.buyer ? 'checked' : ''} onchange="protoTogglePermitShare('${insp.id}', 'buyer', this.checked)" class="rounded border-slate-300" />
+              <span>Buyer</span>
+            </label>
+          </div>
+        </details>`;
+        const canEditInField = (!insp.isDemo && !(insp.propertyInfo && insp.propertyInfo.migratedFromHomeGauge));
+
         return `
-          <div class="rounded-2xl border border-slate-300 bg-white shadow-sm p-4 space-y-3">
-            <!-- Top Row: Property + Client/Agent/Status + Top-Right Management -->
-            <div class="flex flex-wrap items-start justify-between gap-4">
-              <!-- Left: Cover Thumbnail + Address + Permits -->
-              <div class="flex items-start gap-3.5 min-w-[260px] flex-1">
-                ${insp.coverPhotoUrl ? `<img src="${insp.coverPhotoUrl}" alt="${escapeHtml(insp.address)}" class="w-28 h-20 rounded-xl object-cover border border-slate-300 bg-slate-100 shrink-0" />` : ''}
-                <div class="min-w-0 space-y-1">
-                  <div class="font-extrabold text-slate-900 text-base leading-snug">${escapeHtml(insp.address)}</div>
-                  <div class="text-xs font-semibold text-slate-500">${escapeHtml(insp.date || '')}</div>
-                  <div class="flex flex-wrap items-start gap-4 pt-1">
-                    <div class="flex flex-col items-start gap-1.5">
-                    <button type="button" onclick="protoOpenBuyerPermitLookup('${insp.id}')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-[11px] font-bold transition">${escapeHtml(permitInfo.label)} &nearr;</button>
-                    ${(() => {
-                      const ps = dhiGetPermitShare(pInfo);
-                      const labelStr = (ps.agent || ps.buyer)
-                        ? ': ' + [ps.agent ? 'Agent' : '', ps.buyer ? 'Buyer' : ''].filter(Boolean).join(' & ')
-                        : ': Off';
-                      return `<details class="relative inline-block">
-                      <summary class="list-none cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-200 bg-white hover:border-davis-navy text-slate-600 text-[11px] font-semibold select-none">
-                        <span>Share Permits${labelStr}</span>
-                        <span class="text-[9px]">&#9662;</span>
-                      </summary>
-                      <div class="absolute left-0 mt-1 z-30 w-44 rounded-xl border border-slate-200 bg-white shadow-lg p-2.5 space-y-1.5 text-xs">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Show permit link to</div>
-                        <label class="flex items-center gap-2 cursor-pointer text-slate-700 font-semibold">
-                          <input type="checkbox" ${ps.agent ? 'checked' : ''} onchange="protoTogglePermitShare('${insp.id}', 'agent', this.checked)" class="rounded border-slate-300" />
-                          <span>Agent</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer text-slate-700 font-semibold">
-                          <input type="checkbox" ${ps.buyer ? 'checked' : ''} onchange="protoTogglePermitShare('${insp.id}', 'buyer', this.checked)" class="rounded border-slate-300" />
-                          <span>Buyer</span>
-                        </label>
+          <div class="rounded-2xl border border-slate-300 bg-white shadow-sm p-3 sm:p-4">
+            <!-- MOBILE COMPACT CARD -->
+            <div class="md:hidden space-y-2.5">
+              <div class="flex items-start gap-3">
+                ${insp.coverPhotoUrl ? `<img src="${insp.coverPhotoUrl}" alt="${escapeHtml(insp.address)}" class="w-20 h-16 rounded-xl object-cover border border-slate-300 bg-slate-100 shrink-0" />` : ''}
+                <div class="min-w-0 flex-1">
+                  <div class="font-extrabold text-slate-900 text-sm leading-snug">${escapeHtml(insp.address)}</div>
+                  <div class="text-xs font-semibold text-slate-500 mt-0.5">${escapeHtml(insp.date || '')}</div>
+                </div>
+              </div>
+              <div class="space-y-1 text-xs">
+                ${custLinksHTML}
+                ${agLinksHTML}
+                <div class="flex flex-wrap gap-1 pt-0.5">${statusPillsHTML}</div>
+                ${extraDocPillsHTML}
+              </div>
+              <details class="group pt-2 border-t border-slate-200">
+                <summary class="list-none flex items-center justify-between gap-2 cursor-pointer select-none">
+                  <div class="flex items-center gap-1.5 flex-wrap" onclick="event.stopPropagation()">
+                    <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-davis-navy text-white text-xs font-bold transition">Open Report</button>
+                    ${(isScheduled && canEditInField) ? `<a href="inspect.html?id=${encodeURIComponent(insp.id)}" target="_blank" rel="noopener" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-davis-navy text-xs font-bold transition">Edit Report</a>` : ''}
+                  </div>
+                  <span class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-700 text-xs font-bold inline-flex items-center gap-1 shrink-0">
+                    <span>More Actions</span>
+                    <span class="text-[10px] transition-transform group-open:rotate-180">&#9662;</span>
+                  </span>
+                </summary>
+                <div class="mt-2.5 pt-2.5 border-t border-slate-100 space-y-2.5 text-xs">
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <button type="button" onclick="dhiOpenEditInspModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold">Edit</button>
+                    <button type="button" onclick="dhiOpenHistoryModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-800 font-bold">History</button>
+                    <button type="button" onclick="protoRequestDelete('inspection', '${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 font-bold">Delete</button>
+                    <button type="button" onclick="dhiOpenForwardModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 font-bold">Forward Report</button>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <button type="button" onclick="protoOpenBuyerPermitLookup('${insp.id}')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 bg-slate-50 text-davis-navy text-[11px] font-bold">${escapeHtml(permitInfo.label)} &nearr;</button>
+                    ${permitShareDropdownHTML}
+                  </div>
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    ${(!isScheduled && canEditInField) ? `<a href="inspect.html?id=${encodeURIComponent(insp.id)}" target="_blank" rel="noopener" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-davis-navy font-bold">Edit Report</a>` : ''}
+                    <button type="button" onclick="protoUploadHomeGaugeReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 border border-sky-300 text-davis-navy font-bold">Upload Report (.zip)</button>
+                    <details class="relative inline-block">
+                      <summary class="list-none cursor-pointer px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold select-none">+ Attach PDF &#9662;</summary>
+                      <div class="absolute left-0 mt-1 z-30 w-40 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5 space-y-1 text-xs">
+                        <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'radon')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-amber-50 font-bold text-slate-800">Radon</button>
+                        <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'sewer')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-teal-50 font-bold text-slate-800">Sewer</button>
+                        <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'termite')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-indigo-50 font-bold text-slate-800">Termite</button>
+                        <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'other')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 font-bold text-slate-700">Other...</button>
                       </div>
-                    </details>`;
-                    })()}
-                    </div>
-                    <div class="pl-4 border-l border-slate-200 pt-0.5">
-                      <button type="button" onclick="dhiOpenForwardModal('${insp.id}')" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 hover:text-davis-navy text-slate-800 text-[11px] font-bold transition">Forward Report</button>
-                    </div>
+                    </details>
+                    ${(insp.agreementRequired !== false && insp.agreementSigned) ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-800 font-bold">Signed PDF</button>` : ''}
+                    ${!insp.paid
+                      ? `<button type="button" onclick="protoMarkInspectionPaidManual('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 font-bold">Mark Paid</button>`
+                      : `<button type="button" onclick="dhiDownloadReceiptPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-bold">Receipt PDF</button>`}
+                    ${isScheduled ? `<button type="button" onclick="protoCopySewerText('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border ${sewerBtnCls} font-bold">Copy Sewer Text</button>` : ''}
+                    ${insp.gcalUrl ? `<a href="${insp.gcalUrl}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 text-sky-800 font-bold">Google Calendar &nearr;</a>` : ''}
+                  </div>
+                  <div class="flex items-center gap-1.5 pt-1">
+                    <select id="dhiEmailTypeMob-${insp.id}" onchange="const d=document.getElementById('dhiEmailType-${insp.id}'); if(d) d.value=this.value;" class="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700">
+                      <option value="report_ready">Main Report Ready (Unlock Pay)</option>
+                      <option value="radon_ready">Radon Report Ready</option>
+                      <option value="termite_ready">Termite / WDI Report Ready</option>
+                      <option value="sewer_ready">Sewer Scope Report Ready</option>
+                      <option value="agreement_ready">Resend Confirmed Email</option>
+                    </select>
+                    <button type="button" onclick="const m=document.getElementById('dhiEmailTypeMob-${insp.id}'); const d=document.getElementById('dhiEmailType-${insp.id}'); if(m&&d) d.value=m.value; protoSendAdminEmail('${insp.id}');" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white text-xs font-bold shrink-0">Send Email</button>
                   </div>
                 </div>
-              </div>
-
-              <!-- Middle: Client / Agent + Status Pills -->
-              <div class="space-y-1.5 text-xs min-w-[210px]">
-                ${(() => {
-                  const custs = dhiGetInspCustomers(insp);
-                  if (!custs.length) return '';
-                  return '<div class="text-slate-600">Customer: ' + custs.map(c => `<button type="button" onclick="dhiOpenPersonFromCard('customer', '${(c.email || '').replace(/'/g, "\\'")}', '${(c.name || '').replace(/'/g, "\\'")}')" class="font-bold text-davis-navy hover:underline text-left">${escapeHtml(c.name || c.email)}</button>`).join('<span class="text-slate-400">, </span>') + '</div>';
-                })()}
-                ${(() => {
-                  const ags = dhiGetInspAgents(insp);
-                  if (!ags.length) return '';
-                  return '<div class="text-slate-600">Agent: ' + ags.map(a => `<button type="button" onclick="dhiOpenPersonFromCard('agent', '${(a.email || '').replace(/'/g, "\\'")}', '${(a.name || '').replace(/'/g, "\\'")}')" class="font-bold text-davis-navy hover:underline text-left">${escapeHtml(a.name || a.email)}</button>`).join('<span class="text-slate-400">, </span>') + '</div>';
-                })()}
-                <div class="flex flex-wrap gap-1 pt-0.5">
-                  ${insp.agreementRequired === false
-                    ? `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">Standalone</span>`
-                    : `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.agreementSigned ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${insp.agreementSigned ? 'Agreement Signed' : 'Needs Signature'}</span>`}
-                  <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.paid ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}">${insp.paid ? 'Paid ($' + total.toFixed(2) + ')' : 'Balance $' + total.toFixed(2)}</span>
-                  <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${insp.reportNotified ? 'bg-sky-100 text-sky-800' : 'bg-purple-100 text-purple-800'}">${insp.reportNotified ? 'Released' : 'Not Released'}</span>
-                </div>
-                ${(insp.extraDocs && insp.extraDocs.length) ? `<div class="flex flex-wrap gap-1 pt-0.5">${dhiRenderAdminDocPills(insp)}</div>` : ''}
-              </div>
-
-              <!-- Top-Right Corner: Edit / History / Delete -->
-              <div class="flex items-center gap-1.5 shrink-0">
-                <button type="button" onclick="dhiOpenEditInspModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Edit</button>
-                <button type="button" onclick="dhiOpenHistoryModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:border-indigo-500 text-indigo-800 text-xs font-bold transition">History</button>
-                <button type="button" onclick="protoRequestDelete('inspection', '${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Delete</button>
-              </div>
+              </details>
             </div>
 
-            <!-- Bottom Full-Width Action Bar: All Workflow Buttons Left, Email Controls Right -->
-            <div class="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-slate-200">
-              <div class="flex flex-wrap items-center gap-1.5">
-                <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-davis-navy text-white text-xs font-bold transition">Open Report</button>
-                ${(!insp.isDemo && !(insp.propertyInfo && insp.propertyInfo.migratedFromHomeGauge)) ? `<a href="inspect.html?id=${encodeURIComponent(insp.id)}" target="_blank" rel="noopener" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-xs font-bold transition">Edit Report</a>` : ''}
-                <button type="button" onclick="protoUploadHomeGaugeReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 border border-sky-300 hover:border-davis-navy text-davis-navy text-xs font-bold transition">Upload Report (.zip)</button>
-                <details class="relative inline-block">
-                  <summary class="list-none cursor-pointer px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition select-none">+ Attach PDF &#9662;</summary>
-                  <div class="absolute left-0 mt-1 z-30 w-40 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5 space-y-1 text-xs">
-                    <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'radon')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-amber-50 font-bold text-slate-800">Radon</button>
-                    <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'sewer')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-teal-50 font-bold text-slate-800">Sewer</button>
-                    <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'termite')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-indigo-50 font-bold text-slate-800">Termite</button>
-                    <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'other')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 font-bold text-slate-700">Other...</button>
+            <!-- DESKTOP FULL CARD (unchanged) -->
+            <div class="hidden md:block space-y-3">
+              <div class="flex flex-wrap items-start justify-between gap-4">
+                <div class="flex items-start gap-3.5 min-w-[260px] flex-1">
+                  ${insp.coverPhotoUrl ? `<img src="${insp.coverPhotoUrl}" alt="${escapeHtml(insp.address)}" class="w-28 h-20 rounded-xl object-cover border border-slate-300 bg-slate-100 shrink-0" />` : ''}
+                  <div class="min-w-0 space-y-1">
+                    <div class="font-extrabold text-slate-900 text-base leading-snug">${escapeHtml(insp.address)}</div>
+                    <div class="text-xs font-semibold text-slate-500">${escapeHtml(insp.date || '')}</div>
+                    <div class="flex flex-wrap items-start gap-4 pt-1">
+                      <div class="flex flex-col items-start gap-1.5">
+                        <button type="button" onclick="protoOpenBuyerPermitLookup('${insp.id}')" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 text-davis-navy text-[11px] font-bold transition">${escapeHtml(permitInfo.label)} &nearr;</button>
+                        ${permitShareDropdownHTML}
+                      </div>
+                      <div class="pl-4 border-l border-slate-200 pt-0.5">
+                        <button type="button" onclick="dhiOpenForwardModal('${insp.id}')" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-slate-50 hover:border-davis-navy hover:bg-sky-50 hover:text-davis-navy text-slate-800 text-[11px] font-bold transition">Forward Report</button>
+                      </div>
+                    </div>
                   </div>
-                </details>
-                ${(insp.agreementRequired !== false && insp.agreementSigned) ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 hover:border-indigo-500 text-indigo-800 text-xs font-bold transition">Signed PDF</button>` : ''}
-                ${!insp.paid
-                  ? `<button type="button" onclick="protoMarkInspectionPaidManual('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 hover:border-emerald-600 text-emerald-800 text-xs font-bold transition">Mark Paid</button>`
-                  : `<button type="button" onclick="dhiDownloadReceiptPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Receipt PDF</button>`}
-                ${isScheduled ? `<button type="button" onclick="protoCopySewerText('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border ${sewerBtnCls} text-xs font-bold transition">Copy Sewer Text</button>` : ''}
-                ${insp.gcalUrl ? `<a href="${insp.gcalUrl}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 hover:border-sky-500 text-sky-800 text-xs font-bold transition">Google Calendar &nearr;</a>` : ''}
+                </div>
+
+                <div class="space-y-1.5 text-xs min-w-[210px]">
+                  ${custLinksHTML}
+                  ${agLinksHTML}
+                  <div class="flex flex-wrap gap-1 pt-0.5">${statusPillsHTML}</div>
+                  ${extraDocPillsHTML}
+                </div>
+
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button type="button" onclick="dhiOpenEditInspModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Edit</button>
+                  <button type="button" onclick="dhiOpenHistoryModal('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:border-indigo-500 text-indigo-800 text-xs font-bold transition">History</button>
+                  <button type="button" onclick="protoRequestDelete('inspection', '${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Delete</button>
+                </div>
               </div>
-              <div class="flex flex-wrap items-center gap-1.5">
-                <select id="dhiEmailType-${insp.id}" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700">
-                  <option value="report_ready">Main Report Ready (Unlock Pay)</option>
-                  <option value="radon_ready">Radon Report Ready</option>
-                  <option value="termite_ready">Termite / WDI Report Ready</option>
-                  <option value="sewer_ready">Sewer Scope Report Ready</option>
-                  <option value="agreement_ready">Resend Confirmed Email</option>
-                </select>
-                <button type="button" onclick="protoSendAdminEmail('${insp.id}')" class="px-3 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Send Email</button>
+
+              <div class="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-slate-200">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-davis-navy text-white text-xs font-bold transition">Open Report</button>
+                  ${canEditInField ? `<a href="inspect.html?id=${encodeURIComponent(insp.id)}" target="_blank" rel="noopener" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-davis-navy text-xs font-bold transition">Edit Report</a>` : ''}
+                  <button type="button" onclick="protoUploadHomeGaugeReport('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-sky-50 border border-sky-300 hover:border-davis-navy text-davis-navy text-xs font-bold transition">Upload Report (.zip)</button>
+                  <details class="relative inline-block">
+                    <summary class="list-none cursor-pointer px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition select-none">+ Attach PDF &#9662;</summary>
+                    <div class="absolute left-0 mt-1 z-30 w-40 rounded-xl border border-slate-200 bg-white shadow-lg p-1.5 space-y-1 text-xs">
+                      <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'radon')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-amber-50 font-bold text-slate-800">Radon</button>
+                      <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'sewer')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-teal-50 font-bold text-slate-800">Sewer</button>
+                      <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'termite')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-indigo-50 font-bold text-slate-800">Termite</button>
+                      <button type="button" onclick="this.closest('details').open=false; protoAttachExtraPdf('${insp.id}', 'other')" class="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-slate-100 font-bold text-slate-700">Other...</button>
+                    </div>
+                  </details>
+                  ${(insp.agreementRequired !== false && insp.agreementSigned) ? `<button type="button" onclick="downloadSignedAgreementPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 hover:border-indigo-500 text-indigo-800 text-xs font-bold transition">Signed PDF</button>` : ''}
+                  ${!insp.paid
+                    ? `<button type="button" onclick="protoMarkInspectionPaidManual('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 hover:border-emerald-600 text-emerald-800 text-xs font-bold transition">Mark Paid</button>`
+                    : `<button type="button" onclick="dhiDownloadReceiptPDF('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white hover:border-davis-navy text-slate-700 text-xs font-bold transition">Receipt PDF</button>`}
+                  ${isScheduled ? `<button type="button" onclick="protoCopySewerText('${insp.id}')" class="px-2.5 py-1.5 rounded-lg border ${sewerBtnCls} text-xs font-bold transition">Copy Sewer Text</button>` : ''}
+                  ${insp.gcalUrl ? `<a href="${insp.gcalUrl}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1.5 rounded-lg border border-sky-200 bg-sky-50 hover:border-sky-500 text-sky-800 text-xs font-bold transition">Google Calendar &nearr;</a>` : ''}
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <select id="dhiEmailType-${insp.id}" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700">
+                    <option value="report_ready">Main Report Ready (Unlock Pay)</option>
+                    <option value="radon_ready">Radon Report Ready</option>
+                    <option value="termite_ready">Termite / WDI Report Ready</option>
+                    <option value="sewer_ready">Sewer Scope Report Ready</option>
+                    <option value="agreement_ready">Resend Confirmed Email</option>
+                  </select>
+                  <button type="button" onclick="protoSendAdminEmail('${insp.id}')" class="px-3 py-1.5 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Send Email</button>
+                </div>
               </div>
             </div>
           </div>
@@ -5914,15 +5985,15 @@ function submitInspectionQuoteRequest(payload) {
 
       if (protoState.adminTab === 'scheduled') {
         bodyHTML = `
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-5 space-y-3 sm:space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 class="text-lg font-extrabold text-slate-900">Scheduled Inspections</h2>
+                <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Scheduled Inspections</h2>
                 <p class="text-xs text-slate-500">Upcoming and in-progress inspections whose reports have not been released yet.</p>
               </div>
-              <div class="flex flex-wrap items-center gap-2">
-                <input id="dhiScheduledSearch" type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-56" />
-                <button type="button" onclick="protoState.newInspDraft=null; protoState.adminTab='new'; renderProtoPortal();" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">+ New Inspection</button>
+              <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <input id="dhiScheduledSearch" type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-full sm:w-56" />
+                <button type="button" onclick="protoState.newInspDraft=null; protoState.adminTab='new'; renderProtoPortal();" class="hidden md:inline-block px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">+ New Inspection</button>
               </div>
             </div>
             ${filteredScheduled.length ? `
@@ -5943,16 +6014,16 @@ function submitInspectionQuoteRequest(payload) {
         const pagedReleased = filteredReleased.slice((repPage - 1) * repPageSize, repPage * repPageSize);
         dhiQueueCoverSignForVisible(pagedReleased);
         bodyHTML = `
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-5 space-y-3 sm:space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h2 class="text-lg font-extrabold text-slate-900">Inspection Reports (${filteredReleased.length})</h2>
+                <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Inspection Reports (${filteredReleased.length})</h2>
                 <p class="text-xs text-slate-500">Completed inspections that have been released to clients and agents.</p>
               </div>
-              <div class="flex flex-wrap items-center gap-2">
-                <input id="dhiReportsSearch" type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; protoState.reportsPage=1; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-52 sm:w-56" />
-                <button type="button" onclick="dhiOpenBulkHgModal()" class="px-3.5 py-2 rounded-xl border border-sky-300 bg-sky-50 hover:border-davis-navy hover:bg-sky-100 text-davis-navy text-xs font-extrabold transition whitespace-nowrap">Bulk Import Archive Folder</button>
-                <button type="button" onclick="dhiOpenBulkPdfModal()" class="px-3.5 py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:border-emerald-600 hover:bg-emerald-100 text-emerald-800 text-xs font-extrabold transition whitespace-nowrap">Bulk Attach PDFs</button>
+              <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <input id="dhiReportsSearch" type="search" value="${escapeHtml(protoState.adminInspSearch || '')}" oninput="protoState.adminInspSearch=this.value; protoState.reportsPage=1; renderProtoPortal();" placeholder="Search address, client, or agent..." class="px-3 py-2 rounded-xl border border-slate-300 text-xs w-full sm:w-56" />
+                <button type="button" onclick="dhiOpenBulkHgModal()" class="hidden md:inline-block px-3.5 py-2 rounded-xl border border-sky-300 bg-sky-50 hover:border-davis-navy hover:bg-sky-100 text-davis-navy text-xs font-extrabold transition whitespace-nowrap">Bulk Import Archive Folder</button>
+                <button type="button" onclick="dhiOpenBulkPdfModal()" class="hidden md:inline-block px-3.5 py-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:border-emerald-600 hover:bg-emerald-100 text-emerald-800 text-xs font-extrabold transition whitespace-nowrap">Bulk Attach PDFs</button>
               </div>
             </div>
             ${pagedReleased.length ? `
@@ -5988,40 +6059,45 @@ function submitInspectionQuoteRequest(payload) {
           const phoneScheme = prefLower === 'text' ? 'sms:' : 'tel:';
           const phoneHint = prefLower === 'text' ? 'Text' : (prefLower === 'call' ? 'Call' : '');
           return `
-          <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
+          <div class="bg-slate-50 rounded-xl border border-slate-200 p-3 sm:p-4 space-y-2.5 sm:space-y-3">
             <div class="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <div class="flex flex-wrap items-center gap-2">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${r.status === 'New' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">${r.status}</span>
                   <span class="text-xs font-bold text-slate-500">${r.clientRole || 'Client'} &bull; Prefers ${r.preferredResponse || 'Email'}</span>
-                  ${receivedLabel ? `<span class="text-[11px] font-semibold text-slate-400">&bull; Received ${escapeHtml(receivedLabel)}</span>` : ''}
+                  ${receivedLabel ? `<span class="text-[11px] font-semibold text-slate-400"><span class="hidden sm:inline">&bull; </span>Received ${escapeHtml(receivedLabel)}</span>` : ''}
                 </div>
-                <h3 class="text-base font-extrabold text-slate-900 mt-1">${escapeHtml(r.address || '')}</h3>
+                <h3 class="text-sm sm:text-base font-extrabold text-slate-900 mt-1">${escapeHtml(r.address || '')}</h3>
                 <p class="text-xs text-slate-600 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5">
                   <span class="font-semibold text-slate-800">${escapeHtml(r.clientName || '')}</span>
-                  ${r.clientEmail ? `<span>&bull;</span><a href="${gmailUrl}" target="_blank" rel="noopener noreferrer" title="Compose in Gmail" class="text-davis-navy font-semibold hover:underline">${escapeHtml(r.clientEmail)}</a>` : ''}
+                  ${r.clientEmail ? `<span>&bull;</span><a href="${gmailUrl}" target="_blank" rel="noopener noreferrer" title="Compose in Gmail" class="text-davis-navy font-semibold hover:underline break-all">${escapeHtml(r.clientEmail)}</a>` : ''}
                   ${r.clientPhone ? `<span>&bull;</span>${phoneDigits ? `<a href="${phoneScheme}${phoneDigits}" title="${phoneScheme === 'sms:' ? 'Send text message' : 'Call phone number'}" class="text-davis-navy font-semibold hover:underline">${escapeHtml(r.clientPhone)}${phoneHint ? ` (${phoneHint})` : ''}</a>` : `<span>${escapeHtml(r.clientPhone)}</span>`}` : ''}
                 </p>
-              </div><div class="flex flex-wrap items-center gap-2">
+              </div>
+              <div class="hidden md:flex flex-wrap items-center gap-2 shrink-0">
                 <button type="button" onclick="protoDeleteRequest('${r.id}')" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Delete</button>
                 <button type="button" onclick="protoConvertRequestToInspection('${r.id}')" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Convert to Inspection &rarr;</button>
               </div>
             </div>
-            <div class="flex flex-wrap gap-2 text-[11px] text-slate-600">
+            <div class="flex flex-wrap gap-1.5 sm:gap-2 text-[11px] text-slate-600">
               <span class="px-2 py-1 rounded bg-white border border-slate-200"><strong>Sq Ft:</strong> ${r.sqft || '—'}</span>
               <span class="px-2 py-1 rounded bg-white border border-slate-200"><strong>Year Built:</strong> ${r.yearBuilt || '—'}</span>
               <span class="px-2 py-1 rounded bg-white border border-slate-200"><strong>Preferred Date:</strong> ${r.preferredDate || 'Flexible'}</span>
               ${(r.addons && r.addons.length) ? `<span class="px-2 py-1 rounded bg-white border border-slate-200"><strong>Add-Ons:</strong> ${r.addons.join(', ')}</span>` : ''}
             </div>
             ${r.notes && r.notes !== 'None' ? `<p class="text-xs text-slate-700 bg-white rounded-lg p-2.5 border border-slate-200"><strong>Notes:</strong> ${r.notes}</p>` : ''}
+            <div class="md:hidden flex items-center gap-2 pt-2 border-t border-slate-200">
+              <button type="button" onclick="protoDeleteRequest('${r.id}')" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-700 text-xs font-bold shrink-0">Delete</button>
+              <button type="button" onclick="protoConvertRequestToInspection('${r.id}')" class="flex-1 px-3.5 py-2 rounded-xl bg-davis-navy text-white text-xs font-bold text-center">Convert to Inspection &rarr;</button>
+            </div>
           </div>
         `;
         }).join('');
 
         bodyHTML = `
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-5 space-y-3 sm:space-y-4">
             <div>
-              <h2 class="text-lg font-extrabold text-slate-900">Incoming Inspection Requests</h2>
+              <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Incoming Inspection Requests</h2>
               <p class="text-xs text-slate-500">Submissions from your Request Inspection form land here so you can convert them into scheduled inspections.</p>
             </div>
             <div class="space-y-3">
@@ -6264,15 +6340,35 @@ function submitInspectionQuoteRequest(payload) {
         `;
         }).join('');
 
+        const agentMobileCards = pagedAgents.map(a => {
+          const sp = dhiSplitFullName(a.name, a.firstName, a.lastName);
+          const fullName = [sp.firstName, sp.lastName].filter(Boolean).join(' ') || a.email || 'Agent';
+          const escEm = (a.email || '').replace(/'/g, "\\'");
+          return `
+          <div onclick="protoOpenPersonModal('agent', '${escEm}')" class="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-1.5 cursor-pointer active:bg-sky-50">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="font-extrabold text-davis-navy text-sm truncate">${escapeHtml(fullName)}</div>
+                ${a.brokerage ? `<div class="text-[11px] font-semibold text-slate-500 truncate">${escapeHtml(a.brokerage)}</div>` : ''}
+              </div>
+              <div class="flex items-center gap-1 shrink-0" onclick="event.stopPropagation()">
+                <button type="button" onclick="protoOpenPersonModal('agent', '${escEm}')" class="px-2 py-1 rounded-lg border border-slate-300 bg-white text-slate-700 text-[11px] font-bold">Edit</button>
+                <button type="button" onclick="protoRequestDelete('agent', '${a.id || ''}', '${escEm}')" class="px-2 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-[11px] font-bold">Delete</button>
+              </div>
+            </div>
+            <div class="text-xs text-slate-600 break-all">${escapeHtml(a.email || '')}${a.phone ? ` &bull; ${escapeHtml(a.phone)}` : ''}</div>
+          </div>`;
+        }).join('');
+
         bodyHTML = `
           <div class="space-y-4">
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-5 space-y-3 sm:space-y-4">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h2 class="text-lg font-extrabold text-slate-900">Add New Agent</h2>
+                  <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Add New Agent</h2>
                   <p class="text-xs text-slate-500">Save realtors here so typing their email on a new inspection automatically pulls their name for Google Calendar and portal access.</p>
                 </div>
-                <button type="button" onclick="protoImportHomeGaugeCSV('agents')" class="px-3.5 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Import HomeGauge Agents CSV</button>
+                <button type="button" onclick="protoImportHomeGaugeCSV('agents')" class="hidden md:inline-block px-3.5 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Import HomeGauge Agents CSV</button>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
                 <div>
@@ -6301,12 +6397,13 @@ function submitInspectionQuoteRequest(payload) {
               </div>
             </div>
 
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-5 space-y-3">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <h3 class="text-base font-extrabold text-slate-900">Agent Directory (${filteredAgents.length})</h3>
-                <input id="dhiAgentsSearch" type="search" value="${escapeHtml(protoState.agentSearch || '')}" oninput="protoState.agentSearch=this.value; protoState.agentPage=1; renderProtoPortal();" placeholder="Search agents..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-56" />
+                <input id="dhiAgentsSearch" type="search" value="${escapeHtml(protoState.agentSearch || '')}" oninput="protoState.agentSearch=this.value; protoState.agentPage=1; renderProtoPortal();" placeholder="Search agents..." class="px-3 py-2 sm:py-1.5 rounded-xl sm:rounded-lg border border-slate-300 text-xs w-full sm:w-56" />
               </div>
-              <div class="overflow-x-auto">
+              <div class="md:hidden space-y-2">${agentMobileCards || '<div class="py-6 text-center text-xs text-slate-400">No agents found.</div>'}</div>
+              <div class="hidden md:block overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                   <thead>
                     <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
@@ -6350,19 +6447,41 @@ function submitInspectionQuoteRequest(payload) {
         `;
         }).join('');
 
-        bodyHTML = `
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h2 class="text-lg font-extrabold text-slate-900">Customer Directory (${filteredCusts.length})</h2>
-                <p class="text-xs text-slate-500">Automatically populates when buyers submit requests or when you create inspections. You can also import a customer CSV.</p>
+        const custMobileCards = pagedCusts.map(c => {
+          const sp = dhiSplitFullName(c.name, c.firstName, c.lastName);
+          const fullName = [sp.firstName, sp.lastName].filter(Boolean).join(' ') || c.email || 'Customer';
+          const escEm = (c.email || '').replace(/'/g, "\\'");
+          const shortAddr = c.lastAddress ? c.lastAddress.split(',')[0].trim() : '';
+          return `
+          <div onclick="protoOpenPersonModal('customer', '${escEm}')" class="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-1.5 cursor-pointer active:bg-sky-50">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="font-extrabold text-davis-navy text-sm truncate">${escapeHtml(fullName)}</div>
+                ${shortAddr ? `<div class="text-[11px] font-semibold text-slate-500 truncate">${escapeHtml(shortAddr)}</div>` : ''}
               </div>
-              <div class="flex flex-wrap items-center gap-2">
-                <input id="dhiCustomersSearch" type="search" value="${escapeHtml(protoState.customerSearch || '')}" oninput="protoState.customerSearch=this.value; protoState.customerPage=1; renderProtoPortal();" placeholder="Search customers..." class="px-3 py-1.5 rounded-lg border border-slate-300 text-xs w-52" />
-                <button type="button" onclick="protoImportHomeGaugeCSV('customers')" class="px-3.5 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Import CSV</button>
+              <div class="flex items-center gap-1 shrink-0" onclick="event.stopPropagation()">
+                <button type="button" onclick="protoOpenPersonModal('customer', '${escEm}')" class="px-2 py-1 rounded-lg border border-slate-300 bg-white text-slate-700 text-[11px] font-bold">Edit</button>
+                <button type="button" onclick="protoRequestDelete('customer', '${c.id || ''}', '${escEm}')" class="px-2 py-1 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-[11px] font-bold">Delete</button>
               </div>
             </div>
-            <div class="overflow-x-auto">
+            <div class="text-xs text-slate-600 break-all">${escapeHtml(c.email || '')}${c.phone ? ` &bull; ${escapeHtml(c.phone)}` : ''}</div>
+          </div>`;
+        }).join('');
+
+        bodyHTML = `
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-3 sm:p-5 space-y-3 sm:space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 class="text-base sm:text-lg font-extrabold text-slate-900">Customer Directory (${filteredCusts.length})</h2>
+                <p class="text-xs text-slate-500">Automatically populates when buyers submit requests or when you create inspections. You can also import a customer CSV.</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                <input id="dhiCustomersSearch" type="search" value="${escapeHtml(protoState.customerSearch || '')}" oninput="protoState.customerSearch=this.value; protoState.customerPage=1; renderProtoPortal();" placeholder="Search customers..." class="px-3 py-2 sm:py-1.5 rounded-xl sm:rounded-lg border border-slate-300 text-xs w-full sm:w-52" />
+                <button type="button" onclick="protoImportHomeGaugeCSV('customers')" class="hidden md:inline-block px-3.5 py-2 rounded-xl border border-slate-300 hover:border-davis-navy text-slate-700 text-xs font-bold transition">Import CSV</button>
+              </div>
+            </div>
+            <div class="md:hidden space-y-2">${custMobileCards || '<div class="py-6 text-center text-xs text-slate-400">No customers found.</div>'}</div>
+            <div class="hidden md:block overflow-x-auto">
               <table class="w-full text-left border-collapse">
                 <thead>
                   <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
