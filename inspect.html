@@ -212,9 +212,9 @@
     <div class="bg-white rounded-2xl max-w-xl w-full p-5 space-y-4 shadow-2xl border border-slate-200 max-h-[82vh] flex flex-col">
       <div class="flex items-start justify-between gap-2">
         <div>
-          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Crash Recovery (Every 5 Minutes)</span>
+          <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Crash Recovery (Every 2 Minutes)</span>
           <h3 class="text-base font-extrabold text-slate-900">Local device backups</h3>
-          <p class="text-xs text-slate-500">Up to 20 rolling snapshots per inspection are saved every 5 minutes while editing and auto-cleared after 5 days.</p>
+          <p class="text-xs text-slate-500">Up to 30 rolling snapshots per inspection are saved every 2 minutes while editing and auto-cleared after 5 days.</p>
         </div>
         <button type="button" onclick="closeBackupsModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
       </div>
@@ -514,11 +514,11 @@
       };
       await idbPut('backups', snap);
       await pruneExpiredBackups();
-      // Keep latest 20 snapshots per inspection
+      // Keep latest 30 snapshots per inspection
       const all = (await idbGetAll('backups'))
         .filter(b => b.inspectionId === state.draft.inspectionId)
         .sort((a, b) => b.savedAt.localeCompare(a.savedAt));
-      for (const old of all.slice(20)) {
+      for (const old of all.slice(30)) {
         await idbDelete('backups', old.backupId);
       }
       const badge = document.getElementById('hdrBackupBadge');
@@ -526,12 +526,12 @@
       if (!isAuto) toast('Backup snapshot saved on device.');
     }
 
-    // Automatic 5-minute backup timer
+    // Automatic 2-minute backup timer
     setInterval(() => {
       if (state.draft) {
         createBackupSnapshot(true).catch(() => {});
       }
-    }, 300000);
+    }, 120000);
 
     // Save on page hide / app backgrounding
     document.addEventListener('visibilitychange', () => {
@@ -4911,7 +4911,7 @@
           </div>
           <button type="button" onclick="restoreBackupSnapshot('${b.backupId}')" class="px-3 py-1.5 rounded-lg bg-davis-navy text-white font-bold">Restore</button>
         </div>
-      `).join('') || '<div class="text-xs text-slate-400 text-center py-6">No local backup snapshots yet. They save automatically every 5 minutes.</div>';
+      `).join('') || '<div class="text-xs text-slate-400 text-center py-6">No local backup snapshots yet. They save automatically every 2 minutes.</div>';
     }
 
     async function clearOldBackupSnapshots() {
@@ -5046,7 +5046,7 @@
             <div class="bg-white rounded-2xl border border-slate-200 p-5 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h1 class="text-lg font-extrabold text-slate-900">Select an inspection</h1>
-                <p class="text-xs text-slate-500">Work offline (auto-backed up every 5 minutes), then upload when done and polish photos/narratives at home.</p>
+                <p class="text-xs text-slate-500">Work offline (auto-backed up every 2 minutes), then upload when done and polish photos/narratives at home.</p>
               </div>
               <div class="flex flex-wrap items-center gap-2">
 

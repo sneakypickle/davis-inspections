@@ -182,9 +182,7 @@
         <button type="button" id="previewEmailChecklistBtn" onclick="navigatePage('addons', false)" class="px-2.5 py-1 rounded font-medium text-sky-200 bg-white/10 hover:bg-white/20 border border-sky-400/30 transition">
           Email-Only Customer Add-On Checklist (`?view=addons`)
         </button>
-        <button type="button" id="previewSetupBtn" onclick="navigatePage('setup', false)" class="px-2.5 py-1 rounded font-medium text-slate-200 hover:bg-white/10 transition">
-          Google Hosting &amp; Email Setup
-        </button>
+
       </div>
     </div>
   </div>
@@ -232,22 +230,22 @@
 
       <!-- Mobile Collapsible Navigation Drawer -->
       <div id="dhiMobileNavDrawer" class="hidden md:hidden pt-2.5 mt-2 border-t border-slate-100 space-y-1 text-xs">
-        <button type="button" onclick="dhiCloseMobileNav(); navigatePage('home', false);" class="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Home</button>
-        <button type="button" onclick="dhiCloseMobileNav(); navigatePage('request', false);" class="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Request Inspection</button>
+        <button type="button" id="mob-nav-home" onclick="dhiCloseMobileNav(); navigatePage('home', false);" class="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold transition">Home</button>
+        <button type="button" id="mob-nav-request" onclick="dhiCloseMobileNav(); navigatePage('request', false);" class="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold transition">Request Inspection</button>
         <div>
           <button type="button" id="dhiMobileSpecialtyBtn" onclick="dhiToggleMobileSpecialty()" aria-expanded="false" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold transition">
             <span>Specialty Services</span>
             <svg id="dhiMobileSpecialtyChevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-150" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
           </button>
           <div id="dhiMobileSpecialtyList" class="hidden pl-3 ml-3 mt-1 space-y-1 border-l-2 border-slate-200 py-0.5">
-            <button type="button" onclick="dhiCloseMobileNav(); selectSpecialtyItem('sewer-info');" class="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Sewer Scope Inspections</button>
-            <button type="button" onclick="dhiCloseMobileNav(); selectSpecialtyItem('radon-info');" class="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">48-Hour Radon Testing</button>
-            <button type="button" onclick="dhiCloseMobileNav(); selectSpecialtyItem('termite-info');" class="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Termite / WDI Inspections</button>
+            <button type="button" id="mob-subnav-sewer" onclick="dhiCloseMobileNav(); selectSpecialtyItem('sewer-info');" class="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold transition">Sewer Scope Inspections</button>
+            <button type="button" id="mob-subnav-radon" onclick="dhiCloseMobileNav(); selectSpecialtyItem('radon-info');" class="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold transition">48-Hour Radon Testing</button>
+            <button type="button" id="mob-subnav-termite" onclick="dhiCloseMobileNav(); selectSpecialtyItem('termite-info');" class="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold transition">Termite / WDI Inspections</button>
           </div>
         </div>
-        <button type="button" onclick="dhiCloseMobileNav(); navigatePage('samples', false);" class="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Sample Reports</button>
-        <button type="button" onclick="dhiCloseMobileNav(); navigatePage('contractors', false);" class="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Recommended Contractors</button>
-        <button type="button" id="dhiHeaderFeedbackBtnMobile" onclick="dhiCloseMobileNav(); dhiOpenFeedbackModal(protoState.role === 'agent' ? 'Agent' : 'Buyer');" class="hidden w-full text-left px-3 py-2 rounded-lg text-davis-blue hover:bg-sky-50 font-bold">Report Issue / Feedback</button>
+        <button type="button" id="mob-nav-samples" onclick="dhiCloseMobileNav(); navigatePage('samples', false);" class="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold transition">Sample Reports</button>
+        <button type="button" id="mob-nav-contractors" onclick="dhiCloseMobileNav(); navigatePage('contractors', false);" class="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold transition">Recommended Contractors</button>
+        <button type="button" id="dhiHeaderFeedbackBtnMobile" onclick="dhiCloseMobileNav(); dhiOpenFeedbackModal(protoState.role === 'agent' ? 'Agent' : 'Customer');" class="hidden w-full text-left px-3 py-2 rounded-lg text-davis-blue hover:bg-sky-50 font-bold">Report Issue / Feedback</button>
       </div>
 
       <!-- Desktop Row 2: Public Navigation Links pinned left, Login + Phone pinned right -->
@@ -1674,106 +1672,6 @@
       </section>
     </div>
 
-    <!-- ================================================================= -->
-    <!-- PAGE 10: GOOGLE HOSTING & SHORT EMAIL SETUP (ADMIN VIEW)          -->
-    <!-- ================================================================= -->
-    <div id="page-setup" class="hidden max-w-4xl mx-auto space-y-6">
-      <section class="bg-davis-navy text-white rounded-2xl p-6 shadow-md space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-400/20 text-sky-200 border border-sky-300/30">
-            Admin Hosting &amp; Email Link Setup
-          </span>
-          <button type="button" id="backToPublicSiteBtn" onclick="navigatePage('home', false)" class="text-xs font-semibold bg-white text-davis-navy px-3 py-1.5 rounded-lg hover:bg-sky-50 transition">
-            ← Back to Public Website
-          </button>
-        </div>
-        <h2 class="text-xl font-extrabold">Matt's Google Hosting &amp; Email Link Setup</h2>
-        <p class="text-xs sm:text-sm text-sky-100 leading-relaxed">
-          Your public website URL is <code class="bg-white/15 px-1.5 py-0.5 rounded">www.davis-inspections.com</code>, while the hidden buyer checklist is only accessible from your email link: <code class="bg-white/15 px-1.5 py-0.5 rounded">www.davis-inspections.com/?view=addons</code>.
-        </p>
-      </section>
-
-      <!-- Google Apps Script Code.gs -->
-      <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h3 class="text-base font-bold text-slate-900">2. Google Apps Script (`Code.gs`) — Handles Both Forms via `Matt@Davis-Inspections.com`</h3>
-            <p class="text-xs text-slate-500 mt-0.5">
-              Automatically emails <strong>Matt@Davis-Inspections.com</strong> for both Public Inspection Quote Requests and Signed Customer Add-On Checklists, and supports `?view=addons` routing.
-            </p>
-          </div>
-          <button
-            type="button"
-            id="copyGasCodeBtn"
-            onclick="copyTextFromElement('gasCodeBlock', 'Google Apps Script Code.gs copied!')"
-            class="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition"
-          >
-            Copy `Code.gs`
-          </button>
-        </div>
-
-        <pre id="gasCodeBlock" class="p-4 rounded-xl bg-slate-900 text-emerald-300 font-mono text-xs overflow-x-auto leading-relaxed">function doGet(e) {
-  var tpl = HtmlService.createTemplateFromFile('index');
-  tpl.initialView = (e && e.parameter && e.parameter.view) ? e.parameter.view : 'home';
-  return tpl.evaluate()
-    .setTitle('Davis Home Inspections, LLC | Colorado Springs Home Inspections')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-}
-
-function submitBuyerAddonRequest(payload) {
-  var recipient = 'Matt@Davis-Inspections.com';
-  var subject = 'Signed Add-On Request: ' + payload.confirmed_property_address + ' (' + payload.buyer_name + ')';
-  var body = [
-    'New Signed Buyer Inspection Add-On Request',
-    '==========================================',
-    'Reference ID: ' + payload.reference_id,
-    'Buyer Name: ' + payload.buyer_name,
-    'Confirmed Property Address: ' + payload.confirmed_property_address,
-    '',
-    'Selected Services:',
-    payload.selected_services,
-    'Estimated Add-On Total: ' + payload.estimated_addon_total,
-    '',
-    'Buyer Notes: ' + (payload.buyer_notes || 'None'),
-    'Signed By: ' + payload.signed_by,
-    'Timestamp: ' + payload.signed_timestamp
-  ].join('\n');
-
-  MailApp.sendEmail({ to: recipient, subject: subject, body: body });
-  return { success: true };
-}
-
-function submitInspectionQuoteRequest(payload) {
-  var recipient = 'Matt@Davis-Inspections.com';
-  var subject = 'New Inspection Request: ' + payload.property_address + ' (' + payload.client_name + ')';
-  var body = [
-    'New Home Inspection Request from Website',
-    '========================================',
-    'Name: ' + payload.client_name + ' (' + payload.client_role + ')',
-    'Email: ' + payload.client_email,
-    'Phone: ' + payload.client_phone,
-    '',
-    'Property Address: ' + payload.property_address,
-    'Approx. Sq Ft: ' + payload.property_sqft,
-    'Year Built: ' + payload.property_year,
-    'Preferred Date/Window: ' + (payload.preferred_date || 'Flexible'),
-    'Interested Add-Ons: ' + (payload.interested_addons || 'None selected'),
-    '',
-    'Notes: ' + (payload.notes || 'None')
-  ].join('\n');
-
-  MailApp.sendEmail({
-    to: recipient,
-    replyTo: payload.client_email,
-    subject: subject,
-    body: body
-  });
-  return { success: true };
-}</pre>
-      </section>
-    </div>
-
   </main>
 
   <!-- Application Script -->
@@ -1812,8 +1710,7 @@ function submitInspectionQuoteRequest(payload) {
       'samples',
       'contractors',
       'portal',
-      'addons',
-      'setup'
+      'addons'
     ];
 
     let sigCanvas = null;
@@ -2088,6 +1985,19 @@ function submitInspectionQuoteRequest(payload) {
       if (chev) chev.classList.toggle('rotate-180', willOpen);
     }
 
+    function dhiSyncMobilePortalBtn() {
+      const btn = document.getElementById('nav-portal-mobile');
+      if (!btn) return;
+      const isSignedIn = (typeof protoState !== 'undefined') && protoState.role && protoState.role !== 'login';
+      const onPortalPage = (typeof APP_STATE !== 'undefined') && APP_STATE.currentPage === 'portal';
+      btn.textContent = isSignedIn ? 'Dashboard' : 'Login';
+      if (onPortalPage || isSignedIn) {
+        btn.className = 'px-2.5 py-1.5 rounded-lg border border-davis-navy bg-davis-light text-davis-navy text-xs font-bold transition';
+      } else {
+        btn.className = 'px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-xs font-bold transition';
+      }
+    }
+
     function dhiCloseMobileNav() {
       const dr = document.getElementById('dhiMobileNavDrawer');
       const btn = document.getElementById('dhiMobileNavBtn');
@@ -2168,20 +2078,46 @@ function submitInspectionQuoteRequest(payload) {
         }
       });
 
+      // Update mobile menu active page highlight + mobile Login/Dashboard button
+      const mobNavMap = {
+        'home': 'mob-nav-home',
+        'request': 'mob-nav-request',
+        'sewer-info': 'dhiMobileSpecialtyBtn',
+        'radon-info': 'dhiMobileSpecialtyBtn',
+        'termite-info': 'dhiMobileSpecialtyBtn',
+        'samples': 'mob-nav-samples',
+        'contractors': 'mob-nav-contractors'
+      };
+      ['mob-nav-home', 'mob-nav-request', 'dhiMobileSpecialtyBtn', 'mob-nav-samples', 'mob-nav-contractors'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const isActive = mobNavMap[pageKey] === id;
+        el.classList.toggle('bg-davis-light', isActive);
+        el.classList.toggle('text-davis-navy', isActive);
+        el.classList.toggle('font-bold', isActive);
+        el.classList.toggle('text-slate-700', !isActive);
+      });
+      const mobSubMap = { 'sewer-info': 'mob-subnav-sewer', 'radon-info': 'mob-subnav-radon', 'termite-info': 'mob-subnav-termite' };
+      ['mob-subnav-sewer', 'mob-subnav-radon', 'mob-subnav-termite'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const isActive = mobSubMap[pageKey] === id;
+        el.classList.toggle('bg-davis-light', isActive);
+        el.classList.toggle('text-davis-navy', isActive);
+        el.classList.toggle('font-bold', isActive);
+      });
+      if (typeof dhiSyncMobilePortalBtn === 'function') dhiSyncMobilePortalBtn();
+
       // Update top preview bar buttons
       const pubBtn = document.getElementById('previewPublicSiteBtn');
       const chkBtn = document.getElementById('previewEmailChecklistBtn');
-      const setBtn = document.getElementById('previewSetupBtn');
-      if (pubBtn && chkBtn && setBtn) {
-        pubBtn.className = pageKey !== 'addons' && pageKey !== 'setup'
+      if (pubBtn && chkBtn) {
+        pubBtn.className = pageKey !== 'addons'
           ? 'px-2.5 py-1 rounded font-semibold bg-white text-davis-dark transition'
           : 'px-2.5 py-1 rounded font-medium text-slate-200 hover:bg-white/10 transition';
         chkBtn.className = pageKey === 'addons'
           ? 'px-2.5 py-1 rounded font-semibold bg-white text-davis-dark transition'
           : 'px-2.5 py-1 rounded font-medium text-sky-200 bg-white/10 hover:bg-white/20 border border-sky-400/30 transition';
-        setBtn.className = pageKey === 'setup'
-          ? 'px-2.5 py-1 rounded font-semibold bg-white text-davis-dark transition'
-          : 'px-2.5 py-1 rounded font-medium text-slate-200 hover:bg-white/10 transition';
       }
 
       if (pageKey === 'addons') {
@@ -3639,6 +3575,7 @@ function submitInspectionQuoteRequest(payload) {
     }
 
     function renderProtoPortal() {
+      if (typeof dhiSyncMobilePortalBtn === 'function') dhiSyncMobilePortalBtn();
       const root = document.getElementById('protoPortalRoot');
       if (!root) return;
       dhiSyncMainHeaderSticky();
@@ -5809,7 +5746,7 @@ function submitInspectionQuoteRequest(payload) {
         const extraDocPillsHTML = (insp.extraDocs && insp.extraDocs.length) ? `<div class="flex flex-wrap gap-1 pt-0.5">${dhiRenderAdminDocPills(insp)}</div>` : '';
         const ps = dhiGetPermitShare(pInfo);
         const psLabelStr = (ps.agent || ps.buyer)
-          ? ': ' + [ps.agent ? 'Agent' : '', ps.buyer ? 'Buyer' : ''].filter(Boolean).join(' & ')
+          ? ': ' + [ps.agent ? 'Agent' : '', ps.buyer ? 'Customer' : ''].filter(Boolean).join(' & ')
           : ': Off';
         const permitShareDropdownHTML = `<details class="relative inline-block">
           <summary class="list-none cursor-pointer inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 bg-white hover:border-davis-navy text-slate-600 text-[11px] font-semibold select-none">
@@ -5824,7 +5761,7 @@ function submitInspectionQuoteRequest(payload) {
             </label>
             <label class="flex items-center gap-2 cursor-pointer text-slate-700 font-semibold">
               <input type="checkbox" ${ps.buyer ? 'checked' : ''} onchange="protoTogglePermitShare('${insp.id}', 'buyer', this.checked)" class="rounded border-slate-300" />
-              <span>Buyer</span>
+              <span>Customer</span>
             </label>
           </div>
         </details>`;
@@ -11205,7 +11142,7 @@ function submitInspectionQuoteRequest(payload) {
               ` : `
                 <div class="space-y-2.5">
                   ${narrativeHTML}
-                  ${commentsHTML ? `<div class="space-y-1.5 no-print">${commentsHTML}</div>` : ''}
+                  <div id="dhiCommentsList-${f.id}" class="space-y-1.5 no-print">${commentsHTML}</div>
                   ${(f.isSummary || f.narrative) && protoState.role !== 'third_party' ? `
                     <div class="flex gap-2 pt-1 no-print">
                       <input type="text" id="commentInput-${f.id}" placeholder="Add a live note as ${escapeHtml(dhiGetLiveCollabFirstName())}..." onkeydown="if(event.key==='Enter'){event.preventDefault();protoAddComment('${f.id}');}" class="flex-grow px-3 py-1.5 rounded-lg border border-slate-200 text-xs" />
@@ -12881,7 +12818,7 @@ function submitInspectionQuoteRequest(payload) {
       if (listEl) {
         const related = (protoState.inspections || []).filter(i => dhiInspMatchesPerson(i, type, cleanEmail, fallbackName));
         listEl.innerHTML = related.length
-          ? related.map(i => `<div class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs"><div><div class="font-bold text-slate-900">${escapeHtml(i.address)}</div><div class="text-[11px] text-slate-500">${escapeHtml(i.date || '')}</div></div><button type="button" onclick="protoClosePersonModal(); protoOpenInspection('${i.id}')" class="px-2.5 py-1 rounded-lg bg-davis-navy text-white text-[11px] font-bold">Open</button></div>`).join('')
+          ? related.map(i => `<div class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-xs"><div><div class="font-bold text-slate-900">${escapeHtml(i.address)}</div><div class="text-[11px] text-slate-500">${escapeHtml(i.date || '')}</div></div><button type="button" onclick="protoClosePersonModal(); protoOpenReport('${i.id}','main')" class="px-2.5 py-1 rounded-lg bg-davis-navy text-white text-[11px] font-bold">Open</button></div>`).join('')
           : '<p class="text-xs text-slate-400">No linked inspections found.</p>';
       }
       document.getElementById('protoPersonModal').classList.remove('hidden');
