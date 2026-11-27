@@ -222,11 +222,16 @@
       <div id="dhiMobileNavDrawer" class="hidden md:hidden pt-2.5 mt-2 border-t border-slate-100 space-y-1 text-xs">
         <button type="button" onclick="dhiCloseMobileNav(); navigatePage('home', false);" class="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Home</button>
         <button type="button" onclick="dhiCloseMobileNav(); navigatePage('request', false);" class="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Request Inspection</button>
-        <div class="pl-3 space-y-1 border-l-2 border-slate-200 ml-3 py-0.5">
-          <div class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Specialty Services</div>
-          <button type="button" onclick="dhiCloseMobileNav(); selectSpecialtyItem('sewer-info');" class="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Sewer Scope Inspections</button>
-          <button type="button" onclick="dhiCloseMobileNav(); selectSpecialtyItem('radon-info');" class="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">48-Hour Radon Testing</button>
-          <button type="button" onclick="dhiCloseMobileNav(); selectSpecialtyItem('termite-info');" class="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Termite / WDI Inspections</button>
+        <div>
+          <button type="button" id="dhiMobileSpecialtyBtn" onclick="dhiToggleMobileSpecialty()" aria-expanded="false" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold transition">
+            <span>Specialty Services</span>
+            <svg id="dhiMobileSpecialtyChevron" class="w-3.5 h-3.5 text-slate-400 transition-transform duration-150" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="dhiMobileSpecialtyList" class="hidden pl-3 ml-3 mt-1 space-y-1 border-l-2 border-slate-200 py-0.5">
+            <button type="button" onclick="dhiCloseMobileNav(); selectSpecialtyItem('sewer-info');" class="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Sewer Scope Inspections</button>
+            <button type="button" onclick="dhiCloseMobileNav(); selectSpecialtyItem('radon-info');" class="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">48-Hour Radon Testing</button>
+            <button type="button" onclick="dhiCloseMobileNav(); selectSpecialtyItem('termite-info');" class="w-full text-left px-2.5 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Termite / WDI Inspections</button>
+          </div>
         </div>
         <button type="button" onclick="dhiCloseMobileNav(); navigatePage('samples', false);" class="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Sample Reports</button>
         <button type="button" onclick="dhiCloseMobileNav(); navigatePage('contractors', false);" class="w-full text-left px-3 py-2 rounded-lg text-slate-700 hover:bg-slate-100 font-semibold">Recommended Contractors</button>
@@ -2008,11 +2013,23 @@ function submitInspectionQuoteRequest(payload) {
       if (btn) btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
     }
 
+    function dhiToggleMobileSpecialty(forceState) {
+      const list = document.getElementById('dhiMobileSpecialtyList');
+      const btn = document.getElementById('dhiMobileSpecialtyBtn');
+      const chev = document.getElementById('dhiMobileSpecialtyChevron');
+      if (!list) return;
+      const willOpen = typeof forceState === 'boolean' ? forceState : list.classList.contains('hidden');
+      list.classList.toggle('hidden', !willOpen);
+      if (btn) btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      if (chev) chev.classList.toggle('rotate-180', willOpen);
+    }
+
     function dhiCloseMobileNav() {
       const dr = document.getElementById('dhiMobileNavDrawer');
       const btn = document.getElementById('dhiMobileNavBtn');
       if (dr) dr.classList.add('hidden');
       if (btn) btn.setAttribute('aria-expanded', 'false');
+      dhiToggleMobileSpecialty(false);
     }
 
     function navigatePage(pageKey, fromChecklist, preserveDemo) {
