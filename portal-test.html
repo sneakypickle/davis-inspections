@@ -5494,69 +5494,89 @@ function submitInspectionQuoteRequest(payload) {
       if (!insp) return;
       const total = protoTotal(insp);
       const paidDate = insp.paidAt ? new Date(insp.paidAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : (insp.date || '');
+      const logoImg = document.querySelector('img[alt*="Davis Home Inspections"]');
+      const logoSrc = logoImg ? logoImg.src : '';
       const rows = (insp.services || []).map(s => `
         <tr>
-          <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0;">${escapeHtml(s.name)}</td>
-          <td style="padding:10px 8px;border-bottom:1px solid #e2e8f0;text-align:right;font-weight:700;">${Number(s.price) < 0 ? '-$' + Math.abs(Number(s.price)).toFixed(2) : '$' + Number(s.price).toFixed(2)}</td>
+          <td style="padding:11px 10px;border-bottom:1px solid #e2e8f0;font-size:13.5px;color:#1e293b;">${escapeHtml(s.name)}</td>
+          <td style="padding:11px 10px;border-bottom:1px solid #e2e8f0;text-align:right;font-size:13.5px;font-weight:700;color:#0f172a;white-space:nowrap;">${Number(s.price) < 0 ? '-$' + Math.abs(Number(s.price)).toFixed(2) : '$' + Number(s.price).toFixed(2)}</td>
         </tr>`).join('');
       const w = window.open('', '_blank', 'width=820,height=920');
       if (!w) { protoToastMsg('Please allow popups to download your receipt.'); return; }
       w.document.write(`<!DOCTYPE html><html><head><title>Paid Receipt - ${escapeHtml(insp.address)}</title>
-        <style>body{font-family:Inter,Arial,sans-serif;color:#0f172a;padding:36px;max-width:740px;margin:0 auto;}
-        .hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0f2942;padding-bottom:16px;margin-bottom:24px;}
-        .badge{display:inline-block;background:#dcfce7;color:#166534;font-weight:800;padding:4px 12px;border-radius:999px;font-size:12px;}
-        table{width:100%;border-collapse:collapse;margin-top:16px;}
-        th{text-align:left;font-size:11px;text-transform:uppercase;color:#64748b;border-bottom:2px solid #cbd5e1;padding:8px;}
-        @media print{.noprint{display:none;}}</style></head><body>
-        <div class="noprint" style="text-align:right;margin-bottom:16px;"><button onclick="window.print()" style="background:#0f2942;color:#fff;border:none;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;">Print / Save as PDF</button></div>
-        <div class="hdr">
-          <div><div style="font-size:20px;font-weight:900;color:#0f2942;">Davis Home Inspections, LLC</div><div style="font-size:12px;color:#475569;margin-top:4px;">Matt Davis &bull; Matt@Davis-Inspections.com &bull; (719) 660-4724<br/>Colorado Springs, CO</div></div>
-          <div style="text-align:right;"><div style="font-size:22px;font-weight:900;">RECEIPT</div><div class="badge" style="margin-top:6px;">PAID IN FULL</div></div>
+        <style>
+          * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          body { margin: 0; padding: 28px 18px; background: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, Arial, sans-serif; color: #1e293b; }
+          .toolbar { max-width: 680px; margin: 0 auto 14px auto; text-align: right; }
+          .card { max-width: 680px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06); }
+          .brand-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 24px; background: #ffffff; border-bottom: 1px solid #e2e8f0; }
+          .brand-logo { height: 48px; width: auto; display: block; }
+          .badge { display: inline-block; background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; font-weight: 800; padding: 5px 12px; border-radius: 999px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+          .navy-banner { background: #004677; color: #ffffff; padding: 20px 24px; }
+          .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #7dd3fc; margin-bottom: 4px; }
+          .prop-title { font-size: 20px; font-weight: 800; color: #ffffff; margin: 0; }
+          .body-pad { padding: 24px; }
+          .meta-box { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px 18px; margin-bottom: 22px; font-size: 13px; line-height: 1.55; }
+          .meta-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin-bottom: 3px; }
+          table { width: 100%; border-collapse: collapse; }
+          th { text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; border-bottom: 2px solid #cbd5e1; padding: 8px 10px; }
+          .total-row td { padding: 14px 10px 6px 10px; font-weight: 900; font-size: 15.5px; color: #004677; }
+          .footer { border-top: 1px solid #e2e8f0; margin-top: 24px; padding-top: 16px; font-size: 12.5px; color: #475569; line-height: 1.6; }
+          @media print {
+            body { background: #ffffff; padding: 0; }
+            .noprint { display: none !important; }
+            .card { box-shadow: none; border: 1px solid #cbd5e1; }
+          }
+        </style>
+      </head><body>
+        <div class="toolbar noprint">
+          <button onclick="window.print()" style="background:#004677;color:#ffffff;border:none;padding:10px 18px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;">Print / Save as PDF</button>
         </div>
-        <div style="display:flex;justify-content:space-between;gap:20px;font-size:13px;margin-bottom:20px;">
-          <div><div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Billed To</div><div style="font-weight:700;margin-top:2px;">${escapeHtml(insp.clientName || '')}</div><div style="color:#475569;">${escapeHtml(insp.clientEmail || '')}</div></div>
-          <div><div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;">Inspected Property</div><div style="font-weight:700;margin-top:2px;">${escapeHtml(insp.address || '')}</div><div style="color:#475569;">Inspection Date: ${escapeHtml(insp.date || '')}<br/>Paid Date: ${escapeHtml(paidDate)}</div></div>
-        </div>
-        <table><thead><tr><th>Service Description</th><th style="text-align:right;">Amount</th></tr></thead><tbody>${rows}</tbody>
-        <tfoot><tr><td style="padding:14px 8px;font-weight:900;font-size:15px;">Total Paid</td><td style="padding:14px 8px;text-align:right;font-weight:900;font-size:16px;color:#0f2942;">$${total.toFixed(2)}</td></tr></tfoot></table>
-        <p style="margin-top:32px;font-size:12px;color:#64748b;">Thank you for choosing Davis Home Inspections, LLC.</p>
-      
-  <!-- Portal Feedback / Bug Report Modal -->
-  <div id="dhiFeedbackModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) dhiCloseFeedbackModal()">
-    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden">
-      <div class="px-5 py-4 bg-davis-navy text-white flex items-center justify-between gap-3">
-        <div>
-          <div id="dhiFeedbackBadge" class="text-[10px] font-bold uppercase tracking-widest text-sky-300">Portal Feedback</div>
-          <h3 id="dhiFeedbackTitle" class="text-base font-extrabold">Share Feedback or Report an Issue</h3>
-        </div>
-        <button type="button" onclick="dhiCloseFeedbackModal()" class="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold">✕</button>
-      </div>
-      <div class="p-5 space-y-4 text-xs">
-        <p class="text-slate-600 leading-relaxed">Let me know if you run into any issues or if you have any ideas for improvements or features that you would like to see.</p>
-        <div class="flex items-center gap-2">
-          <button type="button" id="dhiFbTypeBug" onclick="dhiSetFeedbackType('Bug / Issue')" class="px-3 py-1.5 rounded-lg border border-davis-navy bg-davis-navy text-white font-bold transition">Bug / Issue</button>
-          <button type="button" id="dhiFbTypeIdea" onclick="dhiSetFeedbackType('Feature Idea')" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:border-davis-navy font-bold transition">Feature Idea</button>
-        </div>
-        <div>
-          <label for="dhiFeedbackMsg" class="block font-bold text-slate-700 mb-1">Details *</label>
-          <textarea id="dhiFeedbackMsg" rows="4" placeholder="Describe what happened or what you'd like to see added..." class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-davis-navy outline-none"></textarea>
-        </div>
-        <label class="flex items-center gap-2 text-slate-700 font-medium cursor-pointer select-none">
-          <input id="dhiFeedbackOkContact" type="checkbox" class="rounded border-slate-300 text-davis-navy" />
-          <span>It's okay to contact me if you have questions about this.</span>
-        </label>
-        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
-          <span id="dhiFeedbackFromHint" class="text-[11px] text-slate-400 truncate"></span>
-          <div class="flex items-center gap-2 shrink-0">
-            <button type="button" onclick="dhiCloseFeedbackModal()" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold">Cancel</button>
-            <button type="button" id="dhiFeedbackSubmitBtn" onclick="dhiSubmitFeedbackModal()" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white font-bold transition">Send to Matt</button>
+        <div class="card">
+          <div class="brand-bar">
+            ${logoSrc ? `<img src="${logoSrc}" alt="Davis Home Inspections, LLC" class="brand-logo" />` : `<div style="font-size:18px;font-weight:900;color:#004677;">Davis Home Inspections, LLC</div>`}
+            <span class="badge">Paid in Full</span>
+          </div>
+          <div class="navy-banner">
+            <div class="eyebrow">Paid Receipt</div>
+            <h1 class="prop-title">${escapeHtml(insp.address || '')}</h1>
+          </div>
+          <div class="body-pad">
+            <div class="meta-box">
+              <div>
+                <div class="meta-label">Billed To</div>
+                <div style="font-weight:700;color:#0f172a;">${escapeHtml(insp.clientName || '')}</div>
+                <div style="color:#475569;">${escapeHtml(insp.clientEmail || '')}</div>
+              </div>
+              <div>
+                <div class="meta-label">Inspection Details</div>
+                <div><strong>Inspection Date:</strong> ${escapeHtml(insp.date || '')}</div>
+                <div><strong>Paid Date:</strong> ${escapeHtml(paidDate)}</div>
+              </div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Service Description</th>
+                  <th style="text-align:right;">Amount</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+              <tfoot>
+                <tr class="total-row">
+                  <td>Total Paid</td>
+                  <td style="text-align:right;">$${total.toFixed(2)}</td>
+                </tr>
+              </tfoot>
+            </table>
+            <div class="footer">
+              <div style="margin-bottom:8px;color:#334155;">Thank you for choosing Davis Home Inspections, LLC.</div>
+              <strong style="color:#0f172a;">Davis Home Inspections, LLC</strong><br/>
+              Matt Davis &bull; Matt@Davis-Inspections.com &bull; (719) 660-4724 &bull; Colorado Springs, CO
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-</body></html>`);
+      </body></html>`);
       w.document.close();
     }
 
@@ -5588,22 +5608,25 @@ function submitInspectionQuoteRequest(payload) {
       const customersList = protoState.customers || [];
 
       const reqTotal = (protoState.requests || []).length;
-      const tabBtns = [
-        { id: 'scheduled', label: `Scheduled Inspections (${scheduledInspections.length})` },
-        { id: 'reports', label: `Inspection Reports (${releasedReports.length})` },
-        { id: 'requests', label: `Requests (${reqTotal})`, highlight: (newReqCount > 0 || reqTotal > 0) },
-        { id: 'analytics', label: 'Analytics' },
-        { id: 'agents', label: `Agents (${agentsList.length})` },
-        { id: 'customers', label: `Customers (${customersList.length})` }
-      ].map(t => {
+      const renderAdminTabBtn = (t) => {
         const active = protoState.adminTab === t.id;
         const cls = active
           ? 'bg-davis-navy text-white shadow-sm'
           : (t.highlight
               ? 'bg-amber-50 border border-amber-300 text-amber-900 hover:border-amber-500'
               : 'bg-white border border-slate-200 text-slate-700 hover:border-davis-navy');
-        return `<button type="button" onclick="protoState.adminTab='${t.id}'; renderProtoPortal();" class="px-3.5 py-2 rounded-xl text-xs font-bold transition ${cls}">${t.label}</button>`;
-      }).join('');
+        return `<button type="button" onclick="protoState.adminTab='${t.id}'; renderProtoPortal();" class="px-3.5 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${cls}">${t.label}</button>`;
+      };
+      const topTabBtns = [
+        { id: 'scheduled', label: `Scheduled Inspections (${scheduledInspections.length})` },
+        { id: 'reports', label: `Inspection Reports (${releasedReports.length})` },
+        { id: 'requests', label: `Requests (${reqTotal})`, highlight: (newReqCount > 0 || reqTotal > 0) }
+      ].map(renderAdminTabBtn).join('');
+      const contactTabBtns = [
+        { id: 'agents', label: `Agents (${agentsList.length})` },
+        { id: 'customers', label: `Customers (${customersList.length})` }
+      ].map(renderAdminTabBtn).join('');
+      const analyticsTabBtn = renderAdminTabBtn({ id: 'analytics', label: 'Analytics' });
 
       const renderInspTableRows = (list, isScheduled = false) => list.map(insp => {
         const total = insp ? protoTotal(insp) : 0;
@@ -5807,18 +5830,39 @@ function submitInspectionQuoteRequest(payload) {
           const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return ta - tb; // Oldest received first
         });
-        const reqCards = sortedReqs.map(r => `
+        const reqCards = sortedReqs.map(r => {
+          let receivedLabel = '';
+          if (r.createdAt) {
+            const d = new Date(r.createdAt);
+            if (!isNaN(d.getTime())) {
+              receivedLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                + ' at '
+                + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            }
+          }
+          const gmailUrl = r.clientEmail
+            ? 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(r.clientEmail) + '&su=' + encodeURIComponent('Inspection Request: ' + (r.address || ''))
+            : '';
+          const phoneDigits = String(r.clientPhone || '').replace(/[^\d+]/g, '');
+          const prefLower = String(r.preferredResponse || '').trim().toLowerCase();
+          const phoneScheme = prefLower === 'text' ? 'sms:' : 'tel:';
+          const phoneHint = prefLower === 'text' ? 'Text' : (prefLower === 'call' ? 'Call' : '');
+          return `
           <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
             <div class="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${r.status === 'New' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">${r.status}</span>
                   <span class="text-xs font-bold text-slate-500">${r.clientRole || 'Client'} &bull; Prefers ${r.preferredResponse || 'Email'}</span>
+                  ${receivedLabel ? `<span class="text-[11px] font-semibold text-slate-400">&bull; Received ${escapeHtml(receivedLabel)}</span>` : ''}
                 </div>
-                <h3 class="text-base font-extrabold text-slate-900 mt-1">${r.address}</h3>
-                <p class="text-xs text-slate-600">${r.clientName} &bull; ${r.clientEmail} &bull; ${r.clientPhone}</p>
-              </div>
-              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="text-base font-extrabold text-slate-900 mt-1">${escapeHtml(r.address || '')}</h3>
+                <p class="text-xs text-slate-600 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-0.5">
+                  <span class="font-semibold text-slate-800">${escapeHtml(r.clientName || '')}</span>
+                  ${r.clientEmail ? `<span>&bull;</span><a href="${gmailUrl}" target="_blank" rel="noopener noreferrer" title="Compose in Gmail" class="text-davis-navy font-semibold hover:underline">${escapeHtml(r.clientEmail)}</a>` : ''}
+                  ${r.clientPhone ? `<span>&bull;</span>${phoneDigits ? `<a href="${phoneScheme}${phoneDigits}" title="${phoneScheme === 'sms:' ? 'Send text message' : 'Call phone number'}" class="text-davis-navy font-semibold hover:underline">${escapeHtml(r.clientPhone)}${phoneHint ? ` (${phoneHint})` : ''}</a>` : `<span>${escapeHtml(r.clientPhone)}</span>`}` : ''}
+                </p>
+              </div><div class="flex flex-wrap items-center gap-2">
                 <button type="button" onclick="protoDeleteRequest('${r.id}')" class="px-3 py-2 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Delete</button>
                 <button type="button" onclick="protoConvertRequestToInspection('${r.id}')" class="px-3.5 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold transition">Convert to Inspection &rarr;</button>
               </div>
@@ -5831,7 +5875,8 @@ function submitInspectionQuoteRequest(payload) {
             </div>
             ${r.notes && r.notes !== 'None' ? `<p class="text-xs text-slate-700 bg-white rounded-lg p-2.5 border border-slate-200"><strong>Notes:</strong> ${r.notes}</p>` : ''}
           </div>
-        `).join('');
+        `;
+        }).join('');
 
         bodyHTML = `
           <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
@@ -6504,12 +6549,17 @@ function submitInspectionQuoteRequest(payload) {
           <div class="sticky top-0 md:static z-20 bg-slate-200/95 md:bg-slate-200 backdrop-blur md:backdrop-blur-none rounded-2xl border border-slate-300 p-2.5 sm:p-4 space-y-2 sm:space-y-3 shadow-md md:shadow-sm">
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto md:flex-wrap dhi-no-scrollbar min-w-0 flex-1 py-0.5">
-                ${tabBtns}
+                ${topTabBtns}
               </div>
-              <button type="button" onclick="protoState.adminTab='new'; renderProtoPortal();" class="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-extrabold transition shadow-sm shrink-0 whitespace-nowrap ${protoState.adminTab === 'new' ? 'bg-emerald-700 text-white ring-2 ring-emerald-300' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}">+ New Inspection</button>
+              <button type="button" onclick="protoState.adminTab='new'; renderProtoPortal();" class="w-40 sm:w-44 text-center px-3 py-2 rounded-xl text-[11px] sm:text-xs font-extrabold transition shadow-sm shrink-0 whitespace-nowrap ${protoState.adminTab === 'new' ? 'bg-emerald-700 text-white ring-2 ring-emerald-300' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}">+ New Inspection</button>
             </div>
-            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-300/80">
-              <a href="./inspect.html" class="px-3 sm:px-3.5 py-1.5 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-[11px] sm:text-xs font-bold transition whitespace-nowrap">Field &amp; Report App &rarr;</a>
+            <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-300/80">
+              <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto md:flex-wrap dhi-no-scrollbar min-w-0 flex-1 py-0.5">
+                ${contactTabBtns}
+                <span class="h-6 w-px bg-slate-400/70 mx-1 shrink-0" aria-hidden="true"></span>
+                ${analyticsTabBtn}
+              </div>
+              <a href="./inspect.html" class="w-40 sm:w-44 text-center px-3 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-[11px] sm:text-xs font-extrabold transition shadow-sm shrink-0 whitespace-nowrap">Field &amp; Report App &rarr;</a>
             </div>
           </div>
           ${bodyHTML}
@@ -9463,11 +9513,22 @@ function submitInspectionQuoteRequest(payload) {
       } catch (_e) {}
     }
 
+    function dhiScrollPageToTopInstant() {
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      } catch (_e) {
+        window.scrollTo(0, 0);
+      }
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+    }
+
     function protoOpenReport(id, docTab) {
       protoState.activeInspectionId = id;
       protoState.activeDocTab = docTab || 'main';
       protoState.viewingReport = true;
       protoState.reportLoadError = '';
+      protoState._scrollTopOnReportLoad = true;
       if (id && id !== 'insp-demo') {
         protoState.findings = [];
         protoState.sections = [];
@@ -9477,6 +9538,8 @@ function submitInspectionQuoteRequest(payload) {
         protoState.loadingReport = false;
       }
       renderProtoPortal();
+      dhiScrollPageToTopInstant();
+      requestAnimationFrame(dhiScrollPageToTopInstant);
       if (dhiIsLiveSession() && id && id !== 'insp-demo') {
         dhiLoadInspectionDetails(id);
         dhiSubscribeReportRealtime(id);
@@ -11890,6 +11953,11 @@ function submitInspectionQuoteRequest(payload) {
         protoState.loadingReport = false;
         protoState.reportLoadError = '';
         renderProtoPortal();
+        if (protoState._scrollTopOnReportLoad && protoState.viewingReport && protoState.activeInspectionId === inspectionId) {
+          protoState._scrollTopOnReportLoad = false;
+          dhiScrollPageToTopInstant();
+          requestAnimationFrame(dhiScrollPageToTopInstant);
+        }
       } catch (err) {
         console.warn('Error loading inspection details:', err);
         protoState.loadingReport = false;
@@ -13010,6 +13078,41 @@ function submitInspectionQuoteRequest(payload) {
       <div class="px-4 py-2 bg-slate-950/80 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between gap-2">
         <span>Draw directly on the photo to highlight or circle details. Changes sync live.</span>
         <span class="hidden sm:inline">Esc to close &bull; Arrow keys for Prev / Next</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Portal Feedback / Bug Report Modal -->
+  <div id="dhiFeedbackModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) dhiCloseFeedbackModal()">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden">
+      <div class="px-5 py-4 bg-davis-navy text-white flex items-center justify-between gap-3">
+        <div>
+          <div id="dhiFeedbackBadge" class="text-[10px] font-bold uppercase tracking-widest text-sky-300">Portal Feedback</div>
+          <h3 id="dhiFeedbackTitle" class="text-base font-extrabold">Share Feedback or Report an Issue</h3>
+        </div>
+        <button type="button" onclick="dhiCloseFeedbackModal()" class="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold">✕</button>
+      </div>
+      <div class="p-5 space-y-4 text-xs">
+        <p class="text-slate-600 leading-relaxed">Let me know if you run into any issues or if you have any ideas for improvements or features that you would like to see.</p>
+        <div class="flex items-center gap-2">
+          <button type="button" id="dhiFbTypeBug" onclick="dhiSetFeedbackType('Bug / Issue')" class="px-3 py-1.5 rounded-lg border border-davis-navy bg-davis-navy text-white font-bold transition">Bug / Issue</button>
+          <button type="button" id="dhiFbTypeIdea" onclick="dhiSetFeedbackType('Feature Idea')" class="px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:border-davis-navy font-bold transition">Feature Idea</button>
+        </div>
+        <div>
+          <label for="dhiFeedbackMsg" class="block font-bold text-slate-700 mb-1">Details *</label>
+          <textarea id="dhiFeedbackMsg" rows="4" placeholder="Describe what happened or what you'd like to see added..." class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-davis-navy outline-none"></textarea>
+        </div>
+        <label class="flex items-center gap-2 text-slate-700 font-medium cursor-pointer select-none">
+          <input id="dhiFeedbackOkContact" type="checkbox" class="rounded border-slate-300 text-davis-navy" />
+          <span>It's okay to contact me if you have questions about this.</span>
+        </label>
+        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+          <span id="dhiFeedbackFromHint" class="text-[11px] text-slate-400 truncate"></span>
+          <div class="flex items-center gap-2 shrink-0">
+            <button type="button" onclick="dhiCloseFeedbackModal()" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold">Cancel</button>
+            <button type="button" id="dhiFeedbackSubmitBtn" onclick="dhiSubmitFeedbackModal()" class="px-4 py-2 rounded-xl bg-davis-navy hover:bg-davis-dark text-white font-bold transition">Send to Matt</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

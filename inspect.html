@@ -2298,6 +2298,19 @@
       }
       it.statuses = list;
       it.status = list.join(', ');
+      const hasBase = list.includes('IN') || list.includes('NI') || list.includes('NP');
+      if (!hasBase && it.collapsed) it.collapsed = false;
+      saveDraftLocally(true);
+      render();
+    }
+
+    function toggleItemCollapse(secIdx, itemIdx) {
+      const it = state.draft?.sections?.[secIdx]?.items?.[itemIdx];
+      if (!it) return;
+      const ratings = getItemStatuses(it);
+      const hasBase = ratings.includes('IN') || ratings.includes('NI') || ratings.includes('NP');
+      if (!hasBase) return;
+      it.collapsed = !it.collapsed;
       saveDraftLocally(true);
       render();
     }
@@ -3171,12 +3184,14 @@
 
     function setLibraryScope(scope) {
       state.libScope = scope || 'item';
+      state.editingLibId = null;
       renderLibraryResults();
     }
 
     function openLibraryModal(secIdx, itemIdx) {
       state.libTargetItem = { secIdx, itemIdx };
       state.libScope = 'item';
+      state.editingLibId = null;
       const sec = state.draft.sections[secIdx];
       const it = sec.items[itemIdx];
       document.getElementById('libModalTitle').textContent = 'Library for ' + sec.name + ' / ' + dhiCleanItemTitleForLib(it.title);
@@ -3188,6 +3203,41 @@
     function closeLibraryModal() {
       document.getElementById('libraryModal').classList.add('hidden');
       state.libTargetItem = null;
+      state.editingLibId = null;
+    }
+
+    function startEditLibraryComment(commentId) {
+      state.editingLibId = String(commentId);
+      renderLibraryResults();
+    }
+
+    function cancelEditLibraryComment() {
+      state.editingLibId = null;
+      renderLibraryResults();
+    }
+
+    async function saveLibraryCommentEdit(commentId) {
+      const titleEl = document.getElementById('libEditTitle');
+      const bodyEl = document.getElementById('libEditBody');
+      const newTitle = (titleEl ? titleEl.value : '').trim();
+      const newBody = (bodyEl ? bodyEl.value : '').trim();
+      if (!newTitle || !newBody) {
+        toast('Both title and comment text are required.');
+        return;
+      }
+      const c = (state.commentLibrary || []).find(x => String(x.id) === String(commentId));
+      if (!c) return;
+      c.title = newTitle;
+      c.body = newBody;
+      state.editingLibId = null;
+      renderLibraryResults();
+      try {
+        const { error } = await sb.from('comment_library').update({ title: newTitle, body: newBody }).eq('id', commentId);
+        if (error) toast('Save failed: ' + error.message);
+        else toast('Updated saved comment.');
+      } catch (e) {
+        toast('Updated locally (will sync when online).');
+      }
     }
 
     function renderLibraryResults() {
@@ -3223,23 +3273,54 @@
       const filtered = basePool.filter(c => {
         if (!q) return true;
         return ((c.title || '') + ' ' + (c.body || '') + ' ' + (c.section_name || '') + ' ' + (c.item_title || '')).toLowerCase().includes(q);
+      }).slice().sort((a, b) => {
+        const diff = (Number(b.use_count) || 0) - (Number(a.use_count) || 0);
+        if (diff !== 0) return diff;
+        return String(a.title || '').localeCompare(String(b.title || ''));
       }).slice(0, 80);
 
-      cont.innerHTML = filtered.map(c => `
+      cont.innerHTML = filtered.map(c => {
+        const isEditing = state.editingLibId && String(state.editingLibId) === String(c.id);
+        const useCount = Number(c.use_count) || 0;
+        if (isEditing) {
+          return `
+            <div class="p-3 rounded-xl border-2 border-davis-navy bg-white space-y-2 shadow-sm">
+              <div class="text-[10px] font-semibold text-slate-500">${esc(c.section_name)}${c.item_title ? ' &bull; ' + esc(c.item_title) : ''}</div>
+              <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Title</label>
+                <input id="libEditTitle" type="text" value="${esc(c.title || '')}" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-900 focus:border-davis-navy outline-none" />
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Comment</label>
+                <textarea id="libEditBody" rows="4" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-800 leading-relaxed focus:border-davis-navy outline-none resize-y">${esc(c.body || '')}</textarea>
+              </div>
+              <div class="flex items-center justify-end gap-1.5 pt-1">
+                <button type="button" onclick="cancelEditLibraryComment()" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-bold">Cancel</button>
+                <button type="button" onclick="saveLibraryCommentEdit('${c.id}')" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold">Save</button>
+              </div>
+            </div>
+          `;
+        }
+        return `
         <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 space-y-1.5">
           <div class="flex items-start justify-between gap-2">
             <div>
               <div class="text-xs font-extrabold text-slate-900">${esc(c.title)}</div>
-              <div class="text-[10px] font-semibold text-slate-500">${esc(c.section_name)}${c.item_title ? ' &bull; ' + esc(c.item_title) : ''}</div>
+              <div class="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+                <span>${esc(c.section_name)}${c.item_title ? ' &bull; ' + esc(c.item_title) : ''}</span>
+                ${useCount > 0 ? `<span class="px-1.5 py-0.5 rounded-full bg-sky-100 text-davis-navy font-bold">Used ${useCount}x</span>` : ''}
+              </div>
             </div>
             <div class="flex items-center gap-1.5 shrink-0">
               <button type="button" onclick="insertLibraryComment('${c.id}')" class="px-2.5 py-1 rounded-lg bg-davis-navy hover:bg-davis-dark text-white text-[11px] font-bold">Insert</button>
+              <button type="button" onclick="startEditLibraryComment('${c.id}')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-[11px] font-bold">Edit</button>
               <button type="button" onclick="deleteLibraryComment('${c.id}')" class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] font-bold">Delete</button>
             </div>
           </div>
           <p class="text-xs text-slate-700 leading-relaxed whitespace-pre-line">${esc(c.body)}</p>
         </div>
-      `).join('') || `<div class="text-xs text-slate-500 text-center py-6 space-y-2">
+      `;
+      }).join('') || `<div class="text-xs text-slate-500 text-center py-6 space-y-2">
         <div>No saved comments match${scope === 'item' ? ' this specific item' : (scope === 'section' ? ' this section' : '')}.</div>
         ${scope === 'item' && secMatches.length ? `<button type="button" onclick="setLibraryScope('section')" class="px-3 py-1.5 rounded-lg bg-sky-50 border border-sky-200 text-davis-navy font-bold">Show all ${esc(sec.name)} comments (${secMatches.length})</button>` : ''}
       </div>`;
@@ -3251,6 +3332,10 @@
       if (!c) return;
       const it = state.draft.sections[state.libTargetItem.secIdx].items[state.libTargetItem.itemIdx];
       it.narrative = it.narrative ? (it.narrative + '\n\n' + c.body) : c.body;
+      c.use_count = (Number(c.use_count) || 0) + 1;
+      try {
+        sb.from('comment_library').update({ use_count: c.use_count }).eq('id', c.id).then(() => {}).catch(() => {});
+      } catch (_e) {}
       saveDraftLocally(true);
       closeLibraryModal();
       render();
@@ -4186,6 +4271,10 @@
           const hasBase = ratings.includes('IN') || ratings.includes('NI') || ratings.includes('NP');
           const photoNoNarr = (it.photos || []).length > 0 && !String(it.narrative || '').trim();
           if (!hasBase || photoNoNarr) {
+            if (it.collapsed) {
+              it.collapsed = false;
+              saveDraftLocally(true);
+            }
             state.activeSecIdx = sIdx;
             state.mobileViewMode = 'items';
             render();
@@ -4878,19 +4967,23 @@
         const isBusy = state.aiBusyItemId === it.id;
         const hasBaseRating = selectedRatings.includes('IN') || selectedRatings.includes('NI') || selectedRatings.includes('NP');
         const photoMissingNarr = (it.photos || []).length > 0 && !String(it.narrative || '').trim();
+        const isCollapsed = hasBaseRating && !!it.collapsed;
         return `
           <div id="dhiItemCard-${state.activeSecIdx}-${itemIdx}" ondragover="event.preventDefault(); this.classList.add('ring-2', 'ring-sky-500', 'bg-sky-50/40');" ondragleave="this.classList.remove('ring-2', 'ring-sky-500', 'bg-sky-50/40');" ondrop="handleItemPhotoDrop(event, ${state.activeSecIdx}, ${itemIdx})" class="scroll-mt-32 bg-white rounded-2xl border border-l-4 ${
             !hasBaseRating ? 'border-rose-300 border-l-rose-500'
             : (photoMissingNarr ? 'border-amber-400 border-l-amber-500 ring-1 ring-amber-200'
             : (it.isSummary ? 'border-amber-300 border-l-amber-500 ring-1 ring-amber-200' : 'border-slate-300 border-l-emerald-500'))
-          } shadow-sm p-3 sm:p-4 space-y-2.5 sm:space-y-3 transition">
-            <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
-              <div class="flex flex-wrap items-center gap-1.5">
+          } shadow-sm p-3 sm:p-4 ${isCollapsed ? '' : 'space-y-2.5 sm:space-y-3'} transition">
+            <div class="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_1fr] items-center gap-2 ${isCollapsed ? '' : 'pb-2 border-b border-slate-200'}">
+              <div class="min-w-0 flex flex-wrap items-center gap-1.5">
                 <span class="text-[11px] font-mono font-bold text-slate-400">${esc(it.code)}</span>
                 <span class="text-xs sm:text-sm font-extrabold text-slate-900">${esc(it.title)}</span>
                 ${photoMissingNarr ? '<span class="px-1.5 py-0.5 rounded-md bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-extrabold">Photo missing narrative</span>' : ''}
               </div>
-              <div class="flex flex-wrap items-center gap-1.5">
+              <div class="justify-self-end md:justify-self-center">
+                <button type="button" onclick="toggleItemCollapse(${state.activeSecIdx}, ${itemIdx})" ${hasBaseRating ? '' : 'disabled title="Choose IN, NI, or NP first to hide this item"'} class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition shrink-0 ${hasBaseRating ? 'border-slate-300 bg-slate-50 hover:border-davis-navy text-slate-700' : 'border-slate-200 bg-slate-50 text-slate-400 opacity-45 cursor-not-allowed'}">${isCollapsed ? 'Show' : 'Hide'}</button>
+              </div>
+              <div class="col-span-2 md:col-span-1 flex flex-wrap items-center gap-1.5 md:justify-end">
                 ${ratings}
                 <button type="button" onclick="toggleItemSummary(${state.activeSecIdx}, ${itemIdx})" class="px-2.5 py-1.5 rounded-lg border text-xs font-bold transition ${it.isSummary ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-slate-600 border-slate-200'}">Summary</button>
                 ${state.editTemplateMode ? `
@@ -4903,7 +4996,7 @@
                 <button type="button" onclick="deleteItem(${state.activeSecIdx}, ${itemIdx})" title="Remove item" class="px-2 py-1.5 rounded-lg text-slate-400 hover:text-rose-600 text-xs font-bold">&times;</button>
               </div>
             </div>
-
+            ${isCollapsed ? '' : `
             <!-- Photos row -->
             <div class="flex items-start gap-2 overflow-x-auto pb-1">
               <button type="button" onclick="addPhotosToItem(${state.activeSecIdx}, ${itemIdx}, true)" class="w-24 h-24 shrink-0 rounded-xl border-2 border-dashed border-sky-300 bg-sky-50/60 hover:bg-sky-100 flex flex-col items-center justify-center text-davis-navy text-[11px] font-bold gap-1">
@@ -4938,7 +5031,7 @@
                 </div>
                 <textarea data-pair-ta="item-${state.activeSecIdx}-${itemIdx}" rows="3" oninput="setItemField(${state.activeSecIdx}, ${itemIdx}, 'narrative', this.value)" placeholder="Final 3-sentence narrative (edit freely or click Rewrite with AI / Library)..." class="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50/50 text-xs leading-relaxed resize-y">${esc(it.narrative || '')}</textarea>
               </div>
-            </div>
+            </div>`}
           </div>
         `;
       }).join('');
