@@ -5673,22 +5673,28 @@ function submitInspectionQuoteRequest(payload) {
         { id: 'customers', label: `Customers (${customersList.length})` }
       ].map(renderAdminTabBtn).join('');
       const analyticsTabBtn = renderAdminTabBtn({ id: 'analytics', label: 'Analytics' });
-      const mobileAdminTabBtns = [
-        { id: 'scheduled', label: `Scheduled (${scheduledInspections.length})` },
-        { id: 'reports', label: `Reports (${releasedReports.length})` },
-        { id: 'requests', label: `Requests (${reqTotal})`, highlight: (newReqCount > 0 || reqTotal > 0) },
-        { id: 'agents', label: `Agents (${agentsList.length})` },
-        { id: 'customers', label: `Customers (${customersList.length})` },
-        { id: 'analytics', label: 'Analytics' }
-      ].map(t => {
+      const renderMobAdminTab = (t, extraCls = 'px-2 py-1.5 text-[11px]') => {
         const active = protoState.adminTab === t.id;
         const cls = active
           ? 'bg-davis-navy text-white shadow-sm'
           : (t.highlight
               ? 'bg-amber-50 border border-amber-300 text-amber-900'
               : 'bg-white border border-slate-200 text-slate-700');
-        return `<button type="button" onclick="protoState.adminTab='${t.id}'; renderProtoPortal();" class="w-full px-2.5 py-2 rounded-xl text-[11px] font-bold text-center truncate transition ${cls}">${t.label}</button>`;
-      }).join('');
+        return `<button type="button" onclick="protoState.adminTab='${t.id}'; renderProtoPortal();" class="w-full ${extraCls} rounded-lg font-bold text-center truncate transition ${cls}">${t.label}</button>`;
+      };
+      const mobileAdminTabRows = `
+        <div class="grid grid-cols-2 gap-1.5">
+          ${renderMobAdminTab({ id: 'scheduled', label: `Scheduled (${scheduledInspections.length})` })}
+          ${renderMobAdminTab({ id: 'reports', label: `Reports (${releasedReports.length})` })}
+        </div>
+        <div class="grid grid-cols-2 gap-1.5">
+          ${renderMobAdminTab({ id: 'requests', label: `Requests (${reqTotal})`, highlight: (newReqCount > 0 || reqTotal > 0) })}
+          <div class="grid grid-cols-2 gap-1">
+            ${renderMobAdminTab({ id: 'agents', label: 'Agents' }, 'px-1 py-1.5 text-[10.5px]')}
+            ${renderMobAdminTab({ id: 'customers', label: 'Customers' }, 'px-1 py-1.5 text-[10.5px]')}
+          </div>
+        </div>
+      `;
 
       const renderInspTableRows = (list, isScheduled = false) => list.map(insp => {
         const total = insp ? protoTotal(insp) : 0;
@@ -6608,15 +6614,15 @@ function submitInspectionQuoteRequest(payload) {
               <button type="button" onclick="dhiSignOut()" class="px-3 sm:px-3.5 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700 text-slate-700 text-[11px] sm:text-xs font-bold transition">Sign Out</button>
             </div>
           </div>
-          <div class="sticky top-0 md:static z-20 bg-slate-200/95 md:bg-slate-200 backdrop-blur md:backdrop-blur-none rounded-2xl border border-slate-300 p-2.5 sm:p-4 shadow-md md:shadow-sm">
-            <!-- Mobile Sticky Bar: 50/50 Action Buttons + 2-Column Tab Grid -->
-            <div class="md:hidden space-y-2">
-              <div class="grid grid-cols-2 gap-2">
-                <button type="button" onclick="protoState.adminTab='new'; renderProtoPortal();" class="w-full text-center px-2.5 py-2 rounded-xl text-[11px] font-extrabold transition shadow-sm whitespace-nowrap ${protoState.adminTab === 'new' ? 'bg-emerald-700 text-white ring-2 ring-emerald-300' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}">+ New Inspection</button>
-                <a href="./inspect.html" class="w-full text-center px-2.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 text-white text-[11px] font-extrabold transition shadow-sm whitespace-nowrap">Field &amp; Report App &rarr;</a>
+          <div class="sticky top-0 md:static z-20 bg-slate-200/95 md:bg-slate-200 backdrop-blur md:backdrop-blur-none rounded-2xl border border-slate-300 p-2 sm:p-4 shadow-md md:shadow-sm">
+            <!-- Mobile Sticky Bar: Slim 3-Row Layout (Actions / Scheduled+Reports / Requests+Agents+Customers) -->
+            <div class="md:hidden space-y-1.5">
+              <div class="grid grid-cols-2 gap-1.5">
+                <button type="button" onclick="protoState.adminTab='new'; renderProtoPortal();" class="w-full text-center px-2 py-1.5 rounded-lg text-[11px] font-extrabold transition shadow-sm whitespace-nowrap ${protoState.adminTab === 'new' ? 'bg-emerald-700 text-white ring-2 ring-emerald-300' : 'bg-emerald-600 hover:bg-emerald-700 text-white'}">+ New Inspection</button>
+                <a href="./inspect.html" class="w-full text-center px-2 py-1.5 rounded-lg bg-sky-700 hover:bg-sky-800 text-white text-[11px] font-extrabold transition shadow-sm whitespace-nowrap">Field &amp; Report App &rarr;</a>
               </div>
-              <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-300/80">
-                ${mobileAdminTabBtns}
+              <div class="space-y-1.5 pt-1.5 border-t border-slate-300/80">
+                ${mobileAdminTabRows}
               </div>
             </div>
 
