@@ -23,29 +23,119 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
-    body { font-family: Inter, system-ui, -apple-system, sans-serif; background: #F4F7FA; color: #0F172A; -webkit-tap-highlight-color: transparent; }
+    body { font-family: Inter, system-ui, -apple-system, sans-serif; background: #334155; color: #0F172A; -webkit-tap-highlight-color: transparent; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    @media (min-width: 768px) {
+      body { background: #F4F7FA; color: #0F172A; }
+      body.dhi-dark { background: #0F172A; color: #F1F5F9; }
+      body.dhi-dark .bg-white,
+      body.dhi-dark .bg-white\/95 { background-color: #1E293B !important; }
+      body.dhi-dark .bg-slate-50,
+      body.dhi-dark .bg-slate-50\/50,
+      body.dhi-dark .bg-slate-50\/60 { background-color: #162032 !important; }
+      body.dhi-dark .bg-slate-100 { background-color: #273549 !important; }
+      body.dhi-dark .bg-slate-200 { background-color: #334155 !important; }
+      body.dhi-dark .bg-sky-50,
+      body.dhi-dark .bg-sky-50\/60 { background-color: rgba(14, 165, 233, 0.14) !important; }
+      body.dhi-dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.14) !important; }
+      body.dhi-dark .bg-amber-50,
+      body.dhi-dark .bg-amber-100 { background-color: rgba(245, 158, 11, 0.16) !important; }
+      body.dhi-dark .bg-rose-50 { background-color: rgba(244, 63, 94, 0.16) !important; }
+      body.dhi-dark .bg-indigo-50,
+      body.dhi-dark .bg-indigo-50\/60 { background-color: rgba(99, 102, 241, 0.16) !important; }
+      body.dhi-dark .border-slate-100,
+      body.dhi-dark .border-slate-200,
+      body.dhi-dark .border-slate-300 { border-color: #334155 !important; }
+      body.dhi-dark .border-sky-200,
+      body.dhi-dark .border-sky-300 { border-color: rgba(56, 189, 248, 0.35) !important; }
+      body.dhi-dark .border-emerald-200 { border-color: rgba(52, 211, 153, 0.35) !important; }
+      body.dhi-dark .border-amber-200,
+      body.dhi-dark .border-amber-300,
+      body.dhi-dark .border-amber-400 { border-color: rgba(251, 191, 36, 0.45) !important; }
+      body.dhi-dark .border-rose-200,
+      body.dhi-dark .border-rose-300 { border-color: rgba(251, 113, 133, 0.45) !important; }
+      body.dhi-dark .border-indigo-300 { border-color: rgba(129, 140, 248, 0.4) !important; }
+      /* Preserve bright left-edge semantic status stripes on item cards */
+      body.dhi-dark .border-l-rose-500 { border-left-color: #f43f5e !important; }
+      body.dhi-dark .border-l-amber-500 { border-left-color: #f59e0b !important; }
+      body.dhi-dark .border-l-emerald-500 { border-left-color: #10b981 !important; }
+      body.dhi-dark .ring-amber-200 { --tw-ring-color: rgba(245, 158, 11, 0.3) !important; }
+
+      body.dhi-dark .text-slate-900 { color: #F8FAFC !important; }
+      body.dhi-dark .text-slate-800 { color: #E2E8F0 !important; }
+      body.dhi-dark .text-slate-700 { color: #CBD5E1 !important; }
+      body.dhi-dark .text-slate-600 { color: #94A3B8 !important; }
+      body.dhi-dark .text-slate-500 { color: #94A3B8 !important; }
+      body.dhi-dark .text-davis-navy { color: #7DD3FC !important; }
+      body.dhi-dark .bg-davis-navy,
+      body.dhi-dark .bg-davis-navy * { color: #FFFFFF !important; }
+      body.dhi-dark .text-emerald-800 { color: #6EE7B7 !important; }
+      body.dhi-dark .text-amber-900,
+      body.dhi-dark .text-amber-800 { color: #FDE68A !important; }
+      body.dhi-dark .text-rose-700,
+      body.dhi-dark .text-rose-800 { color: #FDA4AF !important; }
+      body.dhi-dark .text-indigo-800 { color: #C7D2FE !important; }
+      body.dhi-dark .text-sky-700 { color: #7DD3FC !important; }
+
+      body.dhi-dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+      body.dhi-dark textarea,
+      body.dhi-dark select {
+        background-color: #0F172A !important;
+        color: #F1F5F9 !important;
+        border-color: #475569 !important;
+      }
+      body.dhi-dark input::placeholder,
+      body.dhi-dark textarea::placeholder {
+        color: #64748B !important;
+      }
+      body.dhi-dark .hover\:bg-slate-50:hover,
+      body.dhi-dark .hover\:bg-slate-100:hover,
+      body.dhi-dark .hover\:bg-slate-200:hover { background-color: #334155 !important; }
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
   <header id="dhiFieldHeader" class="md:sticky md:top-0 z-30 bg-davis-dark text-white border-b border-white/10 shadow-sm">
-    <div class="w-full max-w-none mx-auto px-2.5 sm:px-6 py-2 flex items-center justify-between gap-1.5 sm:gap-2 flex-wrap">
-      <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+    <div class="w-full max-w-none mx-auto px-3 sm:px-6 py-2 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 min-w-0 flex-1">
         <span class="px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg bg-sky-500/20 border border-sky-300/30 text-[10px] sm:text-[11px] font-extrabold tracking-wide text-sky-200 shrink-0">DHI</span>
-        <span id="hdrTitle" class="text-xs sm:text-sm font-extrabold truncate max-w-[180px] sm:max-w-md">Field &amp; Report Editor</span>
+        <span id="hdrTitle" class="text-xs sm:text-sm font-extrabold truncate">Field &amp; Report Editor</span>
+        <span id="hdrOnlineDotMobile" class="md:hidden w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="Online"></span>
       </div>
-      <div class="w-full sm:w-auto flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs flex-wrap">
-        <div id="hdrAuthedTools" class="hidden flex flex-wrap items-center gap-1 sm:gap-1.5">
-          <span id="hdrOnlineBadge" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-300/30 text-[10px] sm:text-[11px] font-bold text-emerald-100"><span class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-400"></span><span class="hidden sm:inline">Online</span></span>
-          <span id="hdrBackupBadge" class="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 text-[11px] font-semibold text-sky-100">Local save ready</span>
-          <button type="button" onclick="openInstructionsModal()" class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">AI Rules</button>
-          <button type="button" onclick="openBackupsModal()" class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">Backups</button>
+
+      <!-- Mobile Header Menu Trigger -->
+      <button type="button" id="hdrMobileMenuBtn" onclick="toggleFieldMobileHeaderMenu()" class="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold shrink-0 transition" aria-expanded="false">
+        <span>Menu</span>
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+
+      <!-- Desktop Header Controls -->
+      <div class="hidden md:flex items-center gap-1.5 text-xs shrink-0">
+        <div id="hdrAuthedTools" class="hidden flex items-center gap-1.5">
+          <span id="hdrOnlineBadge" class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-500/20 border border-emerald-300/30 text-[11px] font-bold text-emerald-100"><span class="w-2 h-2 rounded-full bg-emerald-400"></span><span>Online</span></span>
+          <span id="hdrBackupBadge" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/10 text-[11px] font-semibold text-sky-100">Local save ready</span>
+          <button type="button" onclick="openInstructionsModal()" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">AI Rules</button>
+          <button type="button" onclick="openBackupsModal()" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">Backups</button>
         </div>
-        <a id="hdrAdminLink" href="./index.html?view=portal" class="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition"><span class="hidden sm:inline">Admin Dashboard</span><span class="sm:hidden">Admin</span></a>
-        <div id="hdrSignOutWrap" class="hidden ml-auto sm:ml-4 sm:pl-3 sm:border-l sm:border-white/20">
-          <button type="button" id="hdrSignOutBtn" onclick="fieldSignOut()" class="px-2.5 py-1 sm:py-1.5 rounded-lg bg-rose-500/25 hover:bg-rose-500/40 text-rose-100 font-bold transition">Sign Out</button>
+        <button type="button" id="hdrThemeToggleBtn" onclick="toggleFieldDesktopTheme()" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition" title="Toggle desktop Dark / Light mode">Light Mode</button>
+        <a id="hdrAdminLink" href="./index.html?view=portal" class="px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 font-bold transition">Admin Dashboard</a>
+        <div id="hdrSignOutWrap" class="hidden ml-3 pl-3 border-l border-white/20">
+          <button type="button" id="hdrSignOutBtn" onclick="fieldSignOut()" class="px-2.5 py-1.5 rounded-lg bg-rose-500/25 hover:bg-rose-500/40 text-rose-100 font-bold transition">Sign Out</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Mobile Header Dropdown Menu -->
+    <div id="dhiFieldMobileHeaderMenu" class="hidden md:hidden border-t border-white/10 bg-[#002440] px-3 py-2.5 space-y-2 text-xs">
+      <div id="hdrAuthedToolsMobile" class="hidden grid grid-cols-2 gap-2">
+        <button type="button" onclick="toggleFieldMobileHeaderMenu(false); openInstructionsModal();" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 font-bold text-center">AI Rules</button>
+        <button type="button" onclick="toggleFieldMobileHeaderMenu(false); openBackupsModal();" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 font-bold text-center">Backups</button>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <a id="hdrAdminLinkMobile" href="./index.html?view=portal" class="px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 font-bold text-center">Admin Dashboard</a>
+        <button type="button" id="hdrSignOutBtnMobile" onclick="toggleFieldMobileHeaderMenu(false); fieldSignOut();" class="hidden px-3 py-2 rounded-lg bg-rose-500/30 hover:bg-rose-500/45 text-rose-100 font-bold text-center">Sign Out</button>
       </div>
     </div>
   </header>
@@ -4752,16 +4842,22 @@
       const root = document.getElementById('appRoot');
       const authedTools = document.getElementById('hdrAuthedTools');
       if (authedTools) authedTools.classList.toggle('hidden', !state.user);
+      const authedToolsMob = document.getElementById('hdrAuthedToolsMobile');
+      if (authedToolsMob) authedToolsMob.classList.toggle('hidden', !state.user);
       const signOutWrap = document.getElementById('hdrSignOutWrap');
       if (signOutWrap) signOutWrap.classList.toggle('hidden', !state.user);
+      const signOutMob = document.getElementById('hdrSignOutBtnMobile');
+      if (signOutMob) signOutMob.classList.toggle('hidden', !state.user);
       const adminLink = document.getElementById('hdrAdminLink');
-      if (adminLink) {
+      const adminLinkMob = document.getElementById('hdrAdminLinkMobile');
+      if (adminLink || adminLinkMob) {
         try {
           if (document.referrer && document.referrer.toLowerCase().includes('portal-test.html')) {
             sessionStorage.setItem('dhi_admin_return_page', 'portal-test.html');
           }
           const retPage = sessionStorage.getItem('dhi_admin_return_page') || 'index.html';
-          adminLink.href = './' + retPage + '?view=portal';
+          if (adminLink) adminLink.href = './' + retPage + '?view=portal';
+          if (adminLinkMob) adminLinkMob.href = './' + retPage + '?view=portal';
         } catch (_e) {}
       }
       if (!state.user) {
@@ -5039,25 +5135,57 @@
       root.innerHTML = `
         <div class="space-y-4">
           <!-- Top Action Bar -->
-          <div class="bg-white rounded-2xl border border-slate-300 p-3.5 shadow-sm flex flex-wrap items-center justify-between gap-2.5">
-            <div class="flex flex-wrap items-center gap-2">
-              <button type="button" onclick="closeActiveDraft()" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">&larr; All inspections</button>
-              ${(() => {
-                const pl = dhiBuildPermitLink({ address: state.draft.address, street: pi.street || '', city: pi.city || '', county: pi.county || '' });
-                return `<button type="button" id="dhiTopPermitLink" data-url="${esc(pl.url)}" data-street="${esc(pl.streetText || pi.street || (state.draft.address || '').split(',')[0].trim())}" onclick="dhiOpenFieldPermitLookup(this)" class="px-3 py-1.5 rounded-xl border border-sky-200 bg-sky-50 hover:border-davis-navy text-davis-navy text-xs font-bold transition">${esc(pl.label)} &nearr;</button>`;
-              })()}
-              <span class="text-xs font-bold text-slate-500">${state.draft.dirty ? 'Unsynced local changes' : 'Synced'}</span>
+          ${(() => {
+            const pl = dhiBuildPermitLink({ address: state.draft.address, street: pi.street || '', city: pi.city || '', county: pi.county || '' });
+            const plStreet = pl.streetText || pi.street || (state.draft.address || '').split(',')[0].trim();
+            const pendingAI = countPendingAITaskItems();
+            const npmaEnabled = !!(state.draft && state.draft.npma33 && state.draft.npma33.enabled);
+            return `
+          <div class="bg-white rounded-2xl border border-slate-300 p-3 sm:p-3.5 shadow-sm">
+            <!-- Mobile Clean 2-Row Action Bar -->
+            <div class="md:hidden space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <button type="button" onclick="closeActiveDraft()" class="px-2.5 py-1.5 rounded-xl border border-slate-300 bg-slate-50 text-xs font-bold text-slate-700 shrink-0">&larr; Inspections</button>
+                <span class="text-[11px] font-bold truncate ${state.draft.dirty ? 'text-amber-700' : 'text-emerald-700'}">${state.draft.dirty ? 'Unsynced' : 'Synced'}</span>
+                <details id="dhiMobileToolsDropdown" class="relative shrink-0">
+                  <summary class="list-none cursor-pointer px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-50 text-xs font-bold text-slate-700 inline-flex items-center gap-1">
+                    <span>Tools</span>
+                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </summary>
+                  <div class="absolute right-0 mt-1.5 w-56 rounded-xl bg-white shadow-xl border border-slate-200 p-2 space-y-1.5 z-40">
+                    <button type="button" data-url="${esc(pl.url)}" data-street="${esc(plStreet)}" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; dhiOpenFieldPermitLookup(this);" class="w-full text-left px-3 py-2 rounded-lg bg-sky-50 border border-sky-200 text-davis-navy text-xs font-bold">${esc(pl.label)} &nearr;</button>
+                    <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; toggleNpma33Panel();" class="w-full text-left px-3 py-2 rounded-lg border text-xs font-bold ${state.showNpma33 ? 'bg-indigo-600 border-indigo-600 text-white' : (npmaEnabled ? 'bg-indigo-50 border-indigo-300 text-indigo-800' : 'border-slate-200 bg-slate-50 text-slate-700')}">NPMA-33 (WDI)${npmaEnabled ? ' ✓' : ''}</button>
+                    <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; runWholeHomeAITask();" ${state.taskRunning ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg bg-indigo-600 disabled:opacity-60 text-white text-xs font-bold">${state.taskRunning ? esc(state.taskProgressText || 'Running AI task...') : `Run AI task (${pendingAI} pending)`}</button>
+                    <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; toggleEditTemplateMode();" class="w-full text-left px-3 py-2 rounded-lg border text-xs font-bold ${state.editTemplateMode ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-700'}">${state.editTemplateMode ? 'Editing template' : 'Edit template'}</button>
+                    <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; uploadDraftToSupabase(true);" ${state.uploading ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg bg-emerald-600 disabled:opacity-60 text-white text-xs font-extrabold">Publish to customer portal</button>
+                  </div>
+                </details>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" onclick="saveDraftLocally(false)" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 text-center">Save Locally</button>
+                <button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="w-full px-3 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-extrabold text-center">${state.uploading ? 'Uploading...' : 'Upload Draft'}</button>
+              </div>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <button type="button" onclick="runWholeHomeAITask()" ${state.taskRunning ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold transition">${state.taskRunning ? esc(state.taskProgressText || 'Running AI task...') : `Run AI task (${countPendingAITaskItems()} pending)`}</button>
-              <button type="button" onclick="state.showPhotoTray=!state.showPhotoTray; render();" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.showPhotoTray ? 'bg-sky-600 border-sky-600 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">Photo tray (${state.photoTray.length})</button>
-              <button type="button" onclick="toggleNpma33Panel()" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.showNpma33 ? 'bg-indigo-600 border-indigo-600 text-white' : (state.draft && state.draft.npma33 && state.draft.npma33.enabled ? 'bg-indigo-50 border-indigo-300 text-indigo-800 hover:border-indigo-500' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700')}">NPMA-33 (WDI)${state.draft && state.draft.npma33 && state.draft.npma33.enabled ? ' ✓' : ''}</button>
-              <button type="button" onclick="toggleEditTemplateMode()" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.editTemplateMode ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">${state.editTemplateMode ? 'Editing template' : 'Edit template'}</button>
-              <button type="button" onclick="saveDraftLocally(false)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-xs font-bold text-slate-700">Save locally</button>
-              <button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-bold">${state.uploading ? 'Uploading...' : 'Upload draft to cloud'}</button>
-              <button type="button" onclick="uploadDraftToSupabase(true)" ${state.uploading ? 'disabled' : ''} class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-extrabold shadow-sm">Publish to customer portal</button>
+
+            <!-- Desktop Full Action Bar -->
+            <div class="hidden md:flex flex-wrap items-center justify-between gap-2.5">
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="closeActiveDraft()" class="px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-700">&larr; All inspections</button>
+                <button type="button" id="dhiTopPermitLink" data-url="${esc(pl.url)}" data-street="${esc(plStreet)}" onclick="dhiOpenFieldPermitLookup(this)" class="px-3 py-1.5 rounded-xl border border-sky-200 bg-sky-50 hover:border-davis-navy text-davis-navy text-xs font-bold transition">${esc(pl.label)} &nearr;</button>
+                <span class="text-xs font-bold text-slate-500">${state.draft.dirty ? 'Unsynced local changes' : 'Synced'}</span>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <button type="button" onclick="runWholeHomeAITask()" ${state.taskRunning ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-xs font-bold transition">${state.taskRunning ? esc(state.taskProgressText || 'Running AI task...') : `Run AI task (${pendingAI} pending)`}</button>
+                <button type="button" onclick="state.showPhotoTray=!state.showPhotoTray; render();" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.showPhotoTray ? 'bg-sky-600 border-sky-600 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">Photo tray (${state.photoTray.length})</button>
+                <button type="button" onclick="toggleNpma33Panel()" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.showNpma33 ? 'bg-indigo-600 border-indigo-600 text-white' : (npmaEnabled ? 'bg-indigo-50 border-indigo-300 text-indigo-800 hover:border-indigo-500' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700')}">NPMA-33 (WDI)${npmaEnabled ? ' ✓' : ''}</button>
+                <button type="button" onclick="toggleEditTemplateMode()" class="px-3 py-2 rounded-xl border text-xs font-bold transition ${state.editTemplateMode ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 bg-white hover:border-davis-navy text-slate-700'}">${state.editTemplateMode ? 'Editing template' : 'Edit template'}</button>
+                <button type="button" onclick="saveDraftLocally(false)" class="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:border-davis-navy text-xs font-bold text-slate-700">Save locally</button>
+                <button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="px-3.5 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-bold">${state.uploading ? 'Uploading...' : 'Upload draft to cloud'}</button>
+                <button type="button" onclick="uploadDraftToSupabase(true)" ${state.uploading ? 'disabled' : ''} class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-extrabold shadow-sm">Publish to customer portal</button>
+              </div>
             </div>
-          </div>
+          </div>`;
+          })()}
           ${state.editTemplateMode ? `
             <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
               <div class="space-y-0.5">
@@ -5432,6 +5560,34 @@
       });
       document.querySelectorAll('textarea[data-pair-ta]').forEach(ta => dhiTaResizeObserver.observe(ta));
     }
+
+    function applyFieldDesktopTheme(theme) {
+      const isDark = theme !== 'light';
+      document.body.classList.toggle('dhi-dark', isDark);
+      const btn = document.getElementById('hdrThemeToggleBtn');
+      if (btn) btn.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+      try { localStorage.setItem('dhi_field_theme', isDark ? 'dark' : 'light'); } catch (_e) {}
+    }
+
+    function toggleFieldDesktopTheme() {
+      const currentlyDark = document.body.classList.contains('dhi-dark');
+      applyFieldDesktopTheme(currentlyDark ? 'light' : 'dark');
+    }
+
+    function toggleFieldMobileHeaderMenu(forceState) {
+      const menu = document.getElementById('dhiFieldMobileHeaderMenu');
+      const btn = document.getElementById('hdrMobileMenuBtn');
+      if (!menu) return;
+      const shouldOpen = typeof forceState === 'boolean' ? forceState : menu.classList.contains('hidden');
+      menu.classList.toggle('hidden', !shouldOpen);
+      if (btn) btn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+    }
+
+    (function initFieldTheme() {
+      let saved = 'dark';
+      try { saved = localStorage.getItem('dhi_field_theme') || 'dark'; } catch (_e) {}
+      applyFieldDesktopTheme(saved);
+    })();
 
     dhiUpdateOnlineIndicator();
     initApp();
