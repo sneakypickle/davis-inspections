@@ -161,7 +161,9 @@
   <main id="appRoot" class="flex-grow max-w-none w-full mx-auto px-2.5 sm:px-6 py-3 sm:py-4 pb-20"></main>
 
   <!-- Toast -->
-  <div id="toastBox" class="hidden fixed bottom-4 right-4 z-50 max-w-sm bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-slate-700"></div>
+  <div id="toastBox" title="Click to dismiss" class="hidden fixed bottom-4 right-4 z-[9999] max-w-sm bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-slate-700 cursor-pointer select-none"></div>
+  <input id="dhiPhotoFolderInput" type="file" webkitdirectory directory multiple class="hidden" onchange="handlePhotoTrayInputChange(this)" />
+  <input id="dhiPhotoFilesInput" type="file" accept="image/*" multiple class="hidden" onchange="handlePhotoTrayInputChange(this)" />
 
   <!-- AI Global Instructions Modal -->
   <div id="instructionsModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -480,13 +482,39 @@ For every item:
     }
 
     let toastTimer = null;
+    let toastRemainingMs = 6500;
+    let toastStartedAt = 0;
+    function initToastInteractions(el) {
+      if (!el || el.dataset.toastBound) return;
+      el.dataset.toastBound = '1';
+      el.addEventListener('click', () => {
+        clearTimeout(toastTimer);
+        el.classList.add('hidden');
+      });
+      el.addEventListener('mouseenter', () => {
+        if (toastTimer) {
+          clearTimeout(toastTimer);
+          toastTimer = null;
+          toastRemainingMs = Math.max(1500, toastRemainingMs - (Date.now() - toastStartedAt));
+        }
+      });
+      el.addEventListener('mouseleave', () => {
+        if (!el.classList.contains('hidden')) {
+          toastStartedAt = Date.now();
+          toastTimer = setTimeout(() => el.classList.add('hidden'), toastRemainingMs);
+        }
+      });
+    }
     function toast(msg) {
       const el = document.getElementById('toastBox');
       if (!el) return;
+      initToastInteractions(el);
       el.textContent = msg;
       el.classList.remove('hidden');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => el.classList.add('hidden'), 3600);
+      toastRemainingMs = 6500;
+      toastStartedAt = Date.now();
+      toastTimer = setTimeout(() => el.classList.add('hidden'), toastRemainingMs);
     }
 
     // =========================================================================
@@ -1532,36 +1560,112 @@ For every item:
     }
 
     function openPhotoFolderPicker(isFolder) {
-      const inp = document.createElement('input');
-      inp.type = 'file';
-      inp.accept = 'image/*';
-      inp.multiple = true;
-      if (isFolder) inp.setAttribute('webkitdirectory', '');
-      inp.onchange = async () => {
-        const files = Array.from(inp.files || []).filter(f => f.type.startsWith('image/') || /\.(jpe?g|png|webp|heic)$/i.test(f.name));
-        if (!files.length) { toast('No image files found.'); return; }
-        toast(`Loading ${files.length} photo(s) into sidebar tray...`);
-        for (const f of files) {
-          try {
-            const dataUrl = await compressImageFile(f);
-            state.photoTray.push({
-              id: 'tray-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-              name: f.name,
-              dataUrl,
-              used: false
-            });
-          } catch (e) {}
-        }
-        state.showPhotoTray = true;
-        render();
-        toast(`Loaded ${files.length} photo(s) into Photo Tray. Drag any photo onto an item.`);
-      };
+      const inp = document.getElementById(isFolder ? 'dhiPhotoFolderInput' : 'dhiPhotoFilesInput');
+      if (!inp) return;
+      inp.value = '';
       inp.click();
+    }
+
+    async function handlePhotoTrayInputChange(inp) {
+      const rawFiles = Array.from((inp && inp.files) || []);
+      if (inp) inp.value = '';
+      await loadFilesIntoPhotoTray(rawFiles);
+    }
+
+    async function loadFilesIntoPhotoTray(rawFiles) {
+      const files = Array.from(rawFiles || [])
+        .filter(f => f && ((f.type && f.type.startsWith('image/')) || /\.(jpe?g|png|webp|heic)$/i.test(f.name || '')))
+        .sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { numeric: true, sensitivity: 'base' }));
+      if (!files.length) { toast('No image files found.'); return; }
+      toast(`Loading ${files.length} photo(s) into sidebar tray...`);
+      let loaded = 0;
+      for (const f of files) {
+        try {
+          const dataUrl = await compressImageFile(f);
+          state.photoTray.push({
+            id: 'tray-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+            name: f.name,
+            dataUrl,
+            used: false
+          });
+          loaded++;
+        } catch (e) {}
+      }
+      state.showPhotoTray = true;
+      render();
+      toast(`Loaded ${loaded} photo(s) into Photo Tray. Drag any photo onto an item.`);
+    }
+
+    function dhiReadAllDirectoryEntries(dirReader) {
+      return new Promise((resolve) => {
+        const all = [];
+        const readNext = () => {
+          dirReader.readEntries((batch) => {
+            if (!batch || !batch.length) { resolve(all); return; }
+            all.push(...batch);
+            readNext();
+          }, () => resolve(all));
+        };
+        readNext();
+      });
+    }
+
+    async function dhiTraverseFileSystemEntry(entry, out) {
+      if (!entry) return;
+      if (entry.isFile) {
+        await new Promise((resolve) => {
+          entry.file((file) => { if (file) out.push(file); resolve(); }, () => resolve());
+        });
+      } else if (entry.isDirectory) {
+        const entries = await dhiReadAllDirectoryEntries(entry.createReader());
+        for (const child of entries) {
+          await dhiTraverseFileSystemEntry(child, out);
+        }
+      }
+    }
+
+    function isExternalFileDrag(e) {
+      const types = Array.from((e.dataTransfer && e.dataTransfer.types) || []);
+      return types.includes('Files') && !state.dragPhotoTrayId;
+    }
+
+    function handlePhotoTrayDragOver(e) {
+      if (!isExternalFileDrag(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      e.currentTarget.classList.add('ring-2', 'ring-sky-500', 'border-sky-500');
+    }
+
+    function handlePhotoTrayDragLeave(e) {
+      if (e.currentTarget.contains(e.relatedTarget)) return;
+      e.currentTarget.classList.remove('ring-2', 'ring-sky-500', 'border-sky-500');
+    }
+
+    async function handlePhotoTrayDrop(e) {
+      e.currentTarget.classList.remove('ring-2', 'ring-sky-500', 'border-sky-500');
+      if (!isExternalFileDrag(e)) return;
+      e.preventDefault();
+      const items = Array.from((e.dataTransfer && e.dataTransfer.items) || []);
+      const entries = items
+        .map(it => (typeof it.webkitGetAsEntry === 'function' ? it.webkitGetAsEntry() : null))
+        .filter(Boolean);
+      if (entries.length) {
+        const collected = [];
+        for (const entry of entries) {
+          await dhiTraverseFileSystemEntry(entry, collected);
+        }
+        await loadFilesIntoPhotoTray(collected);
+      } else {
+        await loadFilesIntoPhotoTray(Array.from((e.dataTransfer && e.dataTransfer.files) || []));
+      }
     }
 
     function handleTrayDragStart(e, trayId) {
       state.dragPhotoTrayId = trayId;
       try { e.dataTransfer.setData('text/plain', trayId); } catch (_) {}
+    }
+    function handleTrayDragEnd() {
+      state.dragPhotoTrayId = null;
     }
 
     async function handleItemPhotoDrop(e, secIdx, itemIdx) {
@@ -5263,7 +5367,7 @@ For every item:
         <div onmousedown="startTraySplitResize(event)" ontouchstart="startTraySplitResize(event)" title="Drag to resize Photo Tray" class="hidden lg:flex w-3 shrink-0 self-stretch cursor-col-resize items-center justify-center group select-none">
           <div class="w-1 h-24 rounded-full bg-slate-300 group-hover:bg-sky-500 transition"></div>
         </div>
-        <aside id="dhiPhotoTrayAside" style="width:${state.trayWidthPct}%" class="w-full lg:w-auto lg:shrink-0 lg:sticky lg:top-16 bg-white rounded-2xl border border-slate-300 shadow-sm p-4 space-y-3">
+        <aside id="dhiPhotoTrayAside" ondragover="handlePhotoTrayDragOver(event)" ondragleave="handlePhotoTrayDragLeave(event)" ondrop="handlePhotoTrayDrop(event)" style="width:${state.trayWidthPct}%" class="w-full lg:w-auto lg:shrink-0 lg:sticky lg:top-16 bg-white rounded-2xl border border-slate-300 shadow-sm p-4 space-y-3 transition">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
               <div class="text-xs font-extrabold text-slate-900">Photo tray (${state.photoTray.length})</div>
@@ -5281,12 +5385,12 @@ For every item:
           </div>
           <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(${szCfg.min}px, 1fr)); gap: 0.625rem;" class="max-h-[78vh] overflow-y-auto pr-1">
             ${state.photoTray.map(p => `
-              <div draggable="true" ondragstart="handleTrayDragStart(event, '${p.id}')" class="relative cursor-grab active:cursor-grabbing rounded-xl overflow-hidden border ${p.used ? 'border-emerald-400 opacity-75' : 'border-slate-300 hover:border-davis-navy'} bg-slate-100 shadow-sm">
+              <div draggable="true" ondragstart="handleTrayDragStart(event, '${p.id}')" ondragend="handleTrayDragEnd()" class="relative cursor-grab active:cursor-grabbing rounded-xl overflow-hidden border ${p.used ? 'border-emerald-400 opacity-75' : 'border-slate-300 hover:border-davis-navy'} bg-slate-100 shadow-sm">
                 <img src="${p.dataUrl}" class="w-full ${szCfg.h} object-cover pointer-events-none" />
                 
                 ${p.used ? '<span class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold shadow">Used</span>' : ''}
               </div>
-            `).join('') || '<div style="grid-column:1/-1" class="text-xs text-slate-400 text-center py-10 border border-dashed border-slate-200 rounded-xl">Click <strong>Load folder</strong> to open your inspection photos here.</div>'}
+            `).join('') || '<div style="grid-column:1/-1" class="text-xs text-slate-400 text-center py-10 border border-dashed border-slate-200 rounded-xl">Click <strong>Load folder</strong> or drag a photo folder here.</div>'}
           </div>
         </aside>`;
     }
@@ -6172,7 +6276,7 @@ For every item:
               <div onmousedown="startTraySplitResize(event)" ontouchstart="startTraySplitResize(event)" title="Drag to resize Photo Tray" class="hidden lg:flex w-3 shrink-0 self-stretch cursor-col-resize items-center justify-center group select-none">
                 <div class="w-1 h-24 rounded-full bg-slate-300 group-hover:bg-sky-500 transition"></div>
               </div>
-              <aside id="dhiPhotoTrayAside" style="width:${state.trayWidthPct}%" class="w-full lg:w-auto lg:shrink-0 lg:sticky lg:top-16 bg-white rounded-2xl border border-slate-300 shadow-sm p-4 space-y-3">
+              <aside id="dhiPhotoTrayAside" ondragover="handlePhotoTrayDragOver(event)" ondragleave="handlePhotoTrayDragLeave(event)" ondrop="handlePhotoTrayDrop(event)" style="width:${state.trayWidthPct}%" class="w-full lg:w-auto lg:shrink-0 lg:sticky lg:top-16 bg-white rounded-2xl border border-slate-300 shadow-sm p-4 space-y-3 transition">
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div class="text-xs font-extrabold text-slate-900">Photo tray (${state.photoTray.length})</div>
@@ -6190,12 +6294,12 @@ For every item:
                 </div>
                 <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(${szCfg.min}px, 1fr)); gap: 0.625rem;" class="max-h-[78vh] overflow-y-auto pr-1">
                   ${state.photoTray.map(p => `
-                    <div draggable="true" ondragstart="handleTrayDragStart(event, '${p.id}')" class="relative cursor-grab active:cursor-grabbing rounded-xl overflow-hidden border ${p.used ? 'border-emerald-400 opacity-75' : 'border-slate-300 hover:border-davis-navy'} bg-slate-100 shadow-sm">
+                    <div draggable="true" ondragstart="handleTrayDragStart(event, '${p.id}')" ondragend="handleTrayDragEnd()" class="relative cursor-grab active:cursor-grabbing rounded-xl overflow-hidden border ${p.used ? 'border-emerald-400 opacity-75' : 'border-slate-300 hover:border-davis-navy'} bg-slate-100 shadow-sm">
                       <img src="${p.dataUrl}" class="w-full ${szCfg.h} object-cover pointer-events-none" />
                       
                       ${p.used ? '<span class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold shadow">Used</span>' : ''}
                     </div>
-                  `).join('') || '<div style="grid-column:1/-1" class="text-xs text-slate-400 text-center py-10 border border-dashed border-slate-200 rounded-xl">Click <strong>Load folder</strong> to open your inspection photos here.</div>'}
+                  `).join('') || '<div style="grid-column:1/-1" class="text-xs text-slate-400 text-center py-10 border border-dashed border-slate-200 rounded-xl">Click <strong>Load folder</strong> or drag a photo folder here.</div>'}
                 </div>
               </aside>`;
             })() : ''}

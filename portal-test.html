@@ -1279,7 +1279,7 @@
     <!-- ================================================================= -->
         <div id="page-portal" class="hidden w-full">
       <div id="protoPortalRoot" class="w-full space-y-6"></div>
-      <div id="protoToast" class="hidden fixed bottom-5 right-5 z-[9999] bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-lg"></div>
+      <div id="protoToast" title="Click to dismiss" class="hidden fixed bottom-5 right-5 z-[9999] bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-lg cursor-pointer select-none"></div>
     </div>
     </div>
 
@@ -3485,10 +3485,32 @@
     function protoToastMsg(msg) {
       const el = document.getElementById('protoToast');
       if (!el) return;
+      if (!el.dataset.toastBound) {
+        el.dataset.toastBound = '1';
+        el.addEventListener('click', () => {
+          clearTimeout(window._protoToastTimer);
+          el.classList.add('hidden');
+        });
+        el.addEventListener('mouseenter', () => {
+          if (window._protoToastTimer) {
+            clearTimeout(window._protoToastTimer);
+            window._protoToastTimer = null;
+            window._protoToastRemainingMs = Math.max(1500, (window._protoToastRemainingMs || 6500) - (Date.now() - (window._protoToastStartedAt || Date.now())));
+          }
+        });
+        el.addEventListener('mouseleave', () => {
+          if (!el.classList.contains('hidden')) {
+            window._protoToastStartedAt = Date.now();
+            window._protoToastTimer = setTimeout(() => el.classList.add('hidden'), window._protoToastRemainingMs || 2500);
+          }
+        });
+      }
       el.textContent = msg;
       el.classList.remove('hidden');
       clearTimeout(window._protoToastTimer);
-      window._protoToastTimer = setTimeout(() => el.classList.add('hidden'), 3200);
+      window._protoToastRemainingMs = 6500;
+      window._protoToastStartedAt = Date.now();
+      window._protoToastTimer = setTimeout(() => el.classList.add('hidden'), window._protoToastRemainingMs);
     }
 
     function protoCopyText(text, successMsg) {
@@ -9294,7 +9316,7 @@
       if (okEl) okEl.checked = false; // Unchecked by default
       if (titleEl) {
         titleEl.textContent = dhiFeedbackState.role === 'Agent'
-          ? 'Portal Feedback & Feature Ideas'
+          ? 'Feedback & Feature Ideas'
           : 'Report an Issue or Share Feedback';
       }
       const userEmail = protoState.authUser?.email || '';
@@ -14235,7 +14257,7 @@
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden">
       <div class="px-5 py-4 bg-davis-navy text-white flex items-center justify-between gap-3">
         <div>
-          <div id="dhiFeedbackBadge" class="text-[10px] font-bold uppercase tracking-widest text-sky-300">Portal Feedback</div>
+          <div id="dhiFeedbackBadge" class="text-[10px] font-bold uppercase tracking-widest text-sky-300">Help &amp; Support</div>
           <h3 id="dhiFeedbackTitle" class="text-base font-extrabold">Share Feedback or Report an Issue</h3>
         </div>
         <button type="button" onclick="dhiCloseFeedbackModal()" class="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-xs font-bold">✕</button>
