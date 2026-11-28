@@ -5738,6 +5738,25 @@
       if (!insp) return;
       const total = protoTotal(insp);
       const paidDate = insp.paidAt ? new Date(insp.paidAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : (insp.date || '');
+      const pInfo = (insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {};
+      const cardNames = { VI: 'Visa', MC: 'Mastercard', AX: 'American Express', AMEX: 'American Express', DI: 'Discover', DS: 'Discover' };
+      const rawCardCode = String(pInfo.helcimCardType || '').toUpperCase();
+      const cardLabel = cardNames[rawCardCode] || (rawCardCode || 'Credit / Debit Card');
+      const cardMethodDisplay = pInfo.helcimCardLast4
+        ? `${cardLabel} ending in ${pInfo.helcimCardLast4}`
+        : (pInfo.helcimTransactionId ? cardLabel : (insp.paymentMethod || 'Paid Online'));
+      const payProofRows = [];
+      if (cardMethodDisplay) payProofRows.push(`<div><strong>Payment Method:</strong> ${escapeHtml(cardMethodDisplay)}</div>`);
+      if (pInfo.helcimTransactionId) payProofRows.push(`<div><strong>Transaction ID:</strong> #${escapeHtml(pInfo.helcimTransactionId)}</div>`);
+      if (pInfo.helcimApprovalCode) payProofRows.push(`<div><strong>Approval Code:</strong> ${escapeHtml(pInfo.helcimApprovalCode)}</div>`);
+      if (pInfo.helcimInvoiceNumber) payProofRows.push(`<div><strong>Invoice #:</strong> ${escapeHtml(pInfo.helcimInvoiceNumber)}</div>`);
+      const payProofBlock = payProofRows.length ? `
+            <div style="margin-top:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;font-size:12.5px;line-height:1.6;color:#334155;">
+              <div class="meta-label" style="margin-bottom:6px;">Payment Verification</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:4px 18px;">
+                ${payProofRows.join('')}
+              </div>
+            </div>` : '';
       const logoImg = document.querySelector('img[alt*="Davis Home Inspections"]');
       const logoSrc = logoImg ? logoImg.src : '';
       const rows = (insp.services || []).map(s => `
@@ -5813,6 +5832,7 @@
                 </tr>
               </tfoot>
             </table>
+            ${payProofBlock}
             <div class="footer">
               <div style="margin-bottom:8px;color:#334155;">Thank you for choosing Davis Home Inspections, LLC.</div>
               <strong style="color:#0f172a;">Davis Home Inspections, LLC</strong><br/>
@@ -9806,7 +9826,15 @@
               }
               dhiCleanupHelcimCheckout();
               insp.paid = true;
-              insp.paidAt = new Date().toISOString();
+              insp.paidAt = (vData && vData.paidAt) || new Date().toISOString();
+              insp.propertyInfo = {
+                ...(insp.propertyInfo || {}),
+                helcimTransactionId: vData.transactionId || '',
+                helcimApprovalCode: vData.approvalCode || '',
+                helcimInvoiceNumber: vData.invoiceNumber || '',
+                helcimCardType: vData.cardType || '',
+                helcimCardLast4: vData.cardLast4 || ''
+              };
               dhiFireActivityEvent(insp.id, 'invoice_paid', 'Paid $' + protoTotal(insp).toFixed(2) + ' via online card checkout.');
               renderProtoPortal();
               protoToastMsg('Payment confirmed! All reports are now unlocked.');
