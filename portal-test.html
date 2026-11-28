@@ -171,7 +171,7 @@
     @media print { body.dhi-admin-dark { background-color: #ffffff !important; color: #0f172a !important; color-scheme: light; } }
 </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js"></script>
-  <script src="https://web.squarecdn.com/v1/square.js"></script>
+  <script type="text/javascript" src="https://secure.helcim.app/helcim-pay/services/start.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <style>
@@ -1582,7 +1582,7 @@
               <div class="text-[11px] uppercase tracking-wider font-semibold text-sky-300">Selected Add-On Summary</div>
               <div id="liveSummaryText" class="text-sm font-bold mt-0.5">No options selected yet — tap checkboxes above</div>
               <div id="liveSummarySubtext" class="text-[11px] text-slate-300 mt-0.5">
-                Added services are billed with your electronic Square invoice on inspection day.
+                Added services are billed with your electronic invoice on inspection day.
               </div>
             </div>
             <div class="text-right">
@@ -2655,7 +2655,7 @@
         summaryTextEl.textContent = selectedNames.join(' + ');
         summarySubEl.textContent = APP_STATE.services.radon
           ? 'Note: Radon testing starts at $125 plus any applicable trip fees.'
-          : 'Added services are billed with your electronic Square invoice on inspection day.';
+          : 'Added services are billed with your electronic invoice on inspection day.';
         totalEl.textContent = '$' + total.toFixed(2) + (APP_STATE.services.radon ? '+' : '');
       } else if (APP_STATE.services.none) {
         summaryTextEl.textContent = 'No Additional Services Requested (Standard Inspection Only)';
@@ -2953,7 +2953,7 @@
           '<div class="font-bold text-davis-navy shrink-0">' + escapeHtml(item.price) + '</div></div>';
       }).join('') +
       '<div class="p-3.5 bg-slate-100 flex items-center justify-between font-bold text-slate-900">' +
-        '<span>Estimated Add-On Total (Billed via Square Invoice)</span>' +
+        '<span>Estimated Add-On Total</span>' +
         '<span class="text-davis-navy text-base">$' + totalEst.toFixed(2) + (APP_STATE.services.radon ? '+' : '') + '</span>' +
       '</div>';
 
@@ -3854,7 +3854,6 @@
       else if (protoState.role === 'buyer') {
         root.innerHTML = renderBuyerHTML();
         initAgreementSigPad();
-        initDhiSquareCard();
       }
       applyRestoreFocus();
     }
@@ -9584,23 +9583,23 @@
               `)}
             </div>
 
-            <!-- Step 2: In-Site Square Checkout + Additional Reports -->
+            <!-- Step 2: Secure Online Payment + Additional Reports -->
             <div class="space-y-6">
               <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-bold uppercase tracking-wider text-sky-700">Step 2 • In-Site Square Payment</span>
+                  <span class="text-xs font-bold uppercase tracking-wider text-sky-700">Step 2 • Secure Online Payment</span>
                   <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${insp.paid ? 'bg-emerald-100 text-emerald-800' : (insp.reportNotified ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-600')}">${insp.paid ? 'Paid' : (insp.reportNotified ? 'Ready for Payment' : 'Invoiced After Inspection')}</span>
                 </div>
                 ${insp.paid ? `
                   <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-xs text-emerald-900 space-y-2">
-                    <div class="font-bold text-sm">Payment Confirmed via Square ($${total.toFixed(2)})</div>
+                    <div class="font-bold text-sm">Payment Confirmed ($${total.toFixed(2)})</div>
                     <div>Your interactive Home Inspection report and all specialty PDFs are unlocked.</div>
                     <button type="button" onclick="protoOpenReport('${insp.id}','main')" class="mt-2 px-4 py-2 rounded-xl bg-davis-navy text-white text-xs font-bold">Open Report Now →</button>
                   </div>
                 ` : (!insp.reportNotified ? `
                   <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-900 space-y-2">
                     <div class="font-bold">Payment Unlocks After Inspection</div>
-                    <div>No payment is due yet in case services are added or removed during the inspection. Once your report is ready, you can pay right here with Card, Apple Pay, or Google Pay.</div>
+                    <div>No payment is due yet in case services are added or removed during the inspection. Once your report is ready, you can pay right here by credit or debit card.</div>
                     ${protoState.demoMode ? `<button type="button" onclick="protoReleaseReport('${insp.id}')" class="mt-1 px-3 py-1.5 rounded-lg bg-amber-900 text-white text-[11px] font-bold">Demo: Simulate Post-Inspection Release</button>` : ''}
                   </div>
                 ` : (total <= 0 ? `
@@ -9613,13 +9612,13 @@
                   <div class="space-y-3">
                     <div class="p-3.5 rounded-xl border border-slate-300 bg-slate-50 space-y-2.5">
                       <div class="flex items-center justify-between text-xs font-bold text-slate-700">
-                        <span>Square Secure Checkout</span>
-                        <span class="text-slate-400">Card • Apple Pay • Google Pay</span>
+                        <span>Secure Online Checkout</span>
+                        <span class="text-slate-400">Credit &amp; Debit Card</span>
                       </div>
-                      <p class="text-xs text-slate-500 leading-relaxed">Click below to complete payment on Square's secure checkout page (Card, Apple Pay, Google Pay, or Cash App Pay). You will return here automatically and your reports will unlock immediately.</p>
-                      <div id="dhi-square-status" class="text-xs text-rose-600 font-medium text-center hidden"></div>
+                      <p class="text-xs text-slate-500 leading-relaxed">Click below to pay securely by credit or debit card right here. Your reports will unlock immediately once payment is confirmed.</p>
+                      <div id="dhi-pay-status" class="text-xs text-rose-600 font-medium text-center hidden"></div>
                     </div>
-                    <button type="button" id="dhiSquarePayBtn" onclick="protoPaySquare()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-extrabold shadow transition">Pay $${total.toFixed(2)} via Square &rarr;</button>
+                    <button type="button" id="dhiOnlinePayBtn" onclick="protoPayOnline()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-extrabold shadow transition">Pay $${total.toFixed(2)} Now &rarr;</button>
                   </div>
                 `))}
               </div>
@@ -9694,28 +9693,15 @@
       protoToastMsg('Agreement signed & ESIGN PDF ready to download!');
     }
 
-    let dhiSquareCardInstance = null;
-    async function initDhiSquareCard() {
-      const container = document.getElementById('dhi-square-card-container');
-      if (!container || protoState.demoMode) return;
-      const statusEl = document.getElementById('dhi-square-status');
-      if (!window.Square) {
-        if (statusEl) { statusEl.textContent = 'Square Payments SDK failed to load. Please refresh the page.'; statusEl.classList.remove('hidden'); }
-        return;
+    let dhiActiveHelcimListener = null;
+    function dhiCleanupHelcimCheckout() {
+      if (dhiActiveHelcimListener) {
+        window.removeEventListener('message', dhiActiveHelcimListener);
+        dhiActiveHelcimListener = null;
       }
-      try {
-        if (dhiSquareCardInstance) {
-          try { await dhiSquareCardInstance.destroy(); } catch (e) {}
-          dhiSquareCardInstance = null;
-        }
-        container.innerHTML = '';
-        const payments = window.Square.payments(DHI_SQUARE_APP_ID, DHI_SQUARE_LOCATION_ID);
-        const card = await payments.card();
-        await card.attach('#dhi-square-card-container');
-        dhiSquareCardInstance = card;
-      } catch (err) {
-        console.error('Square card init error:', err);
-        if (statusEl) { statusEl.textContent = 'Unable to load card form: ' + (err.message || err); statusEl.classList.remove('hidden'); }
+      const frame = document.getElementById('helcimPayIframe');
+      if (frame) {
+        try { frame.remove(); } catch (_e) {}
       }
     }
 
@@ -9738,24 +9724,36 @@
       protoToastMsg('Reports unlocked!');
     }
 
-    async function protoPaySquare() {
+    async function protoPayOnline() {
       const insp = protoGetActiveInsp();
       if (!insp) return;
       if (protoState.demoMode || insp.id === 'insp-demo') {
         insp.paid = true;
         insp.paidAt = new Date().toISOString();
         renderProtoPortal();
-        protoToastMsg('Demo Square payment confirmed! All reports are now unlocked.');
+        protoToastMsg('Demo payment confirmed! All reports are now unlocked.');
         return;
       }
-      const btn = document.getElementById('dhiSquarePayBtn');
-      const statusEl = document.getElementById('dhi-square-status');
+      const btn = document.getElementById('dhiOnlinePayBtn');
+      const statusEl = document.getElementById('dhi-pay-status');
+      const resetBtn = () => {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = 'Pay $' + protoTotal(insp).toFixed(2) + ' Now &rarr;';
+        }
+      };
       if (statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
-      if (btn) { btn.disabled = true; btn.textContent = 'Opening Square Checkout...'; }
+      if (typeof window.appendHelcimPayIframe !== 'function') {
+        if (statusEl) {
+          statusEl.textContent = 'Secure checkout library is still loading. Please refresh and try again.';
+          statusEl.classList.remove('hidden');
+        }
+        return;
+      }
+      if (btn) { btn.disabled = true; btn.textContent = 'Opening Secure Checkout...'; }
       try {
-        const returnBaseUrl = window.location.origin + window.location.pathname;
-        const { data, error } = await dhiSupabase.functions.invoke('process-square-payment', {
-          body: { action: 'create_checkout', inspectionId: insp.id, returnBaseUrl }
+        const { data, error } = await dhiSupabase.functions.invoke('process-helcim-payment', {
+          body: { action: 'create_checkout', inspectionId: insp.id }
         });
         if (error) {
           let detail = error.message || 'Payment service error';
@@ -9779,12 +9777,68 @@
           protoToastMsg('Balance confirmed ($0.00). Reports unlocked.');
           return;
         }
-        if (!data || !data.checkoutUrl) throw new Error((data && data.error) || 'Could not open Square checkout.');
-        window.location.href = data.checkoutUrl;
+        if (!data || !data.checkoutToken) {
+          throw new Error((data && data.error) || 'Could not initialize secure checkout.');
+        }
+
+        const checkoutToken = data.checkoutToken;
+        const expectedEventName = 'helcim-pay-js-' + checkoutToken;
+        let paymentHandled = false;
+
+        dhiCleanupHelcimCheckout();
+        dhiActiveHelcimListener = async (event) => {
+          if (!event || !event.data || event.data.eventName !== expectedEventName) return;
+          const st = event.data.eventStatus;
+          if (st === 'SUCCESS' && !paymentHandled) {
+            paymentHandled = true;
+            if (btn) { btn.disabled = true; btn.textContent = 'Confirming Payment...'; }
+            try {
+              const { data: vData, error: vErr } = await dhiSupabase.functions.invoke('process-helcim-payment', {
+                body: {
+                  action: 'verify_payment',
+                  inspectionId: insp.id,
+                  checkoutToken,
+                  eventMessage: event.data.eventMessage
+                }
+              });
+              if (vErr || !vData || !vData.paid) {
+                throw new Error((vData && vData.error) || (vErr && vErr.message) || 'Could not confirm payment.');
+              }
+              dhiCleanupHelcimCheckout();
+              insp.paid = true;
+              insp.paidAt = new Date().toISOString();
+              dhiFireActivityEvent(insp.id, 'invoice_paid', 'Paid $' + protoTotal(insp).toFixed(2) + ' via online card checkout.');
+              renderProtoPortal();
+              protoToastMsg('Payment confirmed! All reports are now unlocked.');
+            } catch (verErr) {
+              dhiCleanupHelcimCheckout();
+              if (statusEl) {
+                statusEl.textContent = verErr.message || 'Payment verification error. Please contact Matt.';
+                statusEl.classList.remove('hidden');
+              }
+              protoToastMsg('Payment verification error: ' + (verErr.message || 'Failed'));
+              resetBtn();
+            }
+          } else if (st === 'ABORTED') {
+            dhiCleanupHelcimCheckout();
+            const msg = typeof event.data.eventMessage === 'string'
+              ? event.data.eventMessage
+              : 'Payment was declined or cancelled. Please check your card details and try again.';
+            if (statusEl) { statusEl.textContent = msg; statusEl.classList.remove('hidden'); }
+            protoToastMsg('Payment was not completed.');
+            resetBtn();
+          } else if (st === 'HIDE') {
+            dhiCleanupHelcimCheckout();
+            if (!paymentHandled) resetBtn();
+          }
+        };
+        window.addEventListener('message', dhiActiveHelcimListener);
+        window.appendHelcimPayIframe(checkoutToken, true);
       } catch (err) {
+        dhiCleanupHelcimCheckout();
         if (statusEl) { statusEl.textContent = err.message || 'Could not start checkout.'; statusEl.classList.remove('hidden'); }
         protoToastMsg('Payment error: ' + (err.message || 'Failed'));
-        if (btn) { btn.disabled = false; btn.textContent = 'Pay $' + protoTotal(insp).toFixed(2) + ' via Square →'; }
+        resetBtn();
       }
     }
 
@@ -12274,12 +12328,10 @@
 
   <script>
     // =========================================================================
-    // LIVE SUPABASE & SQUARE CONFIGURATION (Davis Home Inspections)
+    // LIVE SUPABASE CONFIGURATION (Davis Home Inspections)
     // =========================================================================
     const DHI_SUPABASE_URL = 'https://uzelxunzussqmxrzeyke.supabase.co';
     const DHI_SUPABASE_ANON_KEY = 'sb_publishable_-XO_qBYL5CDILZR05KpaDA_0qMDmYi3';
-    const DHI_SQUARE_APP_ID = 'sq0idp-Ym9AMR9jPjV_Uw6SufHg3Q';
-    const DHI_SQUARE_LOCATION_ID = '2C44KKENYDHQP';
 
     let dhiSupabase = null;
     try {
@@ -13897,7 +13949,7 @@
           <div class="grid grid-cols-1 gap-3">
             <button type="button" onclick="protoEnterDemoRole('buyer')" class="p-4 rounded-xl border border-slate-200 hover:border-davis-navy hover:bg-sky-50/40 text-left transition space-y-1">
               <div class="text-sm font-extrabold text-davis-navy">I'm a Homebuyer (Client View) →</div>
-              <div class="text-xs text-slate-600">See your inspection agreement, Square checkout, live co-viewing, and all property reports.</div>
+              <div class="text-xs text-slate-600">See your inspection agreement, online checkout, live co-viewing, and all property reports.</div>
             </button>
             <button type="button" onclick="protoEnterDemoRole('agent')" class="p-4 rounded-xl border border-slate-200 hover:border-davis-navy hover:bg-sky-50/40 text-left transition space-y-1">
               <div class="text-sm font-extrabold text-davis-navy">I'm a Real Estate Agent (Agent View) →</div>
