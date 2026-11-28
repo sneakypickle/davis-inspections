@@ -29,7 +29,13 @@
 
     @media (min-width: 768px) {
       body { background: #F4F7FA; color: #0F172A; }
-      body.dhi-dark { background: #0F172A; color: #F1F5F9; }
+      body.dhi-dark { background: #0F172A; color: #F1F5F9; color-scheme: dark; }
+      body.dhi-dark, body.dhi-dark * { scrollbar-color: #475569 #0F172A; }
+      body.dhi-dark ::-webkit-scrollbar { width: 10px; height: 10px; }
+      body.dhi-dark ::-webkit-scrollbar-track { background: #0F172A; }
+      body.dhi-dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; border: 2px solid #0F172A; }
+      body.dhi-dark ::-webkit-scrollbar-thumb:hover { background: #64748B; }
+      body.dhi-dark ::-webkit-scrollbar-corner { background: #0F172A; }
       body.dhi-dark .bg-white,
       body.dhi-dark .bg-white\/95 { background-color: #1E293B !important; }
       body.dhi-dark .bg-slate-50,
@@ -5148,27 +5154,27 @@ For every item:
                         <input id="piTempInput" type="text" value="${esc(pi.temperature || '')}" oninput="updatePropInfo('temperature', this.value)" placeholder="46°F" class="w-20 shrink-0 px-2 py-1.5 rounded-lg border border-slate-300 text-xs" />
                       </div>
                     </div>
-                    <div class="col-span-2 sm:col-span-6 space-y-1">
-                      <div class="flex items-center justify-between gap-2">
-                        <label class="block font-bold text-slate-600">Ground / soil conditions</label>
-                        <input id="piGroundInput" type="text" value="${esc(pi.groundConditions || '')}" oninput="updatePropInfo('groundConditions', this.value)" placeholder="Select below or type..." class="w-44 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
-                      </div>
-                      <div class="flex flex-wrap gap-1">
-                        ${DHI_GROUND_CONDITIONS.map(opt => {
-                          const sel = (pi.groundConditions || '').split(',').map(x => x.trim()).includes(opt);
-                          return `<button type="button" onclick="togglePropChip('groundConditions', '${opt}')" class="px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${opt}</button>`;
-                        }).join('')}
-                      </div>
-                    </div>
                   </div>
                 </div>
 
-                <!-- Type of building & In attendance (multi-select chips + editable box) -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                  <div class="space-y-1.5">
+                <!-- Ground/soil conditions, Type of building & In attendance (3-column bar with vertical breaks on desktop) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-0 pt-2.5 border-t border-slate-200">
+                  <div class="space-y-1.5 lg:pr-4">
                     <div class="flex items-center justify-between gap-2">
-                      <label class="font-bold text-slate-700">Type of building</label>
-                      <input type="text" value="${esc(pi.buildingType || '')}" oninput="updatePropInfo('buildingType', this.value)" placeholder="Select below or type..." class="w-56 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
+                      <label class="font-bold text-slate-700 whitespace-nowrap">Ground/soil conditions</label>
+                      <input id="piGroundInput" type="text" value="${esc(pi.groundConditions || '')}" oninput="updatePropInfo('groundConditions', this.value)" placeholder="Select or type..." class="flex-1 min-w-0 max-w-[175px] px-2 py-1 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                      ${DHI_GROUND_CONDITIONS.map(opt => {
+                        const sel = (pi.groundConditions || '').split(',').map(x => x.trim()).includes(opt);
+                        return `<button type="button" onclick="togglePropChip('groundConditions', '${opt}')" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${opt}</button>`;
+                      }).join('')}
+                    </div>
+                  </div>
+                  <div class="space-y-1.5 pt-2.5 border-t border-slate-200 lg:pt-0 lg:border-t-0 lg:border-l lg:border-slate-300 lg:px-4">
+                    <div class="flex items-center justify-between gap-2">
+                      <label class="font-bold text-slate-700 whitespace-nowrap">Type of building</label>
+                      <input type="text" value="${esc(pi.buildingType || '')}" oninput="updatePropInfo('buildingType', this.value)" placeholder="Select or type..." class="flex-1 min-w-0 max-w-[175px] px-2 py-1 rounded-lg border border-slate-300 text-xs" />
                     </div>
                     <div class="flex flex-wrap gap-1">
                       ${DHI_BUILDING_TYPES.map(opt => {
@@ -5177,10 +5183,10 @@ For every item:
                       }).join('')}
                     </div>
                   </div>
-                  <div class="space-y-1.5">
+                  <div class="space-y-1.5 pt-2.5 border-t border-slate-200 lg:pt-0 lg:border-t-0 lg:border-l lg:border-slate-300 lg:pl-4">
                     <div class="flex items-center justify-between gap-2">
-                      <label class="font-bold text-slate-700">In attendance</label>
-                      <input type="text" value="${esc(pi.inAttendance || '')}" oninput="updatePropInfo('inAttendance', this.value)" placeholder="Select one or combine..." class="w-56 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
+                      <label class="font-bold text-slate-700 whitespace-nowrap">In attendance</label>
+                      <input type="text" value="${esc(pi.inAttendance || '')}" oninput="updatePropInfo('inAttendance', this.value)" placeholder="Select or combine..." class="flex-1 min-w-0 max-w-[175px] px-2 py-1 rounded-lg border border-slate-300 text-xs" />
                     </div>
                     <div class="flex flex-wrap gap-1">
                       ${DHI_ATTENDANCE_OPTIONS.map(opt => {
@@ -5277,7 +5283,7 @@ For every item:
             ${state.photoTray.map(p => `
               <div draggable="true" ondragstart="handleTrayDragStart(event, '${p.id}')" class="relative cursor-grab active:cursor-grabbing rounded-xl overflow-hidden border ${p.used ? 'border-emerald-400 opacity-75' : 'border-slate-300 hover:border-davis-navy'} bg-slate-100 shadow-sm">
                 <img src="${p.dataUrl}" class="w-full ${szCfg.h} object-cover pointer-events-none" />
-                ${p.name ? `<div class="px-1.5 py-1 text-[10px] font-semibold text-slate-600 bg-white/90 truncate border-t border-slate-200">${esc(p.name)}</div>` : ''}
+                
                 ${p.used ? '<span class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold shadow">Used</span>' : ''}
               </div>
             `).join('') || '<div style="grid-column:1/-1" class="text-xs text-slate-400 text-center py-10 border border-dashed border-slate-200 rounded-xl">Click <strong>Load folder</strong> to open your inspection photos here.</div>'}
@@ -6186,7 +6192,7 @@ For every item:
                   ${state.photoTray.map(p => `
                     <div draggable="true" ondragstart="handleTrayDragStart(event, '${p.id}')" class="relative cursor-grab active:cursor-grabbing rounded-xl overflow-hidden border ${p.used ? 'border-emerald-400 opacity-75' : 'border-slate-300 hover:border-davis-navy'} bg-slate-100 shadow-sm">
                       <img src="${p.dataUrl}" class="w-full ${szCfg.h} object-cover pointer-events-none" />
-                      ${p.name ? `<div class="px-1.5 py-1 text-[10px] font-semibold text-slate-600 bg-white/90 truncate border-t border-slate-200">${esc(p.name)}</div>` : ''}
+                      
                       ${p.used ? '<span class="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-emerald-600 text-white text-[9px] font-bold shadow">Used</span>' : ''}
                     </div>
                   `).join('') || '<div style="grid-column:1/-1" class="text-xs text-slate-400 text-center py-10 border border-dashed border-slate-200 rounded-xl">Click <strong>Load folder</strong> to open your inspection photos here.</div>'}
