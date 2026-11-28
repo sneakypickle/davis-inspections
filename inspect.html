@@ -34,7 +34,9 @@
       body.dhi-dark .bg-white\/95 { background-color: #1E293B !important; }
       body.dhi-dark .bg-slate-50,
       body.dhi-dark .bg-slate-50\/50,
-      body.dhi-dark .bg-slate-50\/60 { background-color: #162032 !important; }
+      body.dhi-dark .bg-slate-50\/60,
+    body.dhi-dark .bg-slate-50\/70 { background-color: #162032 !important; }
+    body.dhi-dark .bg-sky-50\/40 { background-color: rgba(14, 165, 233, 0.14) !important; }
       body.dhi-dark .bg-slate-100 { background-color: #273549 !important; }
       body.dhi-dark .bg-slate-100\/90 { background-color: #162032 !important; }
       body.dhi-dark .bg-slate-200 { background-color: #334155 !important; }
@@ -652,7 +654,8 @@ For every item:
         if (cached.smUsageCounts && typeof cached.smUsageCounts === 'object') state.smUsageCounts = cached.smUsageCounts;
         if (Array.isArray(cached.templates) && cached.templates.length) {
           state.templates = cached.templates;
-          state.activeTemplateId = cached.activeTemplateId || cached.templates[0].id;
+          const _defCached = cached.templates.find(t => t.is_default) || cached.templates.find(t => !String(t.name || '').toLowerCase().includes('pre-listing')) || cached.templates[0];
+          state.activeTemplateId = _defCached.id;
         }
         if (cached.globalInstructions) state.globalInstructions = cached.globalInstructions;
         if (cached.prelistingInstructions) state.prelistingInstructions = cached.prelistingInstructions;
@@ -723,7 +726,7 @@ For every item:
           if (Array.isArray(libRes.data)) state.commentLibrary = libRes.data;
           if (Array.isArray(tplRes.data) && tplRes.data.length) {
             state.templates = tplRes.data;
-            const def = tplRes.data.find(t => t.is_default) || tplRes.data[0];
+            const def = tplRes.data.find(t => t.is_default) || tplRes.data.find(t => !String(t.name || '').toLowerCase().includes('pre-listing')) || tplRes.data[0];
             state.activeTemplateId = def.id;
             // One-time safe sync of updated v2.0.8-ai Styles & Materials + remove Defects (lists/photos) from default Residential template
             if (smTplVer !== 'v2.0.8-ai' && def && Array.isArray(def.sections)) {
@@ -1252,7 +1255,8 @@ For every item:
           photos: []
         }))
       }));
-      const parsedAddr = parseAddressString(insp.address || '');
+      const isScratchInsp = String(insp.id || '').startsWith('local-scratch-');
+      const parsedAddr = isScratchInsp ? { street: '', city: '', state: 'CO', zip: '' } : parseAddressString(insp.address || '');
       const basePInfo = (insp.property_info && Object.keys(insp.property_info).length) ? insp.property_info : {};
       const pInfo = {
         street: basePInfo.street || parsedAddr.street,
@@ -1261,7 +1265,7 @@ For every item:
         zip: basePInfo.zip || parsedAddr.zip,
         county: basePInfo.county || '',
         mls: basePInfo.mls || '',
-        address: basePInfo.address || insp.address || '',
+        address: basePInfo.address || (isScratchInsp ? '' : (insp.address || '')),
         yearBuilt: basePInfo.yearBuilt || '',
         sqft: basePInfo.sqft || '',
         buildingType: basePInfo.buildingType || '',
@@ -4965,7 +4969,7 @@ For every item:
           agent_last_name: cInfo.agentLastName || '',
           agent_name: agentFull,
           agent_email: cInfo.agentEmail ? cInfo.agentEmail.trim().toLowerCase() : null,
-          property_info: cleanPropInfo,
+          property_info: { ...cleanPropInfo, reportType: state.draft.templateMode === 'prelisting' ? 'prelisting' : 'residential' },
           draft_data: cloudDraft
         };
         if (!updPayload.client_name) delete updPayload.client_name;
@@ -5060,6 +5064,192 @@ For every item:
       return !!(draft && String(draft.inspectionId || '').startsWith('local-scratch-'));
     }
 
+    function dhiRenderPropInfoAndContactsHTML(pi) {
+      return `
+          <!-- Property Info Card (Full Address, MLS, Cover Photo, Building Type, In Attendance) -->
+          <div class="bg-white rounded-2xl border border-slate-300 shadow-sm overflow-hidden">
+            <button type="button" onclick="state.showPropInfo=!state.showPropInfo; render();" class="w-full px-4 py-3 flex items-center justify-between text-xs font-extrabold text-slate-800 bg-slate-50 border-b border-slate-200">
+              <span>Property info &amp; cover photo (feeds AI context)</span>
+              <span>${state.showPropInfo ? 'Hide' : 'Show'}</span>
+            </button>
+            ${state.showPropInfo ? `
+              <div class="p-4 space-y-4 text-xs">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                  <!-- Cover Photo -->
+                  <div class="lg:col-span-3 space-y-2">
+                    <label class="block font-bold text-slate-700">Cover photo (front of home)</label>
+                    ${(pi.coverPhoto || pi.coverPhotoSignedUrl) ? `
+                      <div class="relative rounded-xl overflow-hidden border border-slate-300 bg-slate-100">
+                        <img src="${pi.coverPhoto || pi.coverPhotoSignedUrl}" class="w-full h-36 object-cover" />
+                        <button type="button" onclick="removeCoverPhoto()" class="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-lg bg-slate-900/80 text-white text-[10px] font-bold">Remove</button>
+                      </div>
+                    ` : `
+                      <div class="h-36 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center gap-2 p-2">
+                        <div class="flex gap-1.5">
+                          <button type="button" onclick="uploadCoverPhoto(true)" class="px-2.5 py-1.5 rounded-lg bg-davis-navy text-white text-[11px] font-bold">Camera</button>
+                          <button type="button" onclick="uploadCoverPhoto(false)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-[11px] font-bold">Browse</button>
+                        </div>
+                      </div>
+                    `}
+                  </div>
+
+                  <!-- Full Address + MLS + Core Specs -->
+                  <div class="lg:col-span-9 grid grid-cols-2 sm:grid-cols-6 gap-2.5">
+                    <div class="col-span-2 sm:col-span-4 relative">
+                      <label class="block font-bold text-slate-600 mb-1">Address line <span class="font-normal text-slate-400">(type to autofill)</span></label>
+                      <input id="piStreetInput" type="text" autocomplete="off" value="${esc(pi.street || '')}" oninput="updatePropInfo('street', this.value); fieldOnAddressAutocompleteInput(this.value)" onblur="setTimeout(fieldHideAddressSuggestions, 220)" placeholder="1234 Maple Ridge Dr" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                      <div id="fieldAddrSug" class="hidden absolute left-0 right-0 top-full mt-1 z-40 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden text-xs"></div>
+                    </div>
+                    ${(() => {
+                      const ao = dhiGetAddrDropdownOptions(state.inspections || []);
+                      return `
+                        <datalist id="dhiInspCityList">${ao.cities.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
+                        <datalist id="dhiInspStateList">${ao.states.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
+                        <datalist id="dhiInspCountyList">${ao.counties.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
+                        <datalist id="dhiInspZipList">${ao.zips.map(v => `<option value="${esc(v)}">${DHI_ZIP_LOOKUP[v] ? esc(DHI_ZIP_LOOKUP[v].city + ' (' + DHI_ZIP_LOOKUP[v].county + ')') : ''}</option>`).join('')}</datalist>
+                      `;
+                    })()}
+                    <div class="col-span-2 sm:col-span-2">
+                      <label class="block font-bold text-slate-600 mb-1">City</label>
+                      <input id="piCityInput" type="text" list="dhiInspCityList" value="${esc(pi.city || '')}" oninput="updatePropInfo('city', this.value)" onblur="rememberCurrentAddressHistory()" placeholder="Colorado Springs" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-1 sm:col-span-1">
+                      <label class="block font-bold text-slate-600 mb-1">State</label>
+                      <input id="piStateInput" type="text" list="dhiInspStateList" value="${esc(pi.state || 'CO')}" oninput="updatePropInfo('state', this.value)" onblur="rememberCurrentAddressHistory()" placeholder="CO" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-1 sm:col-span-1">
+                      <label class="block font-bold text-slate-600 mb-1">ZIP</label>
+                      <input id="piZipInput" type="text" list="dhiInspZipList" value="${esc(pi.zip || '')}" oninput="updatePropInfo('zip', this.value)" onblur="rememberCurrentAddressHistory()" placeholder="80918" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-1 sm:col-span-2">
+                      <label class="block font-bold text-slate-600 mb-1">County</label>
+                      <input id="piCountyInput" type="text" list="dhiInspCountyList" value="${esc(pi.county || '')}" oninput="updatePropInfo('county', this.value)" onblur="rememberCurrentAddressHistory()" placeholder="El Paso" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-1 sm:col-span-2">
+                      <label class="block font-bold text-slate-600 mb-1">MLS # (optional)</label>
+                      <input type="text" value="${esc(pi.mls || '')}" oninput="updatePropInfo('mls', this.value)" placeholder="Optional" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+
+                    <div class="col-span-1 sm:col-span-2">
+                      <label class="block font-bold text-slate-600 mb-1">Year built</label>
+                      <input type="text" value="${esc(pi.yearBuilt || '')}" oninput="updatePropInfo('yearBuilt', this.value)" placeholder="e.g., 1984" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-1 sm:col-span-2">
+                      <label class="block font-bold text-slate-600 mb-1">Approx. sq ft</label>
+                      <input type="text" value="${esc(pi.sqft || '')}" oninput="updatePropInfo('sqft', this.value)" placeholder="e.g., 2,400" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="col-span-2 sm:col-span-2">
+                      <div class="flex items-center justify-between gap-1 mb-1">
+                        <label class="block font-bold text-slate-600">Weather &amp; Temp</label>
+                        <button type="button" id="autoWeatherBtn" onclick="autoFillCurrentWeather()" class="px-2 py-0.5 rounded bg-sky-50 border border-sky-200 hover:border-davis-navy text-davis-navy text-[10px] font-bold transition shrink-0">Auto-fill</button>
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        <input id="piWeatherInput" type="text" value="${esc(pi.weather || '')}" oninput="updatePropInfo('weather', this.value)" placeholder="Partly Cloudy" class="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                        <input id="piTempInput" type="text" value="${esc(pi.temperature || '')}" oninput="updatePropInfo('temperature', this.value)" placeholder="46°F" class="w-20 shrink-0 px-2 py-1.5 rounded-lg border border-slate-300 text-xs" />
+                      </div>
+                    </div>
+                    <div class="col-span-2 sm:col-span-6 space-y-1">
+                      <div class="flex items-center justify-between gap-2">
+                        <label class="block font-bold text-slate-600">Ground / soil conditions</label>
+                        <input id="piGroundInput" type="text" value="${esc(pi.groundConditions || '')}" oninput="updatePropInfo('groundConditions', this.value)" placeholder="Select below or type..." class="w-44 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
+                      </div>
+                      <div class="flex flex-wrap gap-1">
+                        ${DHI_GROUND_CONDITIONS.map(opt => {
+                          const sel = (pi.groundConditions || '').split(',').map(x => x.trim()).includes(opt);
+                          return `<button type="button" onclick="togglePropChip('groundConditions', '${opt}')" class="px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${opt}</button>`;
+                        }).join('')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Type of building & In attendance (multi-select chips + editable box) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                  <div class="space-y-1.5">
+                    <div class="flex items-center justify-between gap-2">
+                      <label class="font-bold text-slate-700">Type of building</label>
+                      <input type="text" value="${esc(pi.buildingType || '')}" oninput="updatePropInfo('buildingType', this.value)" placeholder="Select below or type..." class="w-56 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                      ${DHI_BUILDING_TYPES.map(opt => {
+                        const sel = (pi.buildingType || '').split(',').map(x => x.trim()).includes(opt);
+                        return `<button type="button" data-val="${esc(opt)}" onclick="togglePropChip('buildingType', this.dataset.val)" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
+                      }).join('')}
+                    </div>
+                  </div>
+                  <div class="space-y-1.5">
+                    <div class="flex items-center justify-between gap-2">
+                      <label class="font-bold text-slate-700">In attendance</label>
+                      <input type="text" value="${esc(pi.inAttendance || '')}" oninput="updatePropInfo('inAttendance', this.value)" placeholder="Select one or combine..." class="w-56 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
+                    </div>
+                    <div class="flex flex-wrap gap-1">
+                      ${DHI_ATTENDANCE_OPTIONS.map(opt => {
+                        const sel = (pi.inAttendance || '').split(',').map(x => x.trim()).includes(opt);
+                        return `<button type="button" data-val="${esc(opt)}" onclick="togglePropChip('inAttendance', this.dataset.val)" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
+                      }).join('')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Collapsible Customer & Agent Info Card -->
+          <div class="bg-white rounded-2xl border border-slate-300 shadow-sm overflow-hidden">
+            <button type="button" onclick="state.showContactsCard=!state.showContactsCard; render();" class="w-full px-4 py-3 flex items-center justify-between text-xs font-extrabold text-slate-800 bg-slate-50 border-b border-slate-200">
+              <span>Customer &amp; agent info (${esc(((state.draft.contacts?.clientFirstName || '') + ' ' + (state.draft.contacts?.clientLastName || '')).trim() || 'Not set')}${state.draft.contacts?.agentFirstName ? ' • Agent: ' + esc(state.draft.contacts.agentFirstName + ' ' + (state.draft.contacts.agentLastName || '')) : ''})</span>
+              <span>${state.showContactsCard ? 'Hide' : 'Show'}</span>
+            </button>
+            ${state.showContactsCard ? `
+              <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div class="space-y-2.5 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
+                  <div class="font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Customer</div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">First name</label>
+                      <input type="text" value="${esc(state.draft.contacts?.clientFirstName || '')}" oninput="updateContactField('clientFirstName', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">Last name</label>
+                      <input type="text" value="${esc(state.draft.contacts?.clientLastName || '')}" oninput="updateContactField('clientLastName', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">Email</label>
+                      <input type="email" value="${esc(state.draft.contacts?.clientEmail || '')}" oninput="updateContactField('clientEmail', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">Phone</label>
+                      <input type="tel" value="${esc(state.draft.contacts?.clientPhone || '')}" oninput="updateContactField('clientPhone', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                  </div>
+                </div>
+                <div class="space-y-2.5 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
+                  <div class="font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Real estate agent</div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">First name</label>
+                      <input type="text" value="${esc(state.draft.contacts?.agentFirstName || '')}" oninput="updateContactField('agentFirstName', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">Last name</label>
+                      <input type="text" value="${esc(state.draft.contacts?.agentLastName || '')}" oninput="updateContactField('agentLastName', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">Email</label>
+                      <input type="email" value="${esc(state.draft.contacts?.agentEmail || '')}" oninput="updateContactField('agentEmail', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                    <div>
+                      <label class="block font-bold text-slate-600 mb-1">Brokerage</label>
+                      <input type="text" value="${esc(state.draft.contacts?.agentBrokerage || '')}" oninput="updateContactField('agentBrokerage', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+      `;
+    }
+
     function dhiRenderPhotoTrayAsideHTML() {
       if (!state.showPhotoTray) return '';
       const szCfg = state.trayThumbSize === 'sm' ? { min: 130, h: 'h-28' } : (state.trayThumbSize === 'lg' ? { min: 270, h: 'h-56' } : { min: 195, h: 'h-40' });
@@ -5106,7 +5296,7 @@ For every item:
         address: addrLabel,
         client_name: isPre ? 'Pre-Listing/Defects List (Scratchpad)' : 'Local Scratchpad',
         inspection_date: nowLabel,
-        property_info: { address: addrLabel },
+        property_info: { address: '', street: '', city: '', state: 'CO', zip: '', county: '' },
         report_notified: false,
         _isScratchpad: true
       };
@@ -5543,6 +5733,8 @@ For every item:
               </div>
             </div>
 
+            ${dhiRenderPropInfoAndContactsHTML(state.draft.propertyInfo || {})}
+
             <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
               <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
@@ -5797,7 +5989,7 @@ For every item:
             <div class="md:hidden space-y-2">
               <div class="flex items-center justify-between gap-2">
                 <button type="button" onclick="closeActiveDraft()" class="px-2.5 py-1.5 rounded-xl border border-slate-300 bg-slate-50 text-xs font-bold text-slate-700 shrink-0">&larr; Inspections</button>
-                <span class="text-[11px] font-bold truncate ${state.draft.dirty ? 'text-amber-700' : 'text-emerald-700'}">${state.draft.dirty ? 'Saved locally' : 'In cloud'}</span>
+                ${isScratch ? '<span class="px-2 py-0.5 rounded bg-amber-100 border border-amber-300 text-amber-900 text-[10px] font-extrabold truncate">Scratchpad (Local)</span>' : `<span class="text-[11px] font-bold truncate ${state.draft.dirty ? 'text-amber-700' : 'text-emerald-700'}">${state.draft.dirty ? 'Saved locally' : 'In cloud'}</span>`}
                 <details id="dhiMobileToolsDropdown" class="relative shrink-0">
                   <summary class="list-none cursor-pointer px-3 py-1.5 rounded-xl border border-slate-300 bg-slate-50 text-xs font-bold text-slate-700 inline-flex items-center gap-1">
                     <span>Tools</span>
@@ -5809,13 +6001,13 @@ For every item:
                     <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; runWholeHomeAITask();" ${state.taskRunning ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg bg-indigo-600 disabled:opacity-60 text-white text-xs font-bold">${state.taskRunning ? esc(state.taskProgressText || 'Running AI task...') : `Run AI task (${pendingAI} pending)`}</button>
                     <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; runReportAIProofread();" ${state.proofreadBusy ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg border border-indigo-300 bg-indigo-50 text-indigo-800 text-xs font-bold">${state.proofreadBusy ? 'Proofreading...' : 'AI Proofread Report'}</button>
                     <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; toggleEditTemplateMode();" class="w-full text-left px-3 py-2 rounded-lg border text-xs font-bold ${state.editTemplateMode ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-200 bg-slate-50 text-slate-700'}">${state.editTemplateMode ? 'Editing template' : 'Edit template'}</button>
-                    <button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; confirmMobilePublish();" ${state.uploading ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg bg-emerald-600 disabled:opacity-60 text-white text-xs font-extrabold">Publish to customer portal</button>
+                    ${isScratch ? '' : `<button type="button" onclick="document.getElementById('dhiMobileToolsDropdown').open=false; confirmMobilePublish();" ${state.uploading ? 'disabled' : ''} class="w-full text-left px-3 py-2 rounded-lg bg-emerald-600 disabled:opacity-60 text-white text-xs font-extrabold">Publish to customer portal</button>`}
                   </div>
                 </details>
               </div>
-              <div class="grid grid-cols-2 gap-2">
+              <div class="grid ${isScratch ? 'grid-cols-1' : 'grid-cols-2'} gap-2">
                 <button type="button" onclick="saveDraftLocally(false)" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-bold text-slate-700 text-center">Save Locally</button>
-                <button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="w-full px-3 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-extrabold text-center">${state.uploading ? 'Uploading...' : 'Upload Draft'}</button>
+                ${isScratch ? '' : `<button type="button" onclick="uploadDraftToSupabase(false)" ${state.uploading ? 'disabled' : ''} class="w-full px-3 py-2 rounded-xl bg-sky-700 hover:bg-sky-800 disabled:opacity-60 text-white text-xs font-extrabold text-center">${state.uploading ? 'Uploading...' : 'Upload Draft'}</button>`}
               </div>
             </div>
 
@@ -5860,187 +6052,7 @@ For every item:
 
           ${state.showNpma33 ? renderNpma33PanelHTML() : ''}
 
-          <!-- Property Info Card (Full Address, MLS, Cover Photo, Building Type, In Attendance) -->
-          <div class="bg-white rounded-2xl border border-slate-300 shadow-sm overflow-hidden">
-            <button type="button" onclick="state.showPropInfo=!state.showPropInfo; render();" class="w-full px-4 py-3 flex items-center justify-between text-xs font-extrabold text-slate-800 bg-slate-50 border-b border-slate-200">
-              <span>Property info &amp; cover photo (feeds AI context)</span>
-              <span>${state.showPropInfo ? 'Hide' : 'Show'}</span>
-            </button>
-            ${state.showPropInfo ? `
-              <div class="p-4 space-y-4 text-xs">
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-                  <!-- Cover Photo -->
-                  <div class="lg:col-span-3 space-y-2">
-                    <label class="block font-bold text-slate-700">Cover photo (front of home)</label>
-                    ${(pi.coverPhoto || pi.coverPhotoSignedUrl) ? `
-                      <div class="relative rounded-xl overflow-hidden border border-slate-300 bg-slate-100">
-                        <img src="${pi.coverPhoto || pi.coverPhotoSignedUrl}" class="w-full h-36 object-cover" />
-                        <button type="button" onclick="removeCoverPhoto()" class="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-lg bg-slate-900/80 text-white text-[10px] font-bold">Remove</button>
-                      </div>
-                    ` : `
-                      <div class="h-36 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center gap-2 p-2">
-                        <div class="flex gap-1.5">
-                          <button type="button" onclick="uploadCoverPhoto(true)" class="px-2.5 py-1.5 rounded-lg bg-davis-navy text-white text-[11px] font-bold">Camera</button>
-                          <button type="button" onclick="uploadCoverPhoto(false)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 text-[11px] font-bold">Browse</button>
-                        </div>
-                      </div>
-                    `}
-                  </div>
-
-                  <!-- Full Address + MLS + Core Specs -->
-                  <div class="lg:col-span-9 grid grid-cols-2 sm:grid-cols-6 gap-2.5">
-                    <div class="col-span-2 sm:col-span-4 relative">
-                      <label class="block font-bold text-slate-600 mb-1">Address line <span class="font-normal text-slate-400">(type to autofill)</span></label>
-                      <input id="piStreetInput" type="text" autocomplete="off" value="${esc(pi.street || '')}" oninput="updatePropInfo('street', this.value); fieldOnAddressAutocompleteInput(this.value)" onblur="setTimeout(fieldHideAddressSuggestions, 220)" placeholder="1234 Maple Ridge Dr" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
-                      <div id="fieldAddrSug" class="hidden absolute left-0 right-0 top-full mt-1 z-40 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden text-xs"></div>
-                    </div>
-                    ${(() => {
-                      const ao = dhiGetAddrDropdownOptions(state.inspections || []);
-                      return `
-                        <datalist id="dhiInspCityList">${ao.cities.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
-                        <datalist id="dhiInspStateList">${ao.states.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
-                        <datalist id="dhiInspCountyList">${ao.counties.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>
-                        <datalist id="dhiInspZipList">${ao.zips.map(v => `<option value="${esc(v)}">${DHI_ZIP_LOOKUP[v] ? esc(DHI_ZIP_LOOKUP[v].city + ' (' + DHI_ZIP_LOOKUP[v].county + ')') : ''}</option>`).join('')}</datalist>
-                      `;
-                    })()}
-                    <div class="col-span-2 sm:col-span-2">
-                      <label class="block font-bold text-slate-600 mb-1">City</label>
-                      <input id="piCityInput" type="text" list="dhiInspCityList" value="${esc(pi.city || '')}" oninput="updatePropInfo('city', this.value)" onblur="rememberCurrentAddressHistory()" placeholder="Colorado Springs" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
-                    </div>
-                    <div class="col-span-1 sm:col-span-1">
-                      <label class="block font-bold text-slate-600 mb-1">State</label>
-                      <input id="piStateInput" type="text" list="dhiInspStateList" value="${esc(pi.state || 'CO')}" oninput="updatePropInfo('state', this.value)" onblur="rememberCurrentAddressHistory()" placeholder="CO" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
-                    </div>
-                    <div class="col-span-1 sm:col-span-1">
-                      <label class="block font-bold text-slate-600 mb-1">ZIP</label>
-                      <input id="piZipInput" type="text" list="dhiInspZipList" value="${esc(pi.zip || '')}" oninput="updatePropInfo('zip', this.value)" onblur="rememberCurrentAddressHistory()" placeholder="80918" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
-                    </div>
-                    <div class="col-span-1 sm:col-span-2">
-                      <label class="block font-bold text-slate-600 mb-1">County</label>
-                      <input id="piCountyInput" type="text" list="dhiInspCountyList" value="${esc(pi.county || '')}" oninput="updatePropInfo('county', this.value)" onblur="rememberCurrentAddressHistory()" placeholder="El Paso" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
-                    </div>
-                    <div class="col-span-1 sm:col-span-2">
-                      <label class="block font-bold text-slate-600 mb-1">MLS # (optional)</label>
-                      <input type="text" value="${esc(pi.mls || '')}" oninput="updatePropInfo('mls', this.value)" placeholder="Optional" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
-                    </div>
-
-                    <div class="col-span-1 sm:col-span-2">
-                      <label class="block font-bold text-slate-600 mb-1">Year built</label>
-                      <input type="text" value="${esc(pi.yearBuilt || '')}" oninput="updatePropInfo('yearBuilt', this.value)" placeholder="e.g., 1984" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
-                    </div>
-                    <div class="col-span-1 sm:col-span-2">
-                      <label class="block font-bold text-slate-600 mb-1">Approx. sq ft</label>
-                      <input type="text" value="${esc(pi.sqft || '')}" oninput="updatePropInfo('sqft', this.value)" placeholder="e.g., 2,400" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
-                    </div>
-                    <div class="col-span-2 sm:col-span-2">
-                      <div class="flex items-center justify-between gap-1 mb-1">
-                        <label class="block font-bold text-slate-600">Weather &amp; Temp</label>
-                        <button type="button" id="autoWeatherBtn" onclick="autoFillCurrentWeather()" class="px-2 py-0.5 rounded bg-sky-50 border border-sky-200 hover:border-davis-navy text-davis-navy text-[10px] font-bold transition shrink-0">Auto-fill</button>
-                      </div>
-                      <div class="flex items-center gap-1.5">
-                        <input id="piWeatherInput" type="text" value="${esc(pi.weather || '')}" oninput="updatePropInfo('weather', this.value)" placeholder="Partly Cloudy" class="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs" />
-                        <input id="piTempInput" type="text" value="${esc(pi.temperature || '')}" oninput="updatePropInfo('temperature', this.value)" placeholder="46°F" class="w-20 shrink-0 px-2 py-1.5 rounded-lg border border-slate-300 text-xs" />
-                      </div>
-                    </div>
-                    <div class="col-span-2 sm:col-span-6 space-y-1">
-                      <div class="flex items-center justify-between gap-2">
-                        <label class="block font-bold text-slate-600">Ground / soil conditions</label>
-                        <input id="piGroundInput" type="text" value="${esc(pi.groundConditions || '')}" oninput="updatePropInfo('groundConditions', this.value)" placeholder="Select below or type..." class="w-44 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
-                      </div>
-                      <div class="flex flex-wrap gap-1">
-                        ${DHI_GROUND_CONDITIONS.map(opt => {
-                          const sel = (pi.groundConditions || '').split(',').map(x => x.trim()).includes(opt);
-                          return `<button type="button" onclick="togglePropChip('groundConditions', '${opt}')" class="px-2 py-0.5 rounded-lg text-[10px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${opt}</button>`;
-                        }).join('')}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Type of building & In attendance (multi-select chips + editable box) -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                  <div class="space-y-1.5">
-                    <div class="flex items-center justify-between gap-2">
-                      <label class="font-bold text-slate-700">Type of building</label>
-                      <input type="text" value="${esc(pi.buildingType || '')}" oninput="updatePropInfo('buildingType', this.value)" placeholder="Select below or type..." class="w-56 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
-                    </div>
-                    <div class="flex flex-wrap gap-1">
-                      ${DHI_BUILDING_TYPES.map(opt => {
-                        const sel = (pi.buildingType || '').split(',').map(x => x.trim()).includes(opt);
-                        return `<button type="button" data-val="${esc(opt)}" onclick="togglePropChip('buildingType', this.dataset.val)" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
-                      }).join('')}
-                    </div>
-                  </div>
-                  <div class="space-y-1.5">
-                    <div class="flex items-center justify-between gap-2">
-                      <label class="font-bold text-slate-700">In attendance</label>
-                      <input type="text" value="${esc(pi.inAttendance || '')}" oninput="updatePropInfo('inAttendance', this.value)" placeholder="Select one or combine..." class="w-56 px-2 py-1 rounded-lg border border-slate-300 text-xs" />
-                    </div>
-                    <div class="flex flex-wrap gap-1">
-                      ${DHI_ATTENDANCE_OPTIONS.map(opt => {
-                        const sel = (pi.inAttendance || '').split(',').map(x => x.trim()).includes(opt);
-                        return `<button type="button" data-val="${esc(opt)}" onclick="togglePropChip('inAttendance', this.dataset.val)" class="px-2 py-1 rounded-lg text-[11px] font-semibold border transition ${sel ? 'bg-davis-navy text-white border-davis-navy' : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-davis-navy'}">${esc(opt)}</button>`;
-                      }).join('')}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ` : ''}
-          </div>
-
-          <!-- Collapsible Customer & Agent Info Card -->
-          <div class="bg-white rounded-2xl border border-slate-300 shadow-sm overflow-hidden">
-            <button type="button" onclick="state.showContactsCard=!state.showContactsCard; render();" class="w-full px-4 py-3 flex items-center justify-between text-xs font-extrabold text-slate-800 bg-slate-50 border-b border-slate-200">
-              <span>Customer &amp; agent info (${esc(((state.draft.contacts?.clientFirstName || '') + ' ' + (state.draft.contacts?.clientLastName || '')).trim() || 'Not set')}${state.draft.contacts?.agentFirstName ? ' • Agent: ' + esc(state.draft.contacts.agentFirstName + ' ' + (state.draft.contacts.agentLastName || '')) : ''})</span>
-              <span>${state.showContactsCard ? 'Hide' : 'Show'}</span>
-            </button>
-            ${state.showContactsCard ? `
-              <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                <div class="space-y-2.5 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
-                  <div class="font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Customer</div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label class="block font-bold text-slate-600 mb-1">First name</label>
-                      <input type="text" value="${esc(state.draft.contacts?.clientFirstName || '')}" oninput="updateContactField('clientFirstName', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
-                    </div>
-                    <div>
-                      <label class="block font-bold text-slate-600 mb-1">Last name</label>
-                      <input type="text" value="${esc(state.draft.contacts?.clientLastName || '')}" oninput="updateContactField('clientLastName', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
-                    </div>
-                    <div>
-                      <label class="block font-bold text-slate-600 mb-1">Email</label>
-                      <input type="email" value="${esc(state.draft.contacts?.clientEmail || '')}" oninput="updateContactField('clientEmail', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
-                    </div>
-                    <div>
-                      <label class="block font-bold text-slate-600 mb-1">Phone</label>
-                      <input type="tel" value="${esc(state.draft.contacts?.clientPhone || '')}" oninput="updateContactField('clientPhone', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
-                    </div>
-                  </div>
-                </div>
-                <div class="space-y-2.5 bg-slate-50/70 p-3 rounded-xl border border-slate-200">
-                  <div class="font-extrabold text-slate-800 uppercase tracking-wider text-[11px]">Real estate agent</div>
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <label class="block font-bold text-slate-600 mb-1">First name</label>
-                      <input type="text" value="${esc(state.draft.contacts?.agentFirstName || '')}" oninput="updateContactField('agentFirstName', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
-                    </div>
-                    <div>
-                      <label class="block font-bold text-slate-600 mb-1">Last name</label>
-                      <input type="text" value="${esc(state.draft.contacts?.agentLastName || '')}" oninput="updateContactField('agentLastName', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
-                    </div>
-                    <div>
-                      <label class="block font-bold text-slate-600 mb-1">Email</label>
-                      <input type="email" value="${esc(state.draft.contacts?.agentEmail || '')}" oninput="updateContactField('agentEmail', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
-                    </div>
-                    <div>
-                      <label class="block font-bold text-slate-600 mb-1">Brokerage</label>
-                      <input type="text" value="${esc(state.draft.contacts?.agentBrokerage || '')}" oninput="updateContactField('agentBrokerage', this.value)" class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white text-xs" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ` : ''}
-          </div>
+          ${dhiRenderPropInfoAndContactsHTML(pi)}
 
           <!-- Sticky Section Bar (Desktop Tabs / Mobile Dropdown) + Pinned Next Unanswered Button -->
           ${(() => {

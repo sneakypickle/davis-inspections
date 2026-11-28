@@ -10547,7 +10547,7 @@
           ['Weather', coverPInfo.weather || ''],
           ['Temperature', coverPInfo.temperature || ''],
           ['Ground / Soil', coverPInfo.groundConditions || ''],
-          ['Standards of Practice', coverPInfo.standardsOfPractice || 'ASHI'],
+          isPrelistingReport ? ['Report Type', 'Pre-Listing Defects List'] : ['Standards of Practice', coverPInfo.standardsOfPractice || 'ASHI'],
           ['County', coverPInfo.county || ''],
           ['MLS #', coverPInfo.mls || '']
         ].filter(([, v]) => String(v || '').trim());
@@ -11137,6 +11137,7 @@
       }
 
       // Otherwise viewing Main Home Inspection Report + Objection Builder (Unified Option 2)
+      const isPrelistingReport = !!(insp && insp.propertyInfo && insp.propertyInfo.reportType === 'prelisting');
       const isBuyerView = protoState.role === 'buyer';
       const summaryCount = protoState.findings.filter(f => f.isSummary).length;
       const totalCount = protoState.findings.length;
@@ -11231,7 +11232,7 @@
                   </div>
                   <h4 class="text-base font-extrabold text-slate-900">${f.title}</h4>
                 </div>
-                ${(f.isSummary || f.narrative) && protoState.role !== 'third_party' ? `
+                ${(f.isSummary || f.narrative) && protoState.role !== 'third_party' && !isPrelistingReport ? `
                   <button type="button" id="dhiObjBtn-${f.id}" onclick="protoToggleObjection('${f.id}')" class="no-print px-3 py-1.5 rounded-xl text-xs font-bold transition ${inObj ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-200'}">
                     ${inObj ? (isBuyerView ? '✓ Requested for Agent Review' : '✓ On Objection List') : (isBuyerView ? '+ Request for Objection List' : '+ Add to Objection List')}
                   </button>
@@ -11371,7 +11372,7 @@
         <div id="dhiReportCoverPage" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="px-5 py-3 bg-davis-navy text-white flex flex-wrap items-center justify-between gap-2">
             <div>
-              <div class="text-[10px] font-bold uppercase tracking-widest text-sky-300">Home Inspection Report</div>
+              <div class="text-[10px] font-bold uppercase tracking-widest text-sky-300">${isPrelistingReport ? 'Pre-Listing Defects &amp; Observations List' : 'Home Inspection Report'}</div>
               <div class="text-base font-extrabold tracking-tight">Davis Home Inspections, LLC${protoState.hideReportCover ? ' &bull; ' + escapeHtml(insp.address) : ''}</div>
             </div>
             <div class="flex items-center gap-3 text-[11px] text-sky-100">
@@ -11405,7 +11406,16 @@
         </div>
       `;
 
-      const commentKeyHTML = `
+      const commentKeyHTML = isPrelistingReport ? `
+        <div id="dhiCommentKeyCard" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
+            <span class="text-xs font-extrabold text-slate-800">Pre-Listing Defects &amp; Observations Overview</span>
+          </div>
+          <div class="px-4 py-3 text-[11px] text-slate-600 leading-relaxed">
+            This concise visual defects list highlights notable conditions observed during a pre-listing walk-through to help prepare the property for market. It is not a full ASHI home inspection report and does not constitute a warranty or guarantee of future performance.
+          </div>
+        </div>
+      ` : `
         <div id="dhiCommentKeyCard" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-2">
@@ -11500,7 +11510,7 @@
                   : (sectionsHTML || ((protoState.findings || []).length ? '<div class="bg-white rounded-2xl border border-slate-200 p-8 text-center text-sm text-slate-500">No summary items in this section — switch to All Report Items or choose All Sections above.</div>' : '<div class="bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">No main home inspection report has been uploaded for this property yet.</div>')))}
           </div>
 
-          <div id="objectionListPanel" class="${protoState.role === 'third_party' ? 'hidden' : ''} scroll-mt-32 sm:scroll-mt-28 bg-emerald-50 rounded-2xl border-2 border-emerald-200 shadow-sm p-5 space-y-4 mt-6 no-print">
+          <div id="objectionListPanel" class="${(protoState.role === 'third_party' || isPrelistingReport) ? 'hidden' : ''} scroll-mt-32 sm:scroll-mt-28 bg-emerald-50 rounded-2xl border-2 border-emerald-200 shadow-sm p-5 space-y-4 mt-6 no-print">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <span class="text-[11px] font-bold uppercase tracking-wider text-sky-700">AI-Rewritten for CREC NTC43</span>
