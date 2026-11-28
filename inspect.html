@@ -164,6 +164,41 @@
   <div id="toastBox" title="Click to dismiss" class="hidden fixed bottom-4 right-4 z-[9999] max-w-sm bg-slate-900 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-slate-700 cursor-pointer select-none"></div>
   <input id="dhiPhotoFolderInput" type="file" webkitdirectory directory multiple class="hidden" onchange="handlePhotoTrayInputChange(this)" />
   <input id="dhiPhotoFilesInput" type="file" accept="image/*" multiple class="hidden" onchange="handlePhotoTrayInputChange(this)" />
+  <div id="dhiGooglePhotosModal" class="hidden fixed inset-0 z-[9990] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden">
+      <div class="bg-davis-navy text-white px-5 py-4 flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-widest text-sky-300">Photo Tray Import</div>
+          <h3 class="text-base font-extrabold">Google Photos</h3>
+        </div>
+        <button type="button" onclick="closeGooglePhotosModal()" class="text-white/80 hover:text-white text-lg font-bold px-2">&times;</button>
+      </div>
+      <div class="p-5 space-y-4">
+        <div id="dhiGpSetupView" class="hidden space-y-3">
+          <p class="text-xs text-slate-600 leading-relaxed">Enter your Google Cloud OAuth 2.0 Web Client ID once to enable the Google Photos Picker. Make sure the <strong>Photos Picker API</strong> is enabled in Google Cloud and <code>https://www.davis-inspections.com</code> is in Authorized JavaScript Origins.</p>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-700 mb-1">Google OAuth Web Client ID</label>
+            <input id="dhiGpClientIdInput" type="text" placeholder="1234567890-xxxx.apps.googleusercontent.com" class="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs" />
+          </div>
+          <div class="flex items-center justify-end gap-2 pt-1">
+            <button type="button" onclick="closeGooglePhotosModal()" class="px-3 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold">Cancel</button>
+            <button type="button" onclick="saveGooglePhotosClientId()" class="px-4 py-2 rounded-lg bg-davis-navy text-white text-xs font-bold">Save &amp; Continue</button>
+          </div>
+        </div>
+        <div id="dhiGpSessionView" class="hidden space-y-3">
+          <p id="dhiGpStatusText" class="text-xs text-slate-700 leading-relaxed">Starting Google Photos Picker...</p>
+          <div id="dhiGpOpenWrap" class="hidden pt-1">
+            <button id="dhiGpOpenBtn" type="button" onclick="openGooglePhotosPopup()" class="w-full py-2.5 rounded-xl bg-davis-navy hover:bg-davis-dark text-white text-xs font-bold shadow">Open Google Photos</button>
+            <p class="text-[11px] text-slate-500 mt-2">Your newest photos appear at the top. Click the first photo, Shift-click the last photo, then click <strong>Done</strong>.</p>
+          </div>
+          <div class="flex items-center justify-between pt-2 border-t border-slate-200">
+            <button type="button" onclick="showGooglePhotosSetup()" class="text-[11px] font-semibold text-slate-500 hover:text-davis-navy underline">Change Client ID</button>
+            <button type="button" onclick="closeGooglePhotosModal()" class="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-xs font-bold">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- AI Global Instructions Modal -->
   <div id="instructionsModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -719,7 +754,7 @@ For every item:
         try {
           const cloudPromise = Promise.all([
             sb.from('inspections').select('*').order('created_at', { ascending: false }),
-            sb.from('app_settings').select('*').in('key', ['ai_narrative_instructions', 'ai_prelisting_instructions', 'ai_model', 'sm_option_usage_counts', 'sm_template_version']),
+            sb.from('app_settings').select('*').in('key', ['ai_narrative_instructions', 'ai_prelisting_instructions', 'ai_model', 'sm_option_usage_counts', 'sm_template_version', 'google_photos_client_id']),
             sb.from('comment_library').select('*').order('section_name', { ascending: true }),
             sb.from('inspection_templates').select('*').order('name', { ascending: true })
           ]);
@@ -748,6 +783,7 @@ For every item:
               if (row.key === 'ai_narrative_instructions' && row.value) state.globalInstructions = row.value;
               if (row.key === 'ai_prelisting_instructions' && row.value) state.prelistingInstructions = row.value;
               if (row.key === 'ai_model' && row.value) state.aiModel = /^gemini-[12]\./i.test(row.value) ? 'gemini-4-hydrogen' : row.value;
+              if (row.key === 'google_photos_client_id' && row.value) { state.googlePhotosClientId = String(row.value).trim(); try { localStorage.setItem('dhi_google_photos_client_id', state.googlePhotosClientId); } catch (_e) {} }
               if (row.key === 'sm_option_usage_counts' && row.value) {
                 try {
                   const parsed = JSON.parse(row.value);
@@ -1657,6 +1693,294 @@ For every item:
         await loadFilesIntoPhotoTray(collected);
       } else {
         await loadFilesIntoPhotoTray(Array.from((e.dataTransfer && e.dataTransfer.files) || []));
+      }
+    }
+
+    // =========================================================================
+    // GOOGLE PHOTOS PICKER API INTEGRATION
+    // =========================================================================
+    const dhiGpState = {
+      accessToken: '',
+      tokenExpiresAt: 0,
+      sessionId: '',
+      pickerUri: '',
+      pollTimer: null,
+      cancelled: false,
+      popupRef: null
+    };
+
+    function getSavedGooglePhotosClientId() {
+      if (state.googlePhotosClientId) return state.googlePhotosClientId;
+      try { return (localStorage.getItem('dhi_google_photos_client_id') || '').trim(); } catch (_e) { return ''; }
+    }
+
+    function showGooglePhotosSetup() {
+      stopGooglePhotosPolling();
+      const modal = document.getElementById('dhiGooglePhotosModal');
+      const setup = document.getElementById('dhiGpSetupView');
+      const sess = document.getElementById('dhiGpSessionView');
+      const inp = document.getElementById('dhiGpClientIdInput');
+      if (inp) inp.value = getSavedGooglePhotosClientId();
+      if (setup) setup.classList.remove('hidden');
+      if (sess) sess.classList.add('hidden');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    async function saveGooglePhotosClientId() {
+      const inp = document.getElementById('dhiGpClientIdInput');
+      const val = (inp && inp.value || '').trim();
+      if (!val || !val.includes('.apps.googleusercontent.com')) {
+        toast('Please enter a valid Google OAuth Web Client ID ending in .apps.googleusercontent.com.');
+        return;
+      }
+      state.googlePhotosClientId = val;
+      try { localStorage.setItem('dhi_google_photos_client_id', val); } catch (_e) {}
+      if (navigator.onLine) {
+        try {
+          await sb.from('app_settings').upsert({ key: 'google_photos_client_id', value: val, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+        } catch (_e) {}
+      }
+      openGooglePhotosPicker();
+    }
+
+    function stopGooglePhotosPolling() {
+      if (dhiGpState.pollTimer) {
+        clearTimeout(dhiGpState.pollTimer);
+        dhiGpState.pollTimer = null;
+      }
+    }
+
+    function closeGooglePhotosModal() {
+      dhiGpState.cancelled = true;
+      stopGooglePhotosPolling();
+      if (dhiGpState.sessionId && dhiGpState.accessToken) {
+        const sid = dhiGpState.sessionId;
+        const tok = dhiGpState.accessToken;
+        sb.functions.invoke('google-photos-proxy', { body: { action: 'delete_session', googleAccessToken: tok, sessionId: sid } }).catch(() => {});
+      }
+      dhiGpState.sessionId = '';
+      dhiGpState.pickerUri = '';
+      const modal = document.getElementById('dhiGooglePhotosModal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function setGooglePhotosStatus(msg, showOpenBtn) {
+      const st = document.getElementById('dhiGpStatusText');
+      const ow = document.getElementById('dhiGpOpenWrap');
+      if (st) st.textContent = msg;
+      if (ow) ow.classList.toggle('hidden', !showOpenBtn);
+    }
+
+    function openGooglePhotosPopup() {
+      if (!dhiGpState.pickerUri) return;
+      const targetUrl = dhiGpState.pickerUri + (dhiGpState.pickerUri.includes('/autoclose') ? '' : '/autoclose');
+      dhiGpState.popupRef = window.open(targetUrl, 'dhiGooglePhotosPicker', 'width=1050,height=760,noopener');
+    }
+
+    function loadGoogleIdentityScript() {
+      return new Promise((resolve, reject) => {
+        if (window.google && window.google.accounts && window.google.accounts.oauth2) { resolve(); return; }
+        const existing = document.getElementById('dhiGsiScript');
+        if (existing) {
+          existing.addEventListener('load', () => resolve());
+          existing.addEventListener('error', () => reject(new Error('Could not load Google Sign-In script.')));
+          return;
+        }
+        const s = document.createElement('script');
+        s.id = 'dhiGsiScript';
+        s.src = 'https://accounts.google.com/gsi/client';
+        s.async = true;
+        s.defer = true;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('Could not load Google Sign-In script.'));
+        document.head.appendChild(s);
+      });
+    }
+
+    function requestGooglePhotosToken(clientId) {
+      return new Promise((resolve, reject) => {
+        if (dhiGpState.accessToken && Date.now() < dhiGpState.tokenExpiresAt) {
+          resolve(dhiGpState.accessToken);
+          return;
+        }
+        try {
+          const client = window.google.accounts.oauth2.initTokenClient({
+            client_id: clientId,
+            scope: 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly',
+            callback: (resp) => {
+              if (!resp || resp.error || !resp.access_token) {
+                reject(new Error((resp && (resp.error_description || resp.error)) || 'Google authorization was cancelled.'));
+                return;
+              }
+              dhiGpState.accessToken = resp.access_token;
+              const expSec = Number(resp.expires_in || 3000);
+              dhiGpState.tokenExpiresAt = Date.now() + Math.max(300, expSec - 120) * 1000;
+              resolve(resp.access_token);
+            },
+            error_callback: (err) => {
+              reject(new Error((err && err.message) || 'Google sign-in popup was closed.'));
+            }
+          });
+          client.requestAccessToken({ prompt: '' });
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
+
+    function compressDataUrlToTrayJpeg(dataUrl, maxDim = 1600, quality = 0.82) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w >= h) { h = Math.round(h * (maxDim / w)); w = maxDim; }
+            else { w = Math.round(w * (maxDim / h)); h = maxDim; }
+          }
+          const c = document.createElement('canvas');
+          c.width = w;
+          c.height = h;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(c.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+      });
+    }
+
+    async function openGooglePhotosPicker() {
+      if (!navigator.onLine) {
+        toast('Google Photos import requires an internet connection.');
+        return;
+      }
+      const clientId = getSavedGooglePhotosClientId();
+      if (!clientId) {
+        showGooglePhotosSetup();
+        return;
+      }
+
+      dhiGpState.cancelled = false;
+      stopGooglePhotosPolling();
+      const modal = document.getElementById('dhiGooglePhotosModal');
+      const setup = document.getElementById('dhiGpSetupView');
+      const sess = document.getElementById('dhiGpSessionView');
+      if (setup) setup.classList.add('hidden');
+      if (sess) sess.classList.remove('hidden');
+      if (modal) modal.classList.remove('hidden');
+      setGooglePhotosStatus('Connecting to Google Photos...', false);
+
+      try {
+        await loadGoogleIdentityScript();
+        const token = await requestGooglePhotosToken(clientId);
+        if (dhiGpState.cancelled) return;
+
+        setGooglePhotosStatus('Creating Google Photos session...', false);
+        const { data, error } = await sb.functions.invoke('google-photos-proxy', {
+          body: { action: 'create_session', googleAccessToken: token }
+        });
+        if (error || !data || !data.id || !data.pickerUri) {
+          throw new Error((data && data.error) || (error && error.message) || 'Could not start Google Photos Picker session. Make sure google-photos-proxy is deployed.');
+        }
+        if (dhiGpState.cancelled) return;
+
+        dhiGpState.sessionId = data.id;
+        dhiGpState.pickerUri = data.pickerUri;
+        setGooglePhotosStatus('Ready! Click Open Google Photos below, select your photos, and click Done.', true);
+        openGooglePhotosPopup();
+
+        const pollMs = Math.max(2500, Math.min(8000, (parseFloat(String(data.pollingConfig?.pollInterval || '3')) || 3) * 1000));
+        const pollOnce = async () => {
+          if (dhiGpState.cancelled || !dhiGpState.sessionId) return;
+          try {
+            const pRes = await sb.functions.invoke('google-photos-proxy', {
+              body: { action: 'poll_session', googleAccessToken: token, sessionId: dhiGpState.sessionId }
+            });
+            if (dhiGpState.cancelled) return;
+            if (pRes.data && pRes.data.mediaItemsSet) {
+              await importPickedGooglePhotos(token, dhiGpState.sessionId);
+              return;
+            }
+          } catch (_e) {}
+          if (!dhiGpState.cancelled) {
+            dhiGpState.pollTimer = setTimeout(pollOnce, pollMs);
+          }
+        };
+        dhiGpState.pollTimer = setTimeout(pollOnce, pollMs);
+      } catch (err) {
+        if (!dhiGpState.cancelled) {
+          setGooglePhotosStatus('Error: ' + (err && err.message ? err.message : String(err)), false);
+        }
+      }
+    }
+
+    async function importPickedGooglePhotos(token, sessionId) {
+      stopGooglePhotosPolling();
+      setGooglePhotosStatus('Fetching your selected photos from Google Photos...', false);
+      try {
+        const allItems = [];
+        let pageToken = '';
+        do {
+          const { data, error } = await sb.functions.invoke('google-photos-proxy', {
+            body: { action: 'list_items', googleAccessToken: token, sessionId, pageToken }
+          });
+          if (error || !data) throw new Error((error && error.message) || 'Failed to list selected Google Photos.');
+          if (Array.isArray(data.mediaItems)) allItems.push(...data.mediaItems);
+          pageToken = data.nextPageToken || '';
+        } while (pageToken && !dhiGpState.cancelled);
+
+        const photoItems = allItems.filter(it => {
+          const mf = it && it.mediaFile;
+          return mf && mf.baseUrl && (it.type === 'PHOTO' || String(mf.mimeType || '').startsWith('image/'));
+        });
+        if (!photoItems.length) {
+          closeGooglePhotosModal();
+          toast('No photos were selected from Google Photos.');
+          return;
+        }
+
+        let loaded = 0;
+        const batchSize = 4;
+        for (let i = 0; i < photoItems.length; i += batchSize) {
+          if (dhiGpState.cancelled) break;
+          const batch = photoItems.slice(i, i + batchSize);
+          setGooglePhotosStatus(`Downloading photos (${Math.min(i + batch.length, photoItems.length)} of ${photoItems.length})...`, false);
+          const results = await Promise.all(batch.map(async (it) => {
+            try {
+              const { data } = await sb.functions.invoke('google-photos-proxy', {
+                body: { action: 'fetch_image', googleAccessToken: token, baseUrl: it.mediaFile.baseUrl }
+              });
+              if (!data || !data.dataUrl) return null;
+              const compressed = await compressDataUrlToTrayJpeg(data.dataUrl, 1600, 0.82);
+              return {
+                id: 'tray-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                name: it.mediaFile.filename || ('google-photo-' + (it.id || '').slice(0, 6) + '.jpg'),
+                dataUrl: compressed,
+                used: false
+              };
+            } catch (_e) {
+              return null;
+            }
+          }));
+          results.filter(Boolean).forEach(entry => {
+            state.photoTray.push(entry);
+            loaded++;
+          });
+        }
+
+        sb.functions.invoke('google-photos-proxy', {
+          body: { action: 'delete_session', googleAccessToken: token, sessionId }
+        }).catch(() => {});
+        dhiGpState.sessionId = '';
+        dhiGpState.pickerUri = '';
+        const modal = document.getElementById('dhiGooglePhotosModal');
+        if (modal) modal.classList.add('hidden');
+        state.showPhotoTray = true;
+        render();
+        toast(`Loaded ${loaded} photo(s) from Google Photos into Photo Tray.`);
+      } catch (err) {
+        setGooglePhotosStatus('Import error: ' + (err && err.message ? err.message : String(err)), false);
       }
     }
 
@@ -5381,6 +5705,7 @@ For every item:
               </div>
               <button type="button" onclick="openPhotoFolderPicker(true)" class="px-2.5 py-1.5 rounded-lg bg-davis-navy text-white text-[11px] font-bold">Load folder</button>
               <button type="button" onclick="openPhotoFolderPicker(false)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-[11px] font-bold">+ Files</button>
+              <button type="button" onclick="openGooglePhotosPicker()" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-[11px] font-bold hover:border-davis-navy">Google Photos</button>
             </div>
           </div>
           <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(${szCfg.min}px, 1fr)); gap: 0.625rem;" class="max-h-[78vh] overflow-y-auto pr-1">
@@ -6290,6 +6615,7 @@ For every item:
                     </div>
                     <button type="button" onclick="openPhotoFolderPicker(true)" class="px-2.5 py-1.5 rounded-lg bg-davis-navy text-white text-[11px] font-bold">Load folder</button>
                     <button type="button" onclick="openPhotoFolderPicker(false)" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-[11px] font-bold">+ Files</button>
+              <button type="button" onclick="openGooglePhotosPicker()" class="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 text-[11px] font-bold hover:border-davis-navy">Google Photos</button>
                   </div>
                 </div>
                 <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(${szCfg.min}px, 1fr)); gap: 0.625rem;" class="max-h-[78vh] overflow-y-auto pr-1">
