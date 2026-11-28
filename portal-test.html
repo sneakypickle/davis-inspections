@@ -240,19 +240,50 @@
 </head>
 <body class="min-h-screen flex flex-col">
   <div id="dhiInstantAuthSplash" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(248,250,252,0.97);align-items:center;justify-content:center;padding:16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-    <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,0.12);padding:32px 28px;text-align:center;max-width:340px;width:100%;">
-      <div style="width:40px;height:40px;margin:0 auto 14px auto;border-radius:50%;border:4px solid #e2e8f0;border-top-color:#004677;animation:dhiSplashSpin 0.8s linear infinite;"></div>
-      <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px;">Signing you in...</div>
-      <div style="font-size:12px;color:#64748b;line-height:1.5;">Verifying your link and loading your inspection portal. Please wait a moment.</div>
+    <div id="dhiSplashCard" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 10px 30px rgba(15,23,42,0.12);padding:32px 28px;text-align:center;max-width:340px;width:100%;">
+      <div id="dhiSplashSpinner" style="width:40px;height:40px;margin:0 auto 14px auto;border-radius:50%;border:4px solid #e2e8f0;border-top-color:#004677;animation:dhiSplashSpin 0.8s linear infinite;"></div>
+      <div id="dhiSplashTitle" style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:6px;">Signing you in...</div>
+      <div id="dhiSplashSub" style="font-size:12px;color:#64748b;line-height:1.5;">Verifying your link and loading your inspection portal. Please wait a moment.</div>
     </div>
     <style>@keyframes dhiSplashSpin{to{transform:rotate(360deg);}}</style>
   </div>
   <script>
     (function(){
       var s = window.location.search || '', h = window.location.hash || '';
-      if (s.indexOf('token_hash=') !== -1 || s.indexOf('code=') !== -1 || h.indexOf('access_token=') !== -1) {
+      var isAuthCallback = s.indexOf('token_hash=') !== -1 || s.indexOf('code=') !== -1 || h.indexOf('access_token=') !== -1;
+      var isPortalView = s.indexOf('view=portal') !== -1;
+      var savedRaw = '';
+      try { savedRaw = localStorage.getItem('sb-uzelxunzussqmxrzeyke-auth-token') || ''; } catch (_e) {}
+      var hasSavedSession = !!(savedRaw && savedRaw.indexOf('access_token') !== -1);
+      if (isAuthCallback || (isPortalView && hasSavedSession)) {
         var el = document.getElementById('dhiInstantAuthSplash');
-        if (el) el.style.display = 'flex';
+        if (el) {
+          if (!isAuthCallback) {
+            var tEl = document.getElementById('dhiSplashTitle');
+            var sEl = document.getElementById('dhiSplashSub');
+            if (tEl) tEl.textContent = 'Loading your dashboard...';
+            if (sEl) sEl.textContent = 'Restoring your session and loading your inspections.';
+          }
+          var isAdminSaved = savedRaw.toLowerCase().indexOf('matt@davis-inspections.com') !== -1;
+          var adminDarkPref = null;
+          try { adminDarkPref = localStorage.getItem('dhi_admin_dark'); } catch (_e) {}
+          if (isAdminSaved && adminDarkPref !== '0' && adminDarkPref !== 'false') {
+            el.style.background = 'rgba(15,23,42,0.98)';
+            var card = document.getElementById('dhiSplashCard');
+            var spn = document.getElementById('dhiSplashSpinner');
+            var t2 = document.getElementById('dhiSplashTitle');
+            var s2 = document.getElementById('dhiSplashSub');
+            if (card) { card.style.background = '#1e293b'; card.style.borderColor = '#334155'; }
+            if (spn) { spn.style.borderColor = '#334155'; spn.style.borderTopColor = '#38bdf8'; }
+            if (t2) t2.style.color = '#f8fafc';
+            if (s2) s2.style.color = '#94a3b8';
+          }
+          el.style.display = 'flex';
+          setTimeout(function(){
+            var cur = document.getElementById('dhiInstantAuthSplash');
+            if (cur && cur.style.display !== 'none') cur.style.display = 'none';
+          }, 5500);
+        }
       }
     })();
   </script>
@@ -5063,22 +5094,86 @@
       } catch (_e) {}
     }
 
-    async function protoMarkInspectionPaidManual(inspId) {
+    const dhiMarkPaidState = { inspId: null, method: 'Check' };
+
+    function dhiSelectMarkPaidMethod(method) {
+      dhiMarkPaidState.method = method;
+      document.querySelectorAll('.dhi-mp-btn').forEach(btn => {
+        const active = btn.dataset.method === method;
+        btn.className = 'dhi-mp-btn px-3 py-2 rounded-xl border text-xs font-bold transition ' + (active
+          ? 'bg-davis-navy text-white border-davis-navy shadow-sm'
+          : 'bg-white text-slate-700 border-slate-300 hover:border-davis-navy');
+      });
+      const customWrap = document.getElementById('dhiMarkPaidCustomWrap');
+      if (customWrap) customWrap.classList.toggle('hidden', method !== 'Other');
+      const refLabel = document.getElementById('dhiMarkPaidRefLabel');
+      if (refLabel) {
+        refLabel.textContent = method === 'Check' ? 'Check # (optional)' : 'Reference / Note (optional)';
+      }
+    }
+
+    function protoMarkInspectionPaidManual(inspId) {
       const insp = (protoState.inspections || []).find(i => i.id === inspId);
       if (!insp) return;
-      const method = prompt('Mark this inspection as Paid manually? Enter payment method (e.g., Check, Cash, Venmo, Zelle):', 'Check');
-      if (method === null) return;
-      const cleanMethod = (method || 'Manual').trim();
-      const paidAt = new Date().toISOString();
-      if (dhiIsLiveSession() && inspId !== 'insp-demo') {
-        const { error } = await dhiSupabase.from('inspections').update({ paid: true, paid_at: paidAt }).eq('id', inspId);
-        if (error) { protoToastMsg('Could not mark paid: ' + error.message); return; }
-        dhiFireActivityEvent(inspId, 'invoice_paid', 'Marked paid manually by Admin (' + cleanMethod + ') — $' + protoTotal(insp).toFixed(2));
+      dhiMarkPaidState.inspId = inspId;
+      const addrEl = document.getElementById('dhiMarkPaidAddr');
+      const amtEl = document.getElementById('dhiMarkPaidAmt');
+      const customInp = document.getElementById('dhiMarkPaidCustomInput');
+      const refInp = document.getElementById('dhiMarkPaidRefInput');
+      if (addrEl) addrEl.textContent = insp.address || 'Inspection';
+      if (amtEl) amtEl.textContent = '$' + protoTotal(insp).toFixed(2);
+      if (customInp) customInp.value = '';
+      if (refInp) refInp.value = '';
+      dhiSelectMarkPaidMethod('Check');
+      document.getElementById('dhiMarkPaidModal')?.classList.remove('hidden');
+    }
+
+    function dhiCloseMarkPaidModal() {
+      dhiMarkPaidState.inspId = null;
+      document.getElementById('dhiMarkPaidModal')?.classList.add('hidden');
+    }
+
+    async function dhiConfirmMarkPaidModal() {
+      const inspId = dhiMarkPaidState.inspId;
+      const insp = (protoState.inspections || []).find(i => i.id === inspId);
+      if (!insp) { dhiCloseMarkPaidModal(); return; }
+      let cleanMethod = dhiMarkPaidState.method || 'Check';
+      if (cleanMethod === 'Other') {
+        const customVal = (document.getElementById('dhiMarkPaidCustomInput')?.value || '').trim();
+        if (!customVal) {
+          protoToastMsg('Please enter the payment method.');
+          return;
+        }
+        cleanMethod = customVal;
       }
-      insp.paid = true;
-      insp.paidAt = paidAt;
-      renderProtoPortal();
-      protoToastMsg('Marked as Paid (' + cleanMethod + '). Report is now unlocked.');
+      const refVal = (document.getElementById('dhiMarkPaidRefInput')?.value || '').trim();
+      const paidAt = new Date().toISOString();
+      const nextPropInfo = {
+        ...((insp.propertyInfo && typeof insp.propertyInfo === 'object') ? insp.propertyInfo : {}),
+        manualPaymentMethod: cleanMethod,
+        manualPaymentRef: refVal
+      };
+      const btn = document.getElementById('dhiMarkPaidConfirmBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+      try {
+        if (dhiIsLiveSession() && inspId !== 'insp-demo') {
+          const { error } = await dhiSupabase
+            .from('inspections')
+            .update({ paid: true, paid_at: paidAt, property_info: nextPropInfo })
+            .eq('id', inspId);
+          if (error) { protoToastMsg('Could not mark paid: ' + error.message); return; }
+          const refNote = refVal ? (' [' + refVal + ']') : '';
+          dhiFireActivityEvent(inspId, 'invoice_paid', 'Marked paid manually by Admin (' + cleanMethod + refNote + ') - $' + protoTotal(insp).toFixed(2));
+        }
+        insp.paid = true;
+        insp.paidAt = paidAt;
+        insp.propertyInfo = nextPropInfo;
+        dhiCloseMarkPaidModal();
+        renderProtoPortal();
+        protoToastMsg('Marked as Paid (' + cleanMethod + '). Report is now unlocked.');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Confirm Paid'; }
+      }
     }
 
     let dhiEditingInspId = null;
@@ -5742,11 +5837,14 @@
       const cardNames = { VI: 'Visa', MC: 'Mastercard', AX: 'American Express', AMEX: 'American Express', DI: 'Discover', DS: 'Discover' };
       const rawCardCode = String(pInfo.helcimCardType || '').toUpperCase();
       const cardLabel = cardNames[rawCardCode] || (rawCardCode || 'Credit / Debit Card');
+      const manualMethod = String(pInfo.manualPaymentMethod || '').trim();
+      const manualRef = String(pInfo.manualPaymentRef || '').trim();
       const cardMethodDisplay = pInfo.helcimCardLast4
         ? `${cardLabel} ending in ${pInfo.helcimCardLast4}`
-        : (pInfo.helcimTransactionId ? cardLabel : (insp.paymentMethod || 'Paid Online'));
+        : (pInfo.helcimTransactionId ? cardLabel : (manualMethod || insp.paymentMethod || 'Paid'));
       const payProofRows = [];
       if (cardMethodDisplay) payProofRows.push(`<div><strong>Payment Method:</strong> ${escapeHtml(cardMethodDisplay)}</div>`);
+      if (manualRef) payProofRows.push(`<div><strong>${manualMethod === 'Check' ? 'Check #' : 'Reference'}:</strong> ${escapeHtml(manualRef)}</div>`);
       if (pInfo.helcimTransactionId) payProofRows.push(`<div><strong>Transaction ID:</strong> #${escapeHtml(pInfo.helcimTransactionId)}</div>`);
       if (pInfo.helcimApprovalCode) payProofRows.push(`<div><strong>Approval Code:</strong> ${escapeHtml(pInfo.helcimApprovalCode)}</div>`);
       if (pInfo.helcimInvoiceNumber) payProofRows.push(`<div><strong>Invoice #:</strong> ${escapeHtml(pInfo.helcimInvoiceNumber)}</div>`);
@@ -5867,11 +5965,12 @@
       const realInspections = protoState.inspections.filter(i => !i.isDemo);
       const scheduledInspections = realInspections.filter(i => !i.reportNotified);
       const releasedReports = realInspections.filter(i => i.reportNotified);
-      const newReqCount = (protoState.requests || []).filter(r => r.status === 'New').length;
+      const activeRequests = (protoState.requests || []).filter(r => String(r.status || '').toLowerCase() !== 'scheduled');
+      const newReqCount = activeRequests.filter(r => r.status === 'New').length;
       const agentsList = protoState.agents || [];
       const customersList = protoState.customers || [];
 
-      const reqTotal = (protoState.requests || []).length;
+      const reqTotal = activeRequests.length;
       const renderAdminTabBtn = (t) => {
         const active = protoState.adminTab === t.id;
         const cls = active
@@ -6197,7 +6296,7 @@
           </div>
         `;
       } else if (protoState.adminTab === 'requests') {
-        const sortedReqs = (protoState.requests || []).slice().sort((a, b) => {
+        const sortedReqs = activeRequests.slice().sort((a, b) => {
           const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return ta - tb; // Oldest received first
@@ -13112,6 +13211,9 @@
 
       const hasAuthRedirect = window.location.hash.includes('access_token=') || window.location.search.includes('code=') || window.location.search.includes('token_hash=') || window.location.search.includes('view=portal');
       dhiSupabase.auth.onAuthStateChange((event, session) => {
+        if (!session && (event === 'INITIAL_SESSION' || event === 'SIGNED_OUT')) {
+          (function(){ var sp = document.getElementById('dhiInstantAuthSplash'); if (sp) sp.style.display = 'none'; })();
+        }
         if (event === 'SIGNED_OUT') {
           protoState.authUser = null;
           protoState.agentProfile = null;
@@ -14329,6 +14431,47 @@
         <h3 id="dhiPublicQuoteTitle" class="text-lg font-extrabold mt-0.5">Loading Quote Details...</h3>
       </div>
       <div id="dhiPublicQuoteBody" class="p-6 space-y-4 text-sm text-slate-700"></div>
+    </div>
+  </div>
+
+  <!-- Admin Manual Mark Paid Modal -->
+  <div id="dhiMarkPaidModal" class="hidden fixed inset-0 z-[9990] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden">
+      <div class="bg-davis-navy text-white px-5 py-4 flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-widest text-sky-300">Manual Payment</div>
+          <h3 class="text-base font-extrabold">Mark Inspection Paid</h3>
+        </div>
+        <button type="button" onclick="dhiCloseMarkPaidModal()" class="text-white/80 hover:text-white text-lg font-bold px-2">&times;</button>
+      </div>
+      <div class="p-5 space-y-4">
+        <div class="rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs">
+          <span id="dhiMarkPaidAddr" class="font-bold text-slate-800 truncate"></span>
+          <span id="dhiMarkPaidAmt" class="font-extrabold text-davis-navy shrink-0"></span>
+        </div>
+        <div>
+          <div class="text-xs font-bold text-slate-700 mb-2">How was this paid?</div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" data-method="Check" onclick="dhiSelectMarkPaidMethod('Check')" class="dhi-mp-btn px-3 py-2 rounded-xl border text-xs font-bold transition">Check</button>
+            <button type="button" data-method="Cash" onclick="dhiSelectMarkPaidMethod('Cash')" class="dhi-mp-btn px-3 py-2 rounded-xl border text-xs font-bold transition">Cash</button>
+            <button type="button" data-method="Zelle" onclick="dhiSelectMarkPaidMethod('Zelle')" class="dhi-mp-btn px-3 py-2 rounded-xl border text-xs font-bold transition">Zelle</button>
+            <button type="button" data-method="Venmo" onclick="dhiSelectMarkPaidMethod('Venmo')" class="dhi-mp-btn px-3 py-2 rounded-xl border text-xs font-bold transition">Venmo</button>
+            <button type="button" data-method="Other" onclick="dhiSelectMarkPaidMethod('Other')" class="dhi-mp-btn px-3 py-2 rounded-xl border text-xs font-bold transition">Other</button>
+          </div>
+        </div>
+        <div id="dhiMarkPaidCustomWrap" class="hidden">
+          <label for="dhiMarkPaidCustomInput" class="block text-xs font-bold text-slate-700 mb-1">Payment Method</label>
+          <input id="dhiMarkPaidCustomInput" type="text" placeholder="e.g., Wire Transfer, Title Company" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs" />
+        </div>
+        <div>
+          <label id="dhiMarkPaidRefLabel" for="dhiMarkPaidRefInput" class="block text-xs font-bold text-slate-700 mb-1">Check # (optional)</label>
+          <input id="dhiMarkPaidRefInput" type="text" placeholder="e.g., 1042" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs" />
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+          <button type="button" onclick="dhiCloseMarkPaidModal()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold">Cancel</button>
+          <button id="dhiMarkPaidConfirmBtn" type="button" onclick="dhiConfirmMarkPaidModal()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold shadow">Confirm Paid</button>
+        </div>
+      </div>
     </div>
   </div>
 
